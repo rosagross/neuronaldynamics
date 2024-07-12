@@ -70,7 +70,7 @@ class general_2D_system():
 
     def plot_phase(self, t, x_lim=[-5, 5], y_lim=[-5, 5], x_density=10, y_density=10, quiver_scale=2,
                    x_label=None, y_label=None, save_fig=False, fig_fname='2D_system_phase_space.png',
-                   plot_nullclines=True):
+                   plot_nullclines=True, get_equilibiria=True):
 
         if x_label == None:
             x_label = self.variables[0]
@@ -95,13 +95,13 @@ class general_2D_system():
                        angles='xy', scale=quiver_scale, color='k', alpha=0.5)
             plt.plot(sol[:, 0], sol[:, 1], color='k', alpha=0.5)
 
-        #########################################
+        ##########################################
         # optionally add nullclines and equilibira
-        #########################################
+        ##########################################
         if plot_nullclines:
             if len(self.nullclines) == 0:
 
-                self.get_nullclines()
+                self.get_nullclines_and_jacobian()
                 print(f'found nullclines: {self.nullclines}')
 
             x_length = x_lim[1] - x_lim[0]
@@ -125,6 +125,49 @@ class general_2D_system():
             plt.plot(xs, x_nullcline_values, 'orange', label=x_label + ' nullcline')
             plt.legend(loc='best')
 
+        if get_equilibiria:
+            if not plot_nullclines:
+                self.get_nullclines_and_jacobian()
+                print(f'found nullclines: {self.nullclines}')
+                x_length = x_lim[1] - x_lim[0]
+                xs = np.arange(x_lim[0], x_lim[1], x_length / 1000)
+                for _, pname in enumerate(self.parameters.keys()):
+                    exec(f"{pname} = self.parameters['{pname}']")
+                nullcline_dict = self.parameters.copy()
+                nullcline_dict[f'{self.variables[0]}'] = xs
+                x_nullcline_values = eval(f'{self.nullclines[0]}', nullcline_dict)
+                y_nullcline_values = eval(f'{self.nullclines[1]}', nullcline_dict)
+
+            # find crossings of nullclines
+            idx = np.argwhere(np.diff(np.sign(x_nullcline_values - y_nullcline_values))).flatten()
+            intersections = np.array([xs[idx], x_nullcline_values[idx]])
+
+            # stability analysis and equilibrium classification
+            n_intersect = intersections.shape[1]
+            intersect_stability = []
+
+            for _, pname in enumerate(self.parameters.keys()):
+                exec(f"{pname} = sy.symbols('{pname}')")
+
+            for i in range(n_intersect):
+                if type(self.Jacobian) == np.ndarray:
+                    local_jacobi = np.array(self.Jacobian, dtype=float)
+                else:
+                    local_jacobi = np.array(self.Jacobian(intersections[0, i], intersections[1, i]), dtype=float)
+
+                eigvals, eigvec = np.linalg.eig(local_jacobi)
+                stability = get_stability_2D(eigvals)
+                intersect_stability.append(stability)
+                if 'unstable' in stability:
+                    plt.scatter(intersections[0, i], intersections[1, i], s=20, facecolors='none', edgecolors='k')
+                elif 'stable' in stability:
+                    plt.scatter(intersections[0, i], intersections[1, i], s=20, c='k')
+                elif 'unknown' in stability:
+                    plt.scatter(intersections[0, i], intersections[1, i], s=20, c='k', marker='star')
+                else:
+                    plt.scatter(intersections[0, i], intersections[1, i], s=20, c='r', marker='square')
+
+
         plt.xlim(0.95*x_lim[0], 0.95*x_lim[1])
         plt.ylim(0.95*y_lim[0], 0.95*y_lim[1])
         plt.xlabel(x_label)
@@ -134,7 +177,7 @@ class general_2D_system():
         if save_fig:
             plt.savefig(fig_fname)
 
-    def get_nullclines(self):
+    def get_nullclines_and_jacobian(self):
 
         sympy_var_1, sympy_var_2 = sy.symbols(f'{self.variables[0]}, {self.variables[1]}')
 
@@ -146,4 +189,42 @@ class general_2D_system():
             warnings.warn(f'x_nullcline has multiple solutions for y: {x_nullcline}')
         y_expr = sy.parsing.sympy_parser.parse_expr(self.model[1], evaluate=False)
         y_nullcline = sy.solve(y_expr, sympy_var_2)
+
         self.nullclines = [str(x_nullcline[0]), str(y_nullcline[0])]
+
+        for _, pname in enumerate(self.parameters.keys()):
+            exec(f"{pname} = sy.symbols('{pname}')")
+
+        x_expr_x = sy.diff(x_expr, sympy_var_1)
+        x_expr_x = x_expr_x.subs(self.parameters)
+        x_expr_y = sy.diff(x_expr, sympy_var_2)
+        x_expr_y = x_expr_y.subs(self.parameters)
+        y_expr_x = sy.diff(y_expr, sympy_var_1)
+        y_expr_x = y_expr_x.subs(self.parameters)
+        y_expr_y = sy.diff(y_expr, sympy_var_2)
+        y_expr_y = y_expr_y.subs(self.parameters)
+
+        self.Jacobian = sy.Function('J')(sympy_var_1, sympy_var_2)
+        self.Jacobian = np.array([[x_expr_x, x_expr_y], [y_expr_x, y_expr_y]], dtype=float)
+
+def get_stability_2D(eigvals):
+    """function to test the stability of a 2D system by evaluating common cases of its eigenvalues """
+    stability = 'untested'
+    lambda1, lambda2 = eigvals
+    if lambda1.real == 0 or lambda2.real == 0:
+        stability = 'unknown (Eigenvalue zero)'
+    elif lambda1.imag == 0 and lambda1.imag == 0:
+        if lambda1 < 0 and lambda2 < 0:
+            stability = 'stable node'
+        elif lambda1 > 0 and lambda2 > 0:
+            stability = 'unstable node'
+    else:
+        if lambda1 < 0 and lambda2 < 0:
+            stability = 'stable spiral'
+        elif lambda1 > 0 and lambda2 > 0:
+            stability = 'unstable spiral'
+
+    if np.sign(lambda1.real) != np.sign(lambda2.real):
+        stability = 'unstable saddle node'
+
+    return stability
