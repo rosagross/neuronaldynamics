@@ -27,7 +27,6 @@ class general_2D_system():
         self.t = np.arange(0, 10, 0.01)
         self.solver = 'odeint'
         self.time_vals = None
-
         self.nullclines=[]
 
         if model_name != None:
@@ -69,8 +68,9 @@ class general_2D_system():
         if save_fig:
             plt.savefig(fig_fname)
 
-    def plot_phase(self, t, x_lim=[-5, 5], y_lim=[-5, 5], x_density=10, y_density=10, x_label=None, y_label=None,
-                   save_fig=False, fig_fname='2D_system_phase_space.png', plot_nullclines=True):
+    def plot_phase(self, t, x_lim=[-5, 5], y_lim=[-5, 5], x_density=10, y_density=10, quiver_scale=2,
+                   x_label=None, y_label=None, save_fig=False, fig_fname='2D_system_phase_space.png',
+                   plot_nullclines=True):
 
         if x_label == None:
             x_label = self.variables[0]
@@ -92,8 +92,8 @@ class general_2D_system():
             self.solve(x0=x0, t=t)
             sol = self.sol
             plt.quiver(sol[:-1, 0], sol[:-1, 1], sol[1:, 0] - sol[:-1, 0], sol[1:, 1] - sol[:-1, 1], scale_units='xy',
-                       angles='xy', scale=2, color='k', alpha=0.5)
-            plt.plot(sol[:, 0], sol[:, 1], color='k', alpha=0.4)
+                       angles='xy', scale=quiver_scale, color='k', alpha=0.5)
+            plt.plot(sol[:, 0], sol[:, 1], color='k', alpha=0.5)
 
         #########################################
         # optionally add nullclines and equilibira
