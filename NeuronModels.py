@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import sympy as sy
 from scipy.integrate import odeint
+from Utils import get_stability_2D
 import matplotlib.pyplot as plt
 
 class Test():
@@ -19,7 +20,7 @@ class Test():
 class general_2D_system():
     """ A class to investigate general 2D systems in terms of their dynamics """
 
-    def __init__(self, model_name=None,  model=None, variables=None, parameters=None, t=None, solver=None):
+    def __init__(self, model_name=None,  model=None, variables=None, parameters=None, t=None, solver=None, usetex=True):
         self.model_name = '2D_system'
         self.model = ['y', '-x']
         self.variables = ['x', 'y']
@@ -39,6 +40,8 @@ class general_2D_system():
             self.parameters = parameters
         if solver != None:
             self.solver = solver
+        if usetex:
+            plt.rcParams['text.usetex'] = True
 
 
     def system(self, u, t):
@@ -149,23 +152,25 @@ class general_2D_system():
             for _, pname in enumerate(self.parameters.keys()):
                 exec(f"{pname} = sy.symbols('{pname}')")
 
+            print('Equilibria:')
             for i in range(n_intersect):
-                if type(self.Jacobian) == np.ndarray:
-                    local_jacobi = np.array(self.Jacobian, dtype=float)
-                else:
-                    local_jacobi = np.array(self.Jacobian(intersections[0, i], intersections[1, i]), dtype=float)
-
+                local_jacobi = np.array(self.Jacobian.subs([(self.sympy_var_1,  intersections[0, i]),
+                                                            (self.sympy_var_2, intersections[1, i])]), dtype=float)
                 eigvals, eigvec = np.linalg.eig(local_jacobi)
                 stability = get_stability_2D(eigvals)
                 intersect_stability.append(stability)
+                print(f'{self.variables[0]} = {intersections[0, i]:.3f},  {self.variables[1]} ='
+                      f' {intersections[1, i]:.3f}, {stability}')
                 if 'unstable' in stability:
-                    plt.scatter(intersections[0, i], intersections[1, i], s=20, facecolors='none', edgecolors='k')
+                    plt.scatter(intersections[0, i], intersections[1, i], s=50, facecolors='none', edgecolors='k',
+                                zorder=10)
                 elif 'stable' in stability:
-                    plt.scatter(intersections[0, i], intersections[1, i], s=20, c='k')
+                    plt.scatter(intersections[0, i], intersections[1, i], s=50, c='k', zorder=10)
                 elif 'unknown' in stability:
-                    plt.scatter(intersections[0, i], intersections[1, i], s=20, c='k', marker='star')
+                    plt.scatter(intersections[0, i], intersections[1, i], s=50, c='k', marker='star', zorder=10)
                 else:
-                    plt.scatter(intersections[0, i], intersections[1, i], s=20, c='r', marker='square')
+                    plt.scatter(intersections[0, i], intersections[1, i], s=50, c='r', marker='square', zorder=10)
+
 
 
         plt.xlim(0.95*x_lim[0], 0.95*x_lim[1])
@@ -179,52 +184,22 @@ class general_2D_system():
 
     def get_nullclines_and_jacobian(self):
 
-        sympy_var_1, sympy_var_2 = sy.symbols(f'{self.variables[0]}, {self.variables[1]}')
+        self.sympy_var_1, self.sympy_var_2 = sy.symbols(f'{self.variables[0]}, {self.variables[1]}')
 
         x_expr = sy.parsing.sympy_parser.parse_expr(self.model[0], evaluate=False)
-        x_nullcline = sy.solve(x_expr, sympy_var_2)
+        x_nullcline = sy.solve(x_expr, self.sympy_var_2)
         if x_nullcline == []:
-            x_nullcline = sy.solve(x_expr, sympy_var_1)
+            x_nullcline = sy.solve(x_expr, self.sympy_var_1)
         if len(x_nullcline) > 1:
             warnings.warn(f'x_nullcline has multiple solutions for y: {x_nullcline}')
         y_expr = sy.parsing.sympy_parser.parse_expr(self.model[1], evaluate=False)
-        y_nullcline = sy.solve(y_expr, sympy_var_2)
+        y_nullcline = sy.solve(y_expr, self.sympy_var_2)
 
         self.nullclines = [str(x_nullcline[0]), str(y_nullcline[0])]
 
         for _, pname in enumerate(self.parameters.keys()):
             exec(f"{pname} = sy.symbols('{pname}')")
 
-        x_expr_x = sy.diff(x_expr, sympy_var_1)
-        x_expr_x = x_expr_x.subs(self.parameters)
-        x_expr_y = sy.diff(x_expr, sympy_var_2)
-        x_expr_y = x_expr_y.subs(self.parameters)
-        y_expr_x = sy.diff(y_expr, sympy_var_1)
-        y_expr_x = y_expr_x.subs(self.parameters)
-        y_expr_y = sy.diff(y_expr, sympy_var_2)
-        y_expr_y = y_expr_y.subs(self.parameters)
+        system_matrix = sy.Matrix([x_expr.subs(self.parameters), y_expr.subs(self.parameters)])
+        self.Jacobian = system_matrix.jacobian([self.sympy_var_1, self.sympy_var_2])
 
-        self.Jacobian = sy.Function('J')(sympy_var_1, sympy_var_2)
-        self.Jacobian = np.array([[x_expr_x, x_expr_y], [y_expr_x, y_expr_y]], dtype=float)
-
-def get_stability_2D(eigvals):
-    """function to test the stability of a 2D system by evaluating common cases of its eigenvalues """
-    stability = 'untested'
-    lambda1, lambda2 = eigvals
-    if lambda1.real == 0 or lambda2.real == 0:
-        stability = 'unknown (Eigenvalue zero)'
-    elif lambda1.imag == 0 and lambda1.imag == 0:
-        if lambda1 < 0 and lambda2 < 0:
-            stability = 'stable node'
-        elif lambda1 > 0 and lambda2 > 0:
-            stability = 'unstable node'
-    else:
-        if lambda1 < 0 and lambda2 < 0:
-            stability = 'stable spiral'
-        elif lambda1 > 0 and lambda2 > 0:
-            stability = 'unstable spiral'
-
-    if np.sign(lambda1.real) != np.sign(lambda2.real):
-        stability = 'unstable saddle node'
-
-    return stability
