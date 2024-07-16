@@ -40,8 +40,8 @@ class general_2D_system():
             self.parameters = parameters
         if solver != None:
             self.solver = solver
-        if usetex:
-            plt.rcParams['text.usetex'] = True
+        # if usetex:
+        #     plt.rcParams['text.usetex'] = True
 
 
     def system(self, u, t):
@@ -67,9 +67,11 @@ class general_2D_system():
         plt.legend(loc='best')
         plt.title(self.model_name)
         plt.xlabel('t')
-        plt.show()
         if save_fig:
             plt.savefig(fig_fname)
+            plt.close()
+        else:
+            plt.show()
 
     def plot_phase(self, t, x_lim=[-5, 5], y_lim=[-5, 5], x_density=10, y_density=10, quiver_scale=2,
                    x_label=None, y_label=None, save_fig=False, fig_fname='2D_system_phase_space.png',
@@ -177,10 +179,14 @@ class general_2D_system():
         plt.ylim(0.95*y_lim[0], 0.95*y_lim[1])
         plt.xlabel(x_label)
         plt.ylabel(y_label)
-        plt.title(self.model_name + 'phase_space')
-        plt.show()
+        plt.title(self.model_name + ' phase_space')
+
+        # either save or show
         if save_fig:
             plt.savefig(fig_fname)
+            plt.close()
+        else:
+            plt.show()
 
     def get_nullclines_and_jacobian(self):
 

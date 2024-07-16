@@ -30,10 +30,6 @@ plot = plt.figure()
 for i in range(vect0.shape[0]):
     v = [vect0[i][0], vect0[i][1]]
     sol = odeint(system2, v, t)
-    # plt.plot(t, sol[:, 0])
-    # plt.plot(t, sol[:, 1])
-    # plt.show()
-    # plt.close()
     plt.quiver(sol[:-1, 0], sol[:-1, 1], sol[1:, 0] - sol[:-1, 0], sol[1:, 1] - sol[:-1, 1], scale_units='xy',
                angles='xy', scale=1, color='k')
     plt.plot(sol[:, 0], sol[:, 1], color='k', alpha=0.2)
