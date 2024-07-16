@@ -7,13 +7,13 @@ import numpy as np
 class1 = Test()
 class1.test_function('test1')
 
-system = general_2D_system()
+system = General2DSystem()
 x0 = np.array([1., 0.2])
 t = np.arange(0, 10, 0.01)
 system.solve(x0=x0, t=t)
 # system.plot_solution()
 
-system_1 = general_2D_system(model=['y', '-a*x - b*y'], model_name='damped harmonic oscillator',
+system_1 = General2DSystem(model=['y', '-a*x - b*y'], model_name='damped harmonic oscillator',
                              parameters={'a': 1.2, 'b': 1.0}, usetex=False)
 x0 = np.array([1., 0.2])
 t = np.arange(0, 20, 0.01)
@@ -27,7 +27,7 @@ system_1.plot_phase(t=t_phase, plot_nullclines=True, save_fig=True, fig_fname='o
 # try out example for I_{Na, p} + I_K model
 
 Neuron_model_1 = ['-5*(V-2)**3 + (V-2)**2 + 5*(V-2) + 2 -n', '0.015*(V-0.5)**8-n +0.5']
-system_2 = general_2D_system(model=Neuron_model_1, model_name=r'I\_{Na, p} + I_K \textit{model approx.}',
+system_2 = General2DSystem(model=Neuron_model_1, model_name=r'I\_{Na, p} + I_K \textit{model approx.}',
                              variables=['V', 'n'])
 t = np.arange(0, 10, 0.01)
 x0 = np.array([1.7, 0.5])

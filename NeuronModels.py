@@ -17,7 +17,7 @@ class Test():
         print(message)
         print(f'status is {self.status}')
 
-class general_2D_system():
+class General2DSystem():
     """ A class to investigate general 2D systems in terms of their dynamics """
 
     def __init__(self, model_name=None,  model=None, variables=None, parameters=None, t=None, solver=None, usetex=True):
