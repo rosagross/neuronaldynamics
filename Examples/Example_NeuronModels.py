@@ -14,7 +14,7 @@ system.solve(x0=x0, t=t)
 # system.plot_solution()
 
 system_1 = General2DSystem(model=['y', '-a*x - b*y'], model_name='damped harmonic oscillator',
-                             parameters={'a': 1.2, 'b': 1.0}, usetex=False)
+                           parameters={'a': 1.2, 'b': 1.0}, usetex=False)
 x0 = np.array([1., 0.2])
 t = np.arange(0, 20, 0.01)
 t_phase = np.arange(0, 3, 0.1)

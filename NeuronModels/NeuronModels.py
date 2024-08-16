@@ -191,18 +191,20 @@ class General2DSystem():
     def get_nullclines_and_jacobian(self):
 
         self.sympy_var_1, self.sympy_var_2 = sy.symbols(f'{self.variables[0]}, {self.variables[1]}')
+        sympy_model = [self.model[k].replace('np.', '') for k in [0, 1]]
 
-        x_expr = sy.parsing.sympy_parser.parse_expr(self.model[0], evaluate=False)
+        x_expr = sy.parsing.sympy_parser.parse_expr(sympy_model[0], evaluate=False)
         x_nullcline = sy.solve(x_expr, self.sympy_var_2)
         if x_nullcline == []:
             x_nullcline = sy.solve(x_expr, self.sympy_var_1)
         if len(x_nullcline) > 1:
             warnings.warn(f'x_nullcline has multiple solutions for y: {x_nullcline}')
-        y_expr = sy.parsing.sympy_parser.parse_expr(self.model[1], evaluate=False)
+        y_expr = sy.parsing.sympy_parser.parse_expr(sympy_model[1], evaluate=False)
         y_nullcline = sy.solve(y_expr, self.sympy_var_2)
 
         self.nullclines = [str(x_nullcline[0]), str(y_nullcline[0])]
 
+        # caluclate Jacobian
         for _, pname in enumerate(self.parameters.keys()):
             exec(f"{pname} = sy.symbols('{pname}')")
 
