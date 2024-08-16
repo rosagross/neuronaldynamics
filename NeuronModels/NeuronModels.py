@@ -1,4 +1,4 @@
-from Solvers import Euler
+from Solvers.Solvers import Euler
 import warnings
 import numpy as np
 import sympy as sy
@@ -40,8 +40,8 @@ class General2DSystem():
             self.parameters = parameters
         if solver != None:
             self.solver = solver
-        # if usetex:
-        #     plt.rcParams['text.usetex'] = True
+        if usetex:
+            plt.rcParams['text.usetex'] = True
 
 
     def system(self, u, t):

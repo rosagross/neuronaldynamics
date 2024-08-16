@@ -1,4 +1,4 @@
-from NeuronModels import *
+from NeuronModels.NeuronModels import *
 import numpy as np
 
 #TODO: turn this into a jupyter Notebook
@@ -27,7 +27,7 @@ system_1.plot_phase(t=t_phase, plot_nullclines=True, save_fig=True, fig_fname='o
 # try out example for I_{Na, p} + I_K model
 
 Neuron_model_1 = ['-5*(V-2)**3 + (V-2)**2 + 5*(V-2) + 2 -n', '0.015*(V-0.5)**8-n +0.5']
-system_2 = General2DSystem(model=Neuron_model_1, model_name=r'I\_{Na, p} + I_K \textit{model approx.}',
+system_2 = General2DSystem(model=Neuron_model_1, model_name=r'I_{Na,p} + I_K \textit{model approx.}',
                              variables=['V', 'n'])
 t = np.arange(0, 10, 0.01)
 x0 = np.array([1.7, 0.5])
