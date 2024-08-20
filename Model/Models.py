@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 import sympy as sy
 from scipy.integrate import odeint
-from Utils import get_stability_2D
+from Utils import get_stability_2D, nrmse
 import matplotlib.pyplot as plt
 
 class Test():
@@ -69,6 +69,7 @@ class General2DSystem():
         plt.xlabel('t')
         if save_fig:
             plt.savefig(fig_fname)
+            print(f'Saved figure to {fig_fname}')
             plt.close()
         else:
             plt.show()
@@ -88,9 +89,9 @@ class General2DSystem():
 
         fig = plt.figure()
 
-        #####################################
-        # generate the phase space streamplot
-        #####################################
+        #######################################
+        # generate the phase space streamplot #
+        #######################################
 
         for i in range(vect0.shape[0]):
             x0 = [vect0[i][0], vect0[i][1]]
@@ -100,9 +101,9 @@ class General2DSystem():
                        angles='xy', scale=quiver_scale, color='k', alpha=0.5)
             plt.plot(sol[:, 0], sol[:, 1], color='k', alpha=0.5)
 
-        ##########################################
-        # optionally add nullclines and equilibira
-        ##########################################
+        ############################################
+        # optionally add nullclines and equilibira #
+        ############################################
         if plot_nullclines:
             if len(self.nullclines) == 0:
 
@@ -184,6 +185,7 @@ class General2DSystem():
         # either save or show
         if save_fig:
             plt.savefig(fig_fname)
+            print(f'Saved to {fig_fname}')
             plt.close()
         else:
             plt.show()
@@ -210,4 +212,41 @@ class General2DSystem():
 
         system_matrix = sy.Matrix([x_expr.subs(self.parameters), y_expr.subs(self.parameters)])
         self.Jacobian = system_matrix.jacobian([self.sympy_var_1, self.sympy_var_2])
+    def parameter_fit(self, target_series, x0=[0, 0], t=None, parameter=['x'], parameter_bounds=[0, 1],
+                      method='hierarchical_zoom', eps=0.1, max_iter=100, verbose=False):
+        # TODO: test
+        start_val = target_series[0]
+        end_val = target_series[-1]
+        steps = target_series.shape[0]
 
+        if t is None:
+            t = np.linspace(start_val, end_val, steps)
+
+        sol_idx = self.variables.index(parameter)
+
+        if method == 'hierarchical_zoom':
+            lower_bound = parameter_bounds[0]
+            upper_bound = parameter_bounds[1]
+
+            i = 0
+            while i+1 < max_iter:
+                n_grid = 20
+                param_values = np.random.uniform(lower_bound, upper_bound, n_grid)
+                x = np.zeros_like(param_values)
+                error = np.zeros_like(param_values)
+                for j in range(n_grid):
+                    self.parameters[parameter] = param_values[j]
+                    self.solve(x0=x0, t=t)
+                    x[j] = self.sol[:, sol_idx]
+                    error[j] = nrmse(target_series, x)
+                min_error = np.min(error)
+                min_error_idx = np.argmin(error)
+                if verbose:
+                    print(f'nrmse = {min_error}')
+                if min_error < eps:
+                    break
+                # get new bounds for next iteration
+                p_new = param_values[min_error_idx]
+                delta = upper_bound - lower_bound
+                lower_bound = max(lower_bound, p_new - 0.25*delta)
+                upper_bound = min(upper_bound, p_new + 0.25 * delta)

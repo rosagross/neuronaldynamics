@@ -1,11 +1,11 @@
-from NeuronModels.NeuronModels import *
+from Model.Models import *
 import numpy as np
 
 
 # test parametrized WC model without excitation
 Neuron_model_1 = ['(1/tau)*(-r_e + k - q*r_e)*(1+np.exp(-(c_ee*r_e + c_ei*r_i)))**(-1)',
                   '(1/tau)*(-r_i + k - q*r_i)*(1+np.exp(-(c_ie*r_e + c_ii*r_i)))**(-1)']
-system = General2DSystem(model=Neuron_model_1, model_name='Wilson-Cohan',
+system = General2DSystem(model=Neuron_model_1, model_name='Wilson-Cowan',
                            variables=['r_e', 'r_i'], parameters={'tau': 10.0, 'k': 1.0, 'q': 2.0, 'c_ee': 15,
                                                                  'c_ei': 15, 'c_ie': -15, 'c_ii': -4})
 t = np.arange(0, 100, 0.05)

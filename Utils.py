@@ -21,3 +21,20 @@ def get_stability_2D(eigvals):
         stability = 'unstable saddle node'
 
     return stability
+
+def nrmse(reference, x):
+    """
+    Caclucaltes the nrmse, Normalized Root Mean Squared Error between a reference and an array, x
+    :param reference: np.ndarray
+        reference to test the input against
+    :param x: np.ndarray
+        input array to test against reference
+    :return: nrmse: np.ndarray
+        nrmse
+    """
+    diff = np.subtract(x, reference)
+    square = np.square(diff)
+    mse = square.mean()
+    rmse = np.sqrt(mse)
+    nrmse = rmse / (np.max(x) - np.min(x))
+    return nrmse
