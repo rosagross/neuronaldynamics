@@ -58,12 +58,18 @@ class General2DSystem():
             self.sol = odeint(self.system, x0, t, **kwargs)
             self.time_vals = t
 
-    def plot_solution(self, save_fig=False, fig_fname='test.png'):
+    def plot_solution(self, save_fig=False, fig_fname='test.png', x_compare=None, compare_idx=0):
+
         if type(self.time_vals) != np.ndarray:
             raise AttributeError("Solution hasn't been evaluated yet!")
 
-        plt.plot(self.time_vals, self.sol[:, 0], label=self.variables[0])
-        plt.plot(self.time_vals, self.sol[:, 1], label=self.variables[1])
+        if x_compare is None:
+            plt.plot(self.time_vals, self.sol[:, 0], label=self.variables[0])
+            plt.plot(self.time_vals, self.sol[:, 1], label=self.variables[1])
+        else:
+            plt.plot(self.time_vals, self.sol[:, compare_idx], label=self.variables[0])
+            plt.plot(self.time_vals, x_compare[:, compare_idx], label=self.variables[1])
+
         plt.legend(loc='best')
         plt.title(self.model_name)
         plt.xlabel('t')
@@ -212,7 +218,8 @@ class General2DSystem():
 
         system_matrix = sy.Matrix([x_expr.subs(self.parameters), y_expr.subs(self.parameters)])
         self.Jacobian = system_matrix.jacobian([self.sympy_var_1, self.sympy_var_2])
-    def parameter_fit(self, target_series, x0=[0, 0], t=None, parameter=['x'], parameter_bounds=[0, 1],
+    def parameter_fit(self, target_series, x0=[0, 0], t=None, parameter='a',
+                    variable ='x', parameter_bounds=[0, 1],
                       method='hierarchical_zoom', eps=0.1, max_iter=100, verbose=False):
         # TODO: test
         start_val = target_series[0]
@@ -222,7 +229,7 @@ class General2DSystem():
         if t is None:
             t = np.linspace(start_val, end_val, steps)
 
-        sol_idx = self.variables.index(parameter)
+        sol_idx = self.variables.index(variable)
 
         if method == 'hierarchical_zoom':
             lower_bound = parameter_bounds[0]
@@ -232,7 +239,7 @@ class General2DSystem():
             while i+1 < max_iter:
                 n_grid = 20
                 param_values = np.random.uniform(lower_bound, upper_bound, n_grid)
-                x = np.zeros_like(param_values)
+                x = np.zeros([n_grid, steps])
                 error = np.zeros_like(param_values)
                 for j in range(n_grid):
                     self.parameters[parameter] = param_values[j]
@@ -242,11 +249,16 @@ class General2DSystem():
                 min_error = np.min(error)
                 min_error_idx = np.argmin(error)
                 if verbose:
+                    print(f'parameter guess for {parameter} = {param_values[min_error_idx]}')
                     print(f'nrmse = {min_error}')
                 if min_error < eps:
+                    self.parameters[parameter] = param_values[min_error_idx]
                     break
                 # get new bounds for next iteration
                 p_new = param_values[min_error_idx]
                 delta = upper_bound - lower_bound
-                lower_bound = max(lower_bound, p_new - 0.25*delta)
-                upper_bound = min(upper_bound, p_new + 0.25 * delta)
+                lower_bound = max(lower_bound, p_new - 0.75*delta)
+                upper_bound = min(upper_bound, p_new + 0.75 * delta)
+                i+=1
+            if i+1 == max_iter:
+                print(f' maxmimum iterations ({max_iter}) reached')
