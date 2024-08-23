@@ -108,7 +108,8 @@ def simulate():
 
     # conductance jump distributions
     gamma_exc_e = gamma(a=a_exc_e, loc=0, scale=scale_exc_e)
-    gamma_exc_e = gamma(a=coeff_var**(-2), loc=0, scale=scale_exc_e)
+    # TODO: replace
+    # gamma_exc_e = gamma(a=coeff_var**(-2), loc=0, scale=scale_exc_e)
     gamma_exc_i = gamma(a=a_exc_i, loc=0, scale=scale_exc_i)
     gamma_inh_e = gamma(a=a_inh_e, loc=0, scale=scale_inh_e)
     gamma_inh_i = gamma(a=a_inh_i, loc=0, scale=scale_inh_i)
@@ -204,6 +205,7 @@ def simulate():
     n_alpha = 9
     alpha = np.exp(-t_alpha/tau_alpha) / (tau_alpha * scipy.special.factorial(n_alpha-1)) * (t_alpha/tau_alpha)**(n_alpha-1)
     alpha = alpha/np.trapz(alpha, dx=dt) # not necessary
+    # TODO: replace
 
     # plt.plot(t_alpha, alpha)
 
@@ -219,15 +221,15 @@ def simulate():
     # initialize arrays
     rho_exc = np.zeros((len(v), len(t)))                        # probability density of membrane potential
     rho_inh = np.zeros((len(v), len(t)))                        # probability density of membrane potential
-    rho_exc_delta = np.zeros(len(t))                            # probability density of discontinuous membrane potential
-    rho_inh_delta = np.zeros(len(t))                            # probability density of discontinuous membrane potential
-    ref_exc_delta_idx = int(tau_exc_ref/dt)                         # number of time steps of refractory delay
-    ref_inh_delta_idx = int(tau_inh_ref/dt)                         # number of time steps of refractory delay
-    v_reset_idx = np.where(np.isclose(v, u_reset))[0][0]    # index of reset potential in array
+    rho_exc_delta = np.zeros(len(t))                        # probability density of discontinuous membrane potential
+    rho_inh_delta = np.zeros(len(t))                        # probability density of discontinuous membrane potential
+    ref_exc_delta_idx = int(tau_exc_ref/dt)                     # number of time steps of refractory delay
+    ref_inh_delta_idx = int(tau_inh_ref/dt)                     # number of time steps of refractory delay
+    v_reset_idx = np.where(np.isclose(v, u_reset))[0][0]        # index of reset potential in array
     r_exc = np.zeros(len(t))                                    # output firing rate
-    r_exc_delayed = np.zeros(len(t)+ref_exc_delta_idx)              # delayed output firing rate
+    r_exc_delayed = np.zeros(len(t)+ref_exc_delta_idx)          # delayed output firing rate
     r_inh = np.zeros(len(t))                                    # output firing rate
-    r_inh_delayed = np.zeros(len(t)+ref_inh_delta_idx)              # delayed output firing rate
+    r_inh_delayed = np.zeros(len(t)+ref_inh_delta_idx)          # delayed output firing rate
     v_in_exc_exc = np.zeros(len(t))
     v_in_exc_inh = np.zeros(len(t))
     v_in_inh_exc = np.zeros(len(t))
@@ -282,7 +284,9 @@ def simulate():
         r_exc_delayed[i+ref_exc_delta_idx] = r_exc[i]
 
         # update rho and rho_delta
-        rho_exc[:, i+1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho_exc[:, i][:, np.newaxis]))[:, 0]
+        # rho_exc[:, i+1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho_exc[:, i][:, np.newaxis]))[:, 0]
+        # old overly complicated version
+        rho_exc[:, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho_exc[:, i]))
         rho_exc[:, i+1] += dt * g_exc
         rho_exc_delta[i+1] = rho_exc_delta[i] + dt * (-(v_in_exc_exc[i] + v_in_exc_inh[i])*rho_exc_delta[i] + r_exc_delayed[i])
 
@@ -318,7 +322,8 @@ def simulate():
         r_inh_delayed[i+ref_inh_delta_idx] = r_inh[i]
 
         # update rho and rho_delta
-        rho_inh[:, i+1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho_inh[:, i][:, np.newaxis]))[:, 0]
+        # rho_inh[:, i+1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho_inh[:, i][:, np.newaxis]))[:, 0]
+        rho_inh[:, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho_inh[:, i]))
         rho_inh[:, i+1] += dt * g_inh
         rho_inh_delta[i+1] = rho_inh_delta[i] + dt * (-(v_in_inh_exc[i] + v_in_inh_inh[i])*rho_inh_delta[i] + r_inh_delayed[i])
 
