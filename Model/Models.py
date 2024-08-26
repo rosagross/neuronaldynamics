@@ -261,4 +261,4 @@ class General2DSystem():
                 upper_bound = min(upper_bound, p_new + 0.75 * delta)
                 i+=1
             if i+1 == max_iter:
-                print(f' maxmimum iterations ({max_iter}) reached')
+                print(f'maxmimum iterations ({max_iter}) reached')
