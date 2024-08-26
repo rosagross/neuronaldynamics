@@ -60,7 +60,7 @@ class Nykamp_Model():
             self.input_function_idx = parameters['input_function_idx']
 
 
-    def simulate(self, dv=None, dt=None, T=None):
+    def simulate(self, dv=None, dt=None, T=None, dv_fine=None):
 
         if dv is not None:
             self.dv = dv
@@ -68,79 +68,79 @@ class Nykamp_Model():
             self.dt = dt
         if T is not None:
             self.T = T
+        if dv_fine is None:
+            self.dv_fine = dv
+        else:
+            self.dv_fine = dv_fine
 
-    def get_diffusion_coeffs(self):
+        self.get_diffusion_coeffs(i=0)
+
+    def get_diffusion_coeffs(self, k):
+
+        # TODO: make these matrix operations, get all diff coeffs at once?
 
         # synapse parameters
-        mu_exc_e = 0.008
-        mu_exc_i = 0.027
-        mu_inh_e = 0.020
-        mu_inh_i = 0.066
+        mu_ee = self.mu_gamma[k, 0]
+        mu_ei = self.mu_gamma[k, 1]
+        mu_ie = self.mu_gamma[k, 2]
+        mu_ii = self.mu_gamma[k, 3]
 
-        coeff_var = 0.5
-        var_exc_e = (coeff_var * mu_exc_e) ** 2
-        var_exc_i = (coeff_var * mu_exc_i) ** 2
-        var_inh_e = (coeff_var * mu_inh_e) ** 2
-        var_inh_i = (coeff_var * mu_inh_i) ** 2
+        coeff_var = self.var_coeff_gamma[k]
+        var_ee = (coeff_var * mu_ee) ** 2
+        var_ei = (coeff_var * mu_ei) ** 2
+        var_ie = (coeff_var * mu_ie) ** 2
+        var_ii = (coeff_var * mu_ii) ** 2
 
-        a_exc_e = mu_exc_e ** 2 / var_exc_e
-        a_exc_i = mu_exc_i ** 2 / var_exc_i
-        a_inh_e = mu_inh_e ** 2 / var_inh_e
-        a_inh_i = mu_inh_i ** 2 / var_inh_i
+        a_exc_e = mu_ee ** 2 / var_ee
+        a_exc_i = mu_ei ** 2 / var_ei
+        a_inh_e = mu_ie ** 2 / var_ie
+        a_inh_i = mu_ii ** 2 / var_ii
 
-        scale_exc_e = var_exc_e / mu_exc_e
-        scale_exc_i = var_exc_i / mu_exc_i
-        scale_inh_e = var_inh_e / mu_inh_e
-        scale_inh_i = var_inh_i / mu_inh_i
+        scale_exc_e = var_ee / mu_ee
+        scale_exc_i = var_ei / mu_ei
+        scale_inh_e = var_ie / mu_ie
+        scale_inh_i = var_ii / mu_ii
 
         # conductance jump distributions
-        gamma_exc_e = scipy.stats.gamma(a=a_exc_e, loc=0, scale=scale_exc_e)
-        # TODO: replace
+        gamma_ee = scipy.stats.gamma(a=a_exc_e, loc=0, scale=scale_exc_e)
         #gamma_exc_e = gamma(a=coeff_var**(-2), loc=0, scale=scale_exc_e)
-        gamma_exc_i = scipy.stats.gamma(a=a_exc_i, loc=0, scale=scale_exc_i)
-        gamma_inh_e = scipy.stats.gamma(a=a_inh_e, loc=0, scale=scale_inh_e)
-        gamma_inh_i = scipy.stats.gamma(a=a_inh_i, loc=0, scale=scale_inh_i)
+        gamma_ei = scipy.stats.gamma(a=a_exc_i, loc=0, scale=scale_exc_i)
+        gamma_ie = scipy.stats.gamma(a=a_inh_e, loc=0, scale=scale_inh_e)
+        gamma_ii = scipy.stats.gamma(a=a_inh_i, loc=0, scale=scale_inh_i)
 
-        # x = np.linspace(0, 0.1, 100)
-        # Fe = gamma_exc_e.sf(x=x)
-        # Fi = gamma_exc_i.sf(x=x)
-        # plt.plot(x, Fe)
-        # plt.plot(x, Fi)
+        # leave for now v_fine = np.arange(self.u_inh, self.u_thr + self.dv_fine, self.dv_fine)
+        v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
 
-        dv_fine = 0.01
-        v_fine = np.arange(u_inh, u_thr + dv_fine, dv_fine)
+        c1ee = np.zeros(len(v))
+        c2ee = np.zeros(len(v))
+        c1ei = np.zeros(len(v))
+        c2ei = np.zeros(len(v))
+        c1ie = np.zeros(len(v))
+        c2ie = np.zeros(len(v))
+        c1ii = np.zeros(len(v))
+        c2ii = np.zeros(len(v))
 
-        # coefficients for diffusion equation
-        c1e_exc_fine = np.zeros(len(v_fine))
-        c2e_exc_fine = np.zeros(len(v_fine))
-        c1i_exc_fine = np.zeros(len(v_fine))
-        c2i_exc_fine = np.zeros(len(v_fine))
-
-        c1e_inh_fine = np.zeros(len(v_fine))
-        c2e_inh_fine = np.zeros(len(v_fine))
-        c1i_inh_fine = np.zeros(len(v_fine))
-        c2i_inh_fine = np.zeros(len(v_fine))
-
-        for i, v_ in enumerate(v_fine):
-            vpe = np.arange(u_inh, v_ + dv_fine, dv_fine)
-            int_exc_c1e = gamma_exc_e.sf((v_ - vpe) / (u_exc - vpe))
+        for i, v_ in enumerate(v):
+            vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
+            int_exc_c1e = gamma_ee.sf((v_ - vpe) / (self.u_exc - vpe))
             int_exc_c2e = int_exc_c1e * (v_ - vpe)
-            int_inh_c1e = gamma_inh_e.sf((v_ - vpe) / (u_exc - vpe))
+            int_inh_c1e = gamma_ie.sf((v_ - vpe) / (self.u_exc - vpe))
             int_inh_c2e = int_inh_c1e * (v_ - vpe)
 
-            c1e_exc_fine[i] = np.trapz(x=vpe, y=int_exc_c1e)
-            c2e_exc_fine[i] = np.trapz(x=vpe, y=int_exc_c2e)
-            c1e_inh_fine[i] = np.trapz(x=vpe, y=int_inh_c1e)
-            c2e_inh_fine[i] = np.trapz(x=vpe, y=int_inh_c2e)
+            c1ee[i] = np.trapz(x=vpe, y=int_exc_c1e)
+            c2ee[i] = np.trapz(x=vpe, y=int_exc_c2e)
+            c1ei[i] = np.trapz(x=vpe, y=int_inh_c1e)
+            c2ei[i] = np.trapz(x=vpe, y=int_inh_c2e)
 
             if i > 0:
-                vpi = np.arange(v_, u_thr + dv_fine, dv_fine)
-                int_exc_c1i = gamma_exc_i.sf((v_ - vpi) / (u_inh - vpi))
+                vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
+                int_exc_c1i = gamma_ei.sf((v_ - vpi) / (self.u_inh - vpi))
                 int_exc_c2i = int_exc_c1i * (vpi - v_)
-                int_inh_c1i = gamma_inh_i.sf((v_ - vpi) / (u_inh - vpi))
+                int_inh_c1i = gamma_ii.sf((v_ - vpi) / (self.u_inh - vpi))
                 int_inh_c2i = int_inh_c1i * (vpi - v_)
 
-                c1i_exc_fine[i] = np.trapz(x=vpi, y=int_exc_c1i)
-                c2i_exc_fine[i] = np.trapz(x=vpi, y=int_exc_c2i)
-                c1i_inh_fine[i] = np.trapz(x=vpi, y=int_inh_c1i)
-                c2i_inh_fine[i] = np.trapz(x=vpi, y=int_inh_c2i)
+                c1ie[i] = np.trapz(x=vpi, y=int_exc_c1i)
+                c2ie[i] = np.trapz(x=vpi, y=int_exc_c2i)
+                c1ii[i] = np.trapz(x=vpi, y=int_inh_c1i)
+                c2ii[i] = np.trapz(x=vpi, y=int_inh_c2i)
+            # TODO: put them into a useful self format

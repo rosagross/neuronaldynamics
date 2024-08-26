@@ -120,12 +120,6 @@ def simulate():
     gamma_inh_e = scipy.stats.gamma(a=a_inh_e, loc=0, scale=scale_inh_e)
     gamma_inh_i = scipy.stats.gamma(a=a_inh_i, loc=0, scale=scale_inh_i)
 
-    # x = np.linspace(0, 0.1, 100)
-    # Fe = gamma_exc_e.sf(x=x)
-    # Fi = gamma_exc_i.sf(x=x)
-    # plt.plot(x, Fe)
-    # plt.plot(x, Fi)
-
     dv_fine = 0.01
     v_fine = np.arange(u_inh, u_thr+dv_fine, dv_fine)
 
@@ -168,12 +162,6 @@ def simulate():
     c2i_exc_fine[0] = 0
     c1i_inh_fine[0] = c1i_inh_fine[1]
     c2i_inh_fine[0] = 0
-
-    # plt.plot(v_fine, c1e_fine)
-    # plt.plot(v_fine, c2e_fine)
-    # plt.plot(v_fine, c1i_fine)
-    # plt.plot(v_fine, c2i_fine)
-
     dc1e_exc_dv_fine = np.gradient(c1e_exc_fine, dv_fine)
     dc2e_exc_dv_fine = np.gradient(c2e_exc_fine, dv_fine)
     dc1i_exc_dv_fine = np.gradient(c1i_exc_fine, dv_fine)
@@ -211,9 +199,6 @@ def simulate():
     n_alpha = 9
     alpha = np.exp(-t_alpha/tau_alpha) / (tau_alpha * scipy.special.factorial(n_alpha-1)) * (t_alpha/tau_alpha)**(n_alpha-1)
     alpha = alpha/np.trapz(alpha, dx=dt) # not necessary
-    # TODO: replace
-
-    # plt.plot(t_alpha, alpha)
 
     # contributions from delta distributions to rho_smooth
     dFe_exc_delta_dv = np.gradient(gamma_exc_e.sf(x=(v-u_res)/(u_exc-u_res)), dv) * np.heaviside(v-u_res, 0.5)
@@ -329,24 +314,13 @@ def simulate():
         r_inh_delayed[i+ref_inh_delta_idx] = r_inh[i]
 
         # update rho and rho_delta
-        # rho_inh[:, i+1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho_inh[:, i][:, np.newaxis]))[:, 0]
         rho_inh[:, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho_inh[:, i]))
         rho_inh[:, i+1] += dt * g_inh
         rho_inh_delta[i+1] = rho_inh_delta[i] + dt * (-(v_in_inh_exc[i] + v_in_inh_inh[i])*rho_inh_delta[i] + r_inh_delayed[i])
 
-
-    # plot results
-    # t_plot = t[:int((1/10)*1000/dt)]
-    # rho_plot_exc = rho_exc[:, int((1/10)*1000/dt):int(2*(1/10)*1000/dt)]
-    # rho_plot_exc[v_reset_idx, :] = rho_exc[v_reset_idx, int((1/10)*1000/dt):int(2*(1/10)*1000/dt)] + rho_exc_delta[int((1/10)*1000/dt):int(2*(1/10)*1000/dt)]
-
     rho_plot_exc = rho_exc
     rho_plot_exc[v_reset_idx, :] = rho_exc[v_reset_idx, :] + rho_exc_delta[:]
     r_plot_exc = r_exc[:]
-
-    # rho_plot_inh = rho_inh[:, int((1/10)*1000/dt):int(2*(1/10)*1000/dt)]
-    # rho_plot_inh[v_reset_idx, :] = rho_inh[v_reset_idx, int((1/10)*1000/dt):int(2*(1/10)*1000/dt)] + rho_inh_delta[int((1/10)*1000/dt):int(2*(1/10)*1000/dt)]
-    # r_plot_inh = r_inh[int((1/10)*1000/dt):int(2*(1/10)*1000/dt)]
 
     rho_plot_inh = rho_inh
     rho_plot_inh[v_reset_idx, :] = rho_inh[v_reset_idx, :] + rho_inh_delta[:]
