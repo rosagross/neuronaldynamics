@@ -409,3 +409,5 @@ plt.tight_layout()
 plt.show()
 
 # plt.savefig(f"/home/kporzig/Desktop/Nykamp_network_A_dv_{dv}_dt_{dt}.jpg", dpi=600)
+
+a=1
