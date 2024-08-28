@@ -91,6 +91,7 @@ def simulate():
     w_ii = W        # inh -> inh
 
     # synapse parameters
+    #TODO: relable mu_exc_i -> mu_ei, etc then check back validity with paper again
     mu_exc_e = 0.008
     mu_exc_i = 0.027
     mu_inh_e = 0.020
