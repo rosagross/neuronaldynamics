@@ -33,6 +33,10 @@ class Nykamp_Model():
             self.connectivity_matrix = parameters['connectivity_matrix']
         if 'u_rest' in parameters:
             self.u_rest = parameters['u_rest']
+        if 'u_reset' in parameters:
+            self.u_reset = parameters['u_reset']
+        else:
+            self.u_reset = parameters['u_rest']
         if 'u_thr' in parameters:
             self.u_thr = parameters['u_thr']
         if 'u_exc' in parameters:
@@ -59,6 +63,9 @@ class Nykamp_Model():
             self.input_function_idx = parameters['input_function_idx']
         if 'population_type' in parameters:
             self.population_type = parameters['population_type']
+
+        self.input = np.zeros(len(self.population_type))
+
         n_coeff = 4 * len(self.population_type)
         self.diffusion_coefficients = np.zeros(n_coeff)
         self.diffusion_coefficients_dv = np.zeros(n_coeff)
@@ -79,6 +86,9 @@ class Nykamp_Model():
 
         self.t = np.arange(0, T, dt)
         self.v = np.arange(self.u_inh, self.u_thr + dv, dv)
+
+        # set up input_function over time
+        self.input[self.input_function_idx] = self.input_function(t=self.t)
 
         # calculate alpha kernel
         self.get_alpha_kernel()
@@ -110,7 +120,151 @@ class Nykamp_Model():
         # self.c1ei_v = np.gradient(self.c1ei, self.dv)
         # self.c2ei_v = np.gradient(self.c2ei, self.dv)
 
+        for i in range(len(self.population_type)):
+            # initialize arrays
+            #TODO: check how many of those are replications and eventually use a single array for all of these
+            if self.population_type[i] == 'exc':
 
+                rho_exc = np.zeros((len(self.v), len(self.t))) # probability density of discontinuous membrane potential
+                rho_exc_delta = np.zeros(len(self.t)) # probability density of membrane potential
+                ref_exc_delta_idx = int(self.tau_ref / self.dt)  # number of time steps of refractory delay
+                v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
+                r_exc = np.zeros(len(self.t))  # output firing rate
+                r_exc_delayed = np.zeros(len(self.t) + ref_exc_delta_idx)  # delayed output firing rate
+                v_in_ee = np.zeros(len(self.t))
+                v_in_ei = np.zeros(len(self.t))
+
+
+            elif self.population_type[i] == 'inh':
+                rho_inh = np.zeros((len(self.v), len(self.t)))  # probability density of membrane potential
+                rho_inh_delta = np.zeros(len(self.t))  # probability density of discontinuous membrane potential
+                ref_inh_delta_idx = int(self.tau_ref / self.dt)  # number of time steps of refractory delay
+                v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
+                r_inh = np.zeros(len(self.t))  # output firing rate
+                r_inh_delayed = np.zeros(len(self.t) + ref_inh_delta_idx)  # delayed output firing rate
+                v_in_ie = np.zeros(len(self.t))
+                v_in_ii = np.zeros(len(self.t))
+
+        # Determine population dynamics (diffusion approximation)
+        for i, t_ in enumerate(tqdm(self.t[:-1])):
+            # for i, t_ in enumerate(t[:-1]):
+
+            # excitatory population
+            # ================================================================================================================
+            # input to excitatory population
+            # TODO: this needs to be done for each population at the start, best as a vector
+            if i > 0:
+                r_exc_conv = np.convolve(r_exc[:(i + 1)], self.alpha)[-len(self.alpha)] * self.dt
+                r_inh_conv = np.convolve(r_inh[:(i + 1)], self.alpha)[-len(self.alpha)] * self.dt
+            else:
+                r_exc_conv = 0
+                r_inh_conv = 0
+
+            # TODO: think about a flattened version of all idxs here for iterating over all connections
+            #  for each time step
+
+            v_in_ee[i] = self.connectivity_matrix[0, 0] * r_exc_conv + self.input[0]
+            v_in_ei[i] = self.connectivity_matrix[0, 1] * r_inh_conv + self.input[1]
+
+            # coefficients for finite difference matrices
+            # c1, c2 are over all v steps and i is a time step
+            f0_exc = dt / 2 * (1 / self.tau_mem[0] - v_in_ee[i] * self.c1ee_v + v_in_ei[i] * self.c1ie_v)
+
+            f1_exc = dt / (4 * dv) * (
+                        (self.v - self.u_rest) / self.tau_mem[0] + v_in_ee[i] * (-self.c1ee + self.c2ee_v)
+                        + v_in_ei[i] * (self.c1ie + self.c2ie_v))
+            f2_exc = dt / (2 * dv ** 2) * (v_in_ee[i] * self.c2ee + v_in_ei[i] * self.c2ie)
+
+            # LHS matrix (t+dt)
+            A_exc = np.diag(1 + 2 * f2_exc - f0_exc) + np.diagflat((-f2_exc - f1_exc)[:-1], 1) + np.diagflat(
+                (f1_exc - f2_exc)[1:], -1)
+            A_exc[0, 1] = -2 * f1_exc[1]
+            A_exc[-1, -2] = 2 * f1_exc[-2]
+
+            # RHS matrix (t)
+            B_exc = np.diag(1 - 2 * f2_exc + f0_exc) + np.diagflat((f2_exc + f1_exc)[:-1], 1) + np.diagflat(
+                (f2_exc - f1_exc)[1:], -1)
+            B_exc[0, 1] = 2 * f1_exc[1]
+            B_exc[-1, -2] = -2 * f1_exc[-2]
+
+            # contribution to drho/dt from rho_delta at u_res
+            g_exc = rho_exc_delta[i] * (-v_in_exc_exc[i] * dFe_exc_delta_dv + v_in_exc_inh[i] * dFi_exc_delta_dv)
+
+            # calculate firing rate
+            r_exc[i] = v_in_exc_exc[i] * (
+                        c2e_exc[-1] * rho_exc[-2, i] / dv + gamma_ee.sf((u_thr - u_res) / (u_exc - u_res)) *
+                        rho_exc_delta[i])
+            if r_exc[i] < 0:
+                # print(f"WARNING: r_exc < 0 ! (r_exc = {r_exc[i]}) ... Setting r_exc to 0")
+                r_exc[i] = 0
+            r_exc_delayed[i + ref_exc_delta_idx] = r_exc[i]
+
+            # update rho and rho_delta
+            # rho_exc[:, i+1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho_exc[:, i][:, np.newaxis]))[:, 0]
+            # old overly complicated version
+            rho_exc[:, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho_exc[:, i]))
+            rho_exc[:, i + 1] += dt * g_exc
+            rho_exc_delta[i + 1] = rho_exc_delta[i] + dt * (
+                        -(v_in_exc_exc[i] + v_in_exc_inh[i]) * rho_exc_delta[i] + r_exc_delayed[i])
+
+            # inhibitory population
+            # ================================================================================================================
+            # input to inhibitory population
+            v_in_inh_exc[i] = w_ei * r_exc_conv
+            v_in_inh_inh[i] = w_ii * r_inh_conv
+
+            # coefficients for finite difference matrices
+            f0_inh = dt / 2 * (1 / tau_inh_membrane - v_in_inh_exc[i] * dc1e_inh_dv + v_in_inh_inh[i] * dc1i_inh_dv)
+            f1_inh = dt / (4 * dv) * (
+                        (v - u_res) / tau_inh_membrane + v_in_inh_exc[i] * (-c1e_inh + dc2e_inh_dv) + v_in_inh_inh[
+                    i] * (c1i_inh + dc2i_inh_dv))
+            f2_inh = dt / (2 * dv ** 2) * (v_in_inh_exc[i] * c2e_inh + v_in_inh_inh[i] * c2i_inh)
+
+            # LHS matrix (t+dt)
+            A_inh = np.diag(1 + 2 * f2_inh - f0_inh) + np.diagflat((-f2_inh - f1_inh)[:-1], 1) + np.diagflat(
+                (f1_inh - f2_inh)[1:], -1)
+            A_inh[0, 1] = -2 * f1_inh[1]
+            A_inh[-1, -2] = 2 * f1_inh[-2]
+
+            # RHS matrix (t)
+            B_inh = np.diag(1 - 2 * f2_inh + f0_inh) + np.diagflat((f2_inh + f1_inh)[:-1], 1) + np.diagflat(
+                (f2_inh - f1_inh)[1:], -1)
+            B_inh[0, 1] = 2 * f1_inh[1]
+            B_inh[-1, -2] = -2 * f1_inh[-2]
+
+            # contribution to drho/dt from rho_delta at u_res
+            g_inh = rho_inh_delta[i] * (-v_in_inh_exc[i] * dFe_inh_delta_dv + v_in_inh_inh[i] * dFi_inh_delta_dv)
+
+            # calculate firing rate
+            r_inh[i] = v_in_inh_exc[i] * (
+                        c2e_inh[-1] * rho_inh[-2, i] / dv + gamma_inh_e.sf((u_thr - u_res) / (u_exc - u_res)) *
+                        rho_inh_delta[i])
+            if r_inh[i] < 0:
+                # print(f"WARNING: r_inh < 0 ! (r_inh = {r_inh[i]}) ... Setting r_inh to 0")
+                r_inh[i] = 0
+            r_inh_delayed[i + ref_inh_delta_idx] = r_inh[i]
+
+            # update rho and rho_delta
+            rho_inh[:, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho_inh[:, i]))
+            rho_inh[:, i + 1] += dt * g_inh
+            rho_inh_delta[i + 1] = rho_inh_delta[i] + dt * (
+                        -(v_in_inh_exc[i] + v_in_inh_inh[i]) * rho_inh_delta[i] + r_inh_delayed[i])
+
+        rho_plot_exc = rho_exc
+        rho_plot_exc[v_reset_idx, :] = rho_exc[v_reset_idx, :] + rho_exc_delta[:]
+        r_plot_exc = r_exc[:]
+
+        rho_plot_inh = rho_inh
+        rho_plot_inh[v_reset_idx, :] = rho_inh[v_reset_idx, :] + rho_inh_delta[:]
+        r_plot_inh = r_inh[:]
+
+        with h5py.File('test' + '.hdf5', 'w') as h5file:
+            h5file.create_dataset('t', data=t)
+            h5file.create_dataset('v', data=v)
+            h5file.create_dataset('r_exc', data=r_plot_exc)
+            h5file.create_dataset('r_inh', data=r_plot_inh)
+            h5file.create_dataset('rho_plot_exc', data=rho_plot_exc)
+            h5file.create_dataset('rho_plot_inh', data=rho_plot_inh)
 
     def get_diffusion_coeffs_classic(self):
 
