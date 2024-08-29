@@ -29,7 +29,6 @@ class Nykamp_Model():
         self.dv = 0.01
         self.T = 100
 
-
         if 'connectivity_matrix' in parameters:
             self.connectivity_matrix = parameters['connectivity_matrix']
         if 'u_rest' in parameters:
@@ -60,7 +59,10 @@ class Nykamp_Model():
             self.input_function_idx = parameters['input_function_idx']
         if 'population_type' in parameters:
             self.population_type = parameters['population_type']
-
+        n_coeff = 4 * len(self.population_type)
+        self.diffusion_coefficients = np.zeros(n_coeff)
+        self.diffusion_coefficients_dv = np.zeros(n_coeff)
+        self.dFdv = np.zeros(int(n_coeff/2))
 
     def simulate(self, dv=None, dt=None, T=None, dv_fine=None):
 
@@ -75,23 +77,46 @@ class Nykamp_Model():
         else:
             self.dv_fine = dv_fine
 
+        self.t = np.arange(0, T, dt)
+        self.v = np.arange(self.u_inh, self.u_thr + dv, dv)
+
+        # calculate alpha kernel
+        self.get_alpha_kernel()
+
         self.c1ee, self.c2ee, self.c1ei, self.c2ei,self.c1ie, self.c2ie, self.c1ii,\
             self.c2ii = self.get_diffusion_coeffs_classic()
 
-        self.c1ie_v = np.gradient(self.c1ie, self.dv)
-        self.c2ie_v = np.gradient(self.c2ie, self.dv)
-        self.c1ii_v = np.gradient(self.c1ie, self.dv)
-        self.c2ii_v = np.gradient(self.c2ie, self.dv)
+        # calculate diffusion coefficients
+        self.get_diffusion_coeffs()
+        self.diffusion_coefficients_dv = np.gradient(self.diffusion_coefficients, self.dv, axis=-1)
 
-        self.c1ee_v = np.gradient(self.c1ee, self.dv)
-        self.c2ee_v = np.gradient(self.c2ee, self.dv)
-        self.c1ei_v = np.gradient(self.c1ee, self.dv)
-        self.c2ei_v = np.gradient(self.c2ee, self.dv)
+        self.c1ee_v = self.diffusion_coefficients_dv[0, 0]
+        self.c2ee_v = self.diffusion_coefficients_dv[0, 1]
+        self.c1ie_v = self.diffusion_coefficients_dv[0, 2]
+        self.c2ie_v = self.diffusion_coefficients_dv[0, 3]
+
+        self.c1ei_v = self.diffusion_coefficients_dv[1, 0]
+        self.c2ei_v = self.diffusion_coefficients_dv[1, 1]
+        self.c1ii_v = self.diffusion_coefficients_dv[1, 2]
+        self.c2ii_v = self.diffusion_coefficients_dv[1, 3]
+
+        # self.c1ie_v = np.gradient(self.c1ie, self.dv)
+        # self.c2ie_v = np.gradient(self.c2ie, self.dv)
+        # self.c1ii_v = np.gradient(self.c1ii, self.dv)
+        # self.c2ii_v = np.gradient(self.c2ii, self.dv)
+        #
+        # self.c1ee_v = np.gradient(self.c1ee, self.dv)
+        # self.c2ee_v = np.gradient(self.c2ee, self.dv)
+        # self.c1ei_v = np.gradient(self.c1ei, self.dv)
+        # self.c2ei_v = np.gradient(self.c2ei, self.dv)
+
+
+
     def get_diffusion_coeffs_classic(self):
 
         v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
 
-        # init arrays for diffuson coeffs
+        # init arrays for diffusion coeffs
         c1ee = np.zeros(len(v))
         c2ee = np.zeros(len(v))
         c1ei = np.zeros(len(v))
@@ -105,14 +130,14 @@ class Nykamp_Model():
         var_ee = (coeff_var * mu_ee) ** 2
         var_ei = (coeff_var * mu_ei) ** 2
 
-        scale_exc_e = var_ee / mu_ee
-        scale_exc_i = var_ei / mu_ei
+        scale_ee = var_ee / mu_ee
+        scale_ei = var_ei / mu_ei
 
         # conductance jump distributions
-        gamma_ee = gamma(a=coeff_var ** (-2), loc=0, scale=scale_exc_e)
-        gamma_ei = gamma(a=coeff_var ** (-2), loc=0, scale=scale_exc_i)
+        gamma_ee = gamma(a=coeff_var ** (-2), loc=0, scale=scale_ee)
+        gamma_ei = gamma(a=coeff_var ** (-2), loc=0, scale=scale_ei)
 
-        # init arrays for diffuson coeffs
+        # init arrays for diffusion coeffs
         c1ie = np.zeros(len(v))
         c2ie = np.zeros(len(v))
         c1ii = np.zeros(len(v))
@@ -126,47 +151,48 @@ class Nykamp_Model():
         var_ie = (coeff_var * mu_ie) ** 2
         var_ii = (coeff_var * mu_ii) ** 2
 
-        scale_inh_e = var_ie / mu_ie
-        scale_inh_i = var_ii / mu_ii
+        scale_ie = var_ie / mu_ie
+        scale_ii = var_ii / mu_ii
 
         # conductance jump distributions
-        gamma_ie = gamma(a=coeff_var ** (-2), loc=0, scale=scale_inh_e)
-        gamma_ii = gamma(a=coeff_var ** (-2), loc=0, scale=scale_inh_i)
+        gamma_ie = gamma(a=coeff_var ** (-2), loc=0, scale=scale_ie)
+        gamma_ii = gamma(a=coeff_var ** (-2), loc=0, scale=scale_ii)
 
         for i, v_ in enumerate(v):
             vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
-            int_exc_c1e = gamma_ee.sf((v_ - vpe) / (self.u_exc - vpe))
-            int_exc_c2e = int_exc_c1e * (v_ - vpe)
-            int_inh_c1e = gamma_ie.sf((v_ - vpe) / (self.u_exc - vpe))
-            int_inh_c2e = int_inh_c1e * (v_ - vpe)
+            int_c1ee = gamma_ee.sf((v_ - vpe) / (self.u_exc - vpe))
+            int_c2ee = int_c1ee * (v_ - vpe)
+            int_c1ei = gamma_ei.sf((v_ - vpe) / (self.u_exc - vpe))
+            int_c2ei = int_c1ei * (v_ - vpe)
 
-            c1ee[i] = np.trapz(x=vpe, y=int_exc_c1e)
-            c2ee[i] = np.trapz(x=vpe, y=int_exc_c2e)
-            c1ei[i] = np.trapz(x=vpe, y=int_inh_c1e)
-            c2ei[i] = np.trapz(x=vpe, y=int_inh_c2e)
+            c1ee[i] = np.trapz(x=vpe, y=int_c1ee)
+            c2ee[i] = np.trapz(x=vpe, y=int_c2ee)
+            c1ei[i] = np.trapz(x=vpe, y=int_c1ei)
+            c2ei[i] = np.trapz(x=vpe, y=int_c2ei)
 
             if i > 0:
                 vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
-                int_exc_c1i = gamma_ei.sf((v_ - vpi) / (self.u_inh - vpi))
-                int_exc_c2i = int_exc_c1i * (vpi - v_)
-                int_inh_c1i = gamma_ii.sf((v_ - vpi) / (self.u_inh - vpi))
-                int_inh_c2i = int_inh_c1i * (vpi - v_)
+                int_c1ie = gamma_ie.sf((v_ - vpi) / (self.u_inh - vpi))
+                int_c2ie = int_c1ie * (vpi - v_)
+                int_c1ii = gamma_ii.sf((v_ - vpi) / (self.u_inh - vpi))
+                int_c2ii = int_c1ii * (vpi - v_)
 
-                c1ie[i] = np.trapz(x=vpi, y=int_exc_c1i)
-                c2ie[i] = np.trapz(x=vpi, y=int_exc_c2i)
-                c1ii[i] = np.trapz(x=vpi, y=int_inh_c1i)
-                c2ii[i] = np.trapz(x=vpi, y=int_inh_c2i)
+                c1ie[i] = np.trapz(x=vpi, y=int_c1ie)
+                c2ie[i] = np.trapz(x=vpi, y=int_c2ie)
+                c1ii[i] = np.trapz(x=vpi, y=int_c1ii)
+                c2ii[i] = np.trapz(x=vpi, y=int_c2ii)
 
         c1ie[0] = c1ie[1]
         c2ie[0] = 0
         c1ie[0] = c1ie[1]
         c2ie[0] = 0
+
 
         return c1ee, c2ee, c1ei, c2ei, c1ie, c2ie, c1ii, c2ii
 
     def get_diffusion_coeffs(self, k=0):
 
-        # TODO: make these matrix operations, get all diff coeffs at once?
+        # TODO: make these matrix operations, get all diffusion coeffs at once?
 
         v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
 
@@ -186,38 +212,37 @@ class Nykamp_Model():
             var_ee = (coeff_var * mu_ee) ** 2
             var_ei = (coeff_var * mu_ei) ** 2
 
-            scale_exc_e = var_ee / mu_ee
-            scale_exc_i = var_ei / mu_ei
+            scale_ee = var_ee / mu_ee
+            scale_ei = var_ei / mu_ei
 
             # conductance jump distributions
-            gamma_ee = gamma(a=coeff_var ** (-2), loc=0, scale=scale_exc_e)
-            gamma_ei = gamma(a=coeff_var ** (-2), loc=0, scale=scale_exc_i)
+            gamma_ee = gamma(a=coeff_var ** (-2), loc=0, scale=scale_ee)
+            gamma_ei = gamma(a=coeff_var ** (-2), loc=0, scale=scale_ei)
 
             for i, v_ in enumerate(v):
                 vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
-                int_exc_c1e = gamma_ee.sf((v_ - vpe) / (self.u_exc - vpe))
-                int_exc_c2e = int_exc_c1e * (v_ - vpe)
-                # here gamma ei was used
-                int_inh_c1e = gamma_ie.sf((v_ - vpe) / (self.u_exc - vpe))
-                int_inh_c2e = int_inh_c1e * (v_ - vpe)
+                int_c1ee = gamma_ee.sf((v_ - vpe) / (self.u_exc - vpe))
+                int_c2ee = int_c1ee * (v_ - vpe)
+                int_c1ei = gamma_ei.sf((v_ - vpe) / (self.u_exc - vpe))
+                int_c2ei = int_c1ei * (v_ - vpe)
 
-                c1ee[i] = np.trapz(x=vpe, y=int_exc_c1e)
-                c2ee[i] = np.trapz(x=vpe, y=int_exc_c2e)
-                c1ei[i] = np.trapz(x=vpe, y=int_inh_c1e)
-                c2ei[i] = np.trapz(x=vpe, y=int_inh_c2e)
+                c1ee[i] = np.trapz(x=vpe, y=int_c1ee)
+                c2ee[i] = np.trapz(x=vpe, y=int_c2ee)
+                c1ei[i] = np.trapz(x=vpe, y=int_c1ei)
+                c2ei[i] = np.trapz(x=vpe, y=int_c2ei)
 
-                if i > 0:
-                    vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
-                    int_exc_c1i = gamma_ei.sf((v_ - vpi) / (self.u_inh - vpi))
-                    int_exc_c2i = int_exc_c1i * (vpi - v_)
-                    int_inh_c1i = gamma_ii.sf((v_ - vpi) / (self.u_inh - vpi))
-                    int_inh_c2i = int_inh_c1i * (vpi - v_)
+            self.diffusion_coefficients[k, :] = c1ee, c2ee, c1ei, c2ei
+            Fee_v = np.gradient(gamma_ee.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
+                    * np.heaviside(self.v - self.u_rest, 0.5)
+            Fei_v = np.gradient(gamma_ei.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
+                    * np.heaviside(self.v - self.u_rest, 0.5)
 
-            return c1ee, c2ee, c1ei, c2ei
+            self.dFdv[k] = np.array([Fee_v, Fei_v])
+
 
         elif self.population_type[k] == 'inh':
 
-            # init arrays for diffuson coeffs
+            # init arrays for diffusion coeffs
             c1ie = np.zeros(len(v))
             c2ie = np.zeros(len(v))
             c1ii = np.zeros(len(v))
@@ -231,39 +256,45 @@ class Nykamp_Model():
             var_ie = (coeff_var * mu_ie) ** 2
             var_ii = (coeff_var * mu_ii) ** 2
 
-            scale_inh_e = var_ie / mu_ie
-            scale_inh_i = var_ii / mu_ii
+            scale_ie = var_ie / mu_ie
+            scale_ii = var_ii / mu_ii
 
             # conductance jump distributions
-            gamma_ie = gamma(a=coeff_var ** (-2), loc=0, scale=scale_inh_e)
-            gamma_ii = gamma(a=coeff_var ** (-2), loc=0, scale=scale_inh_i)
+            gamma_ie = gamma(a=coeff_var ** (-2), loc=0, scale=scale_ie)
+            gamma_ii = gamma(a=coeff_var ** (-2), loc=0, scale=scale_ii)
 
             for i, v_ in enumerate(v):
-                vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
-                int_exc_c1e = gamma_ee.sf((v_ - vpe) / (self.u_exc - vpe))
-                int_exc_c2e = int_exc_c1e * (v_ - vpe)
-                int_inh_c1e = gamma_ie.sf((v_ - vpe) / (self.u_exc - vpe))
-                int_inh_c2e = int_inh_c1e * (v_ - vpe)
-
                 if i > 0:
                     vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
-                    int_exc_c1i = gamma_ei.sf((v_ - vpi) / (self.u_inh - vpi))
-                    int_exc_c2i = int_exc_c1i * (vpi - v_)
-                    int_inh_c1i = gamma_ii.sf((v_ - vpi) / (self.u_inh - vpi))
-                    int_inh_c2i = int_inh_c1i * (vpi - v_)
+                    int_c1ie = gamma_ie.sf((v_ - vpi) / (self.u_inh - vpi))
+                    int_c2ie = int_c1ie * (vpi - v_)
+                    int_c1ii = gamma_ii.sf((v_ - vpi) / (self.u_inh - vpi))
+                    int_c2ii = int_c1ii * (vpi - v_)
 
-                    c1ie[i] = np.trapz(x=vpi, y=int_exc_c1i)
-                    c2ie[i] = np.trapz(x=vpi, y=int_exc_c2i)
-                    c1ii[i] = np.trapz(x=vpi, y=int_inh_c1i)
-                    c2ii[i] = np.trapz(x=vpi, y=int_inh_c2i)
+                    c1ie[i] = np.trapz(x=vpi, y=int_c1ie)
+                    c2ie[i] = np.trapz(x=vpi, y=int_c2ie)
+                    c1ii[i] = np.trapz(x=vpi, y=int_c1ii)
+                    c2ii[i] = np.trapz(x=vpi, y=int_c2ii)
 
             c1ie[0] = c1ie[1]
             c2ie[0] = 0
             c1ie[0] = c1ie[1]
             c2ie[0] = 0
-            return c1ie, c2ie, c1ii, c2ii
+
+            self.diffusion_coefficients[k, :] = c1ie, c2ie, c1ii, c2ii
+
+
+            Fie_v = np.gradient(gamma_ie.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
+                               * np.heaviside(self.u_rest - self.v, 0.5)
+            Fii_v = np.gradient(gamma_ii.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
+                               * np.heaviside(self.u_rest - self.v, 0.5)
+            self.dFdv[k] = np.array([Fie_v, Fii_v])
 
         else:
             raise NotImplementedError('population types must be "exc" or "inh"!')
 
-
+    def get_alpha_kernel(self):
+        self.t_alpha = self.t[self.t < 10]
+        self.alpha = np.exp(-self.t_alpha/self.tau_alpha) / (self.tau_alpha * scipy.special.factorial(self.n_alpha-1)) *\
+                (self.t_alpha/self.tau_alpha)**(self.n_alpha-1)
+        self.alpha = self.alpha/np.trapz(self.alpha, dx=self.dt)
