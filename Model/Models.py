@@ -161,34 +161,40 @@ class General2DSystem():
                 y_nullcline_values = eval(f'{self.nullclines[1]}', nullcline_dict)
 
             # find crossings of nullclines
-            idx = np.argwhere(np.diff(np.sign(x_nullcline_values - y_nullcline_values))).flatten()
-            intersections = np.array([xs[idx], x_nullcline_values[idx]])
+            sign_array = np.sign(x_nullcline_values - y_nullcline_values)
+            if not len(sign_array.shape) == 0:
+                idx = np.argwhere(np.diff(sign_array)).flatten()
+                intersections = np.array([xs[idx], x_nullcline_values[idx]])
 
-            # stability analysis and equilibrium classification
-            n_intersect = intersections.shape[1]
-            intersect_stability = []
 
-            for _, pname in enumerate(self.parameters.keys()):
-                exec(f"{pname} = sy.symbols('{pname}')")
+                # stability analysis and equilibrium classification
+                n_intersect = intersections.shape[1]
+                intersect_stability = []
 
-            print('Equilibria:')
-            for i in range(n_intersect):
-                local_jacobi = np.array(self.Jacobian.subs([(self.sympy_var_1,  intersections[0, i]),
-                                                            (self.sympy_var_2, intersections[1, i])]), dtype=float)
-                eigvals, eigvec = np.linalg.eig(local_jacobi)
-                stability = get_stability_2D(eigvals)
-                intersect_stability.append(stability)
-                print(f'{self.variables[0]} = {intersections[0, i]:.3f},  {self.variables[1]} ='
-                      f' {intersections[1, i]:.3f}, {stability}')
-                if 'unstable' in stability:
-                    plt.scatter(intersections[0, i], intersections[1, i], s=50, facecolors='none', edgecolors='k',
-                                zorder=10)
-                elif 'stable' in stability:
-                    plt.scatter(intersections[0, i], intersections[1, i], s=50, c='k', zorder=10)
-                elif 'unknown' in stability:
-                    plt.scatter(intersections[0, i], intersections[1, i], s=50, c='k', marker='star', zorder=10)
-                else:
-                    plt.scatter(intersections[0, i], intersections[1, i], s=50, c='r', marker='square', zorder=10)
+
+                for _, pname in enumerate(self.parameters.keys()):
+                    exec(f"{pname} = sy.symbols('{pname}')")
+
+                print('equilibria:')
+                for i in range(n_intersect):
+                    local_jacobi = np.array(self.Jacobian.subs([(self.sympy_var_1,  intersections[0, i]),
+                                                                (self.sympy_var_2, intersections[1, i])]), dtype=float)
+                    eigvals, eigvec = np.linalg.eig(local_jacobi)
+                    stability = get_stability_2D(eigvals)
+                    intersect_stability.append(stability)
+                    print(f'{self.variables[0]} = {intersections[0, i]:.3f},  {self.variables[1]} ='
+                          f' {intersections[1, i]:.3f}, {stability}')
+                    if 'unstable' in stability:
+                        plt.scatter(intersections[0, i], intersections[1, i], s=50, facecolors='none', edgecolors='k',
+                                    zorder=10)
+                    elif 'stable' in stability:
+                        plt.scatter(intersections[0, i], intersections[1, i], s=50, c='k', zorder=10)
+                    elif 'unknown' in stability:
+                        plt.scatter(intersections[0, i], intersections[1, i], s=50, c='k', marker='star', zorder=10)
+                    else:
+                        plt.scatter(intersections[0, i], intersections[1, i], s=50, c='r', marker='square', zorder=10)
+            else:
+                print('no equilibria found')
 
 
 
@@ -222,12 +228,13 @@ class General2DSystem():
 
         self.nullclines = [str(x_nullcline[0]), str(y_nullcline[0])]
 
-        # caluclate Jacobian
+        # calculate Jacobian
         for _, pname in enumerate(self.parameters.keys()):
             exec(f"{pname} = sy.symbols('{pname}')")
 
         system_matrix = sy.Matrix([x_expr.subs(self.parameters), y_expr.subs(self.parameters)])
         self.Jacobian = system_matrix.jacobian([self.sympy_var_1, self.sympy_var_2])
+
     def parameter_fit(self, target_series, x0=[0, 0], t=None, t_end=None, t_start=None, parameter='a',
                       variables=['x'], parameter_bounds=[0, 1], method='hierarchical_zoom', eps=0.1,
                       max_iter=100, verbose=False):
