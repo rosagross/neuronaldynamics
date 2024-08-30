@@ -20,7 +20,7 @@ matplotlib.use('TkAgg')
 heat_map = False
 
 # @numba.njit(parallel=True)
-def simulate():
+def simulate(x=None):
 
     def alpha_func(t, alpha_bar=0.9995855855965002, tau_a=1/3, n_a=9):
         """
@@ -210,6 +210,7 @@ def simulate():
     # plt.plot(v, gamma_exc_e.sf(x=(v-u_res)/(u_exc-u_res)) * np.heaviside(v-u_res, 0.5), v, dFe_delta_dv)
     # plt.plot(v, gamma_exc_i.sf(x=(u_res-v)/(u_exc-u_res)) * np.heaviside(u_res-v, 0.5), v, dFi_delta_dv)
 
+    #TODO: find out why diff coeffs are wrong only here
     # initialize arrays
     rho_exc = np.zeros((len(v), len(t)))                        # probability density of membrane potential
     rho_inh = np.zeros((len(v), len(t)))                        # probability density of membrane potential
@@ -336,16 +337,109 @@ def simulate():
         h5file.create_dataset('rho_plot_inh', data=rho_plot_inh)
 
 
-simulate()
+def plot(fname):
+    with h5py.File(fname + '.hdf5', 'r') as h5file:
 
-with h5py.File('test' + '.hdf5', 'r') as h5file:
+        t_plot = np.array(h5file['t'])
+        v = np.array(h5file['v'])
+        r_plot_exc = np.array(h5file['r_exc'])
+        r_plot_inh = np.array(h5file['r_inh'])
+        rho_plot_exc = np.array(h5file['rho_plot_exc'])
+        rho_plot_inh = np.array(h5file['rho_plot_inh'])
 
-    t_plot = np.array(h5file['t'])
-    v = np.array(h5file['v'])
-    r_plot_exc = np.array(h5file['r_exc'])
-    r_plot_inh = np.array(h5file['r_inh'])
-    rho_plot_exc = np.array(h5file['rho_plot_exc'])
-    rho_plot_inh = np.array(h5file['rho_plot_inh'])
+    fig = plt.figure(figsize=(10, 8.5))
+
+    if heat_map:
+        ax = fig.add_subplot(2, 2, 1)
+        X, Y = np.meshgrid(t_plot, v)
+        z_min, z_max = 0, np.abs(rho_plot_exc).max()
+        c = ax.pcolormesh(X, Y, rho_plot_exc, cmap='viridis', vmin=z_min, vmax=z_max)
+        fig.colorbar(c, ax=ax)
+
+    else:
+        ax = fig.add_subplot(2, 2, 1, projection='3d')
+        X, Y = np.meshgrid(t_plot, v)
+        ax.plot_surface(X, Y, rho_plot_exc,
+                        cmap="jet", linewidth=0, antialiased=False, rcount=100, ccount=100)
+        ax.set_zlim3d(0, 1)
+
+    ax.set_title("Membrane potential distribution (exc)")
+    ax.set_xlabel("time (ms)")
+    ax.set_ylabel("membrane potential (mv)")
+
+    ax = fig.add_subplot(2, 2, 2)
+    ax.plot(t_plot, r_plot_exc * 1000)
+    ax.set_title("Population activity (exc)")
+    ax.set_ylabel("Firing rate (Hz)")
+    ax.set_xlabel("time (ms)")
+    ax.grid()
+    plt.tight_layout()
+
+    if heat_map:
+        ax = fig.add_subplot(2, 2, 3)
+        X, Y = np.meshgrid(t_plot, v)
+        z_min, z_max = 0, np.abs(rho_plot_inh).max()
+        c = ax.pcolormesh(X, Y, rho_plot_inh, cmap='viridis', vmin=z_min, vmax=z_max)
+        fig.colorbar(c, ax=ax)
+
+    else:
+        ax = fig.add_subplot(2, 2, 3, projection='3d')
+        X, Y = np.meshgrid(t_plot, v)
+        ax.plot_surface(X, Y, rho_plot_inh,
+                        cmap="jet", linewidth=0, antialiased=False, rcount=100, ccount=100)
+        ax.set_zlim3d(0, 1)
+
+    ax.set_title("Membrane potential distribution (inh)")
+    ax.set_xlabel("time (ms)")
+    ax.set_ylabel("membrane potential (mv)")
+
+    ax = fig.add_subplot(2, 2, 4)
+    ax.plot(t_plot, r_plot_inh * 1000)
+    ax.set_title("Population activity (inh)")
+    ax.set_ylabel("Firing rate (Hz)")
+    ax.set_xlabel("time (ms)")
+    ax.grid()
+    plt.tight_layout()
+    plt.show()
+
+    # plt.savefig(f"/home/kporzig/Desktop/Nykamp_network_A_dv_{dv}_dt_{dt}.jpg", dpi=600)
+
+from Model.Nykamp import Nykamp_Model
+
+def input_sine_function(t):
+    v0 = .7
+    f = 10
+    return v0 * (1 + np.sin(2*np.pi*f*t/1000))
+
+parameters = {}
+parameters['connectivity_matrix'] = np.array([[30, 15], [15, 15]])
+parameters['u_rest'] = -65
+parameters['u_thr'] = -55
+parameters['u_exc'] = 0
+parameters['u_inh'] = -70
+parameters['tau_mem'] = np.array([20, 10])
+parameters['tau_ref'] = np.array([3, 1])
+parameters['mu_gamma'] = np.array([[0.008, 0.027], [0.020, 0.066]])
+parameters['var_coeff_gamma'] = 0.5*np.ones(4)
+parameters['tau_alpha'] = 1/3
+parameters['n_alpha'] = 9
+parameters['input_function'] = input_sine_function
+parameters['input_function_type'] = 'custom'
+parameters['input_function_idx'] = 0
+parameters['population_type'] = ['exc', 'inh']
+
+T = 2 # 200
+dt = 0.1 # 0.1
+dv = 0.01
+
+nyk = Nykamp_Model(parameters=parameters, name='nykamp_test')
+nyk.simulate(T=T, dt=dt, dv=dv)
+
+simulate(x=nyk)
+plot('nykamp_test')
+plot('test')
+
+
 
 #
 # plt.plot(rho_plot_inh[:, 0])
@@ -363,62 +457,4 @@ with h5py.File('test' + '.hdf5', 'r') as h5file:
 # plt.plot(r_plot_inh)
 
 
-
-fig = plt.figure(figsize=(10, 8.5))
-
-if heat_map:
-    ax = fig.add_subplot(2, 2, 1)
-    X, Y = np.meshgrid(t_plot, v)
-    z_min, z_max = 0, np.abs(rho_plot_exc).max()
-    c = ax.pcolormesh(X, Y, rho_plot_exc, cmap='viridis', vmin=z_min, vmax=z_max)
-    fig.colorbar(c, ax=ax)
-
-else:
-    ax = fig.add_subplot(2, 2, 1, projection='3d')
-    X, Y = np.meshgrid(t_plot, v)
-    ax.plot_surface(X, Y, rho_plot_exc,
-                    cmap="jet", linewidth=0, antialiased=False, rcount=100, ccount=100)
-    ax.set_zlim3d(0, 1)
-
-ax.set_title("Membrane potential distribution (exc)")
-ax.set_xlabel("time (ms)")
-ax.set_ylabel("membrane potential (mv)")
-
-ax = fig.add_subplot(2, 2, 2)
-ax.plot(t_plot, r_plot_exc*1000)
-ax.set_title("Population activity (exc)")
-ax.set_ylabel("Firing rate (Hz)")
-ax.set_xlabel("time (ms)")
-ax.grid()
-plt.tight_layout()
-
-if heat_map:
-    ax = fig.add_subplot(2, 2, 3)
-    X, Y = np.meshgrid(t_plot, v)
-    z_min, z_max = 0, np.abs(rho_plot_inh).max()
-    c = ax.pcolormesh(X, Y, rho_plot_inh, cmap='viridis', vmin=z_min, vmax=z_max)
-    fig.colorbar(c, ax=ax)
-
-else:
-    ax = fig.add_subplot(2, 2, 3, projection='3d')
-    X, Y = np.meshgrid(t_plot, v)
-    ax.plot_surface(X, Y, rho_plot_inh,
-                    cmap="jet", linewidth=0, antialiased=False, rcount=100, ccount=100)
-    ax.set_zlim3d(0, 1)
-
-ax.set_title("Membrane potential distribution (inh)")
-ax.set_xlabel("time (ms)")
-ax.set_ylabel("membrane potential (mv)")
-
-
-ax = fig.add_subplot(2, 2, 4)
-ax.plot(t_plot, r_plot_inh*1000)
-ax.set_title("Population activity (inh)")
-ax.set_ylabel("Firing rate (Hz)")
-ax.set_xlabel("time (ms)")
-ax.grid()
-plt.tight_layout()
-plt.show()
-
-# plt.savefig(f"/home/kporzig/Desktop/Nykamp_network_A_dv_{dv}_dt_{dt}.jpg", dpi=600)
 
