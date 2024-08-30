@@ -254,8 +254,14 @@ def simulate(x=None):
         # coefficients for finite difference matrices
         # c1, c2 are over all v steps and i is a time step
         f0_exc = dt / 2 * (1/tau_exc_membrane - v_in_exc_exc[i]*dc1e_exc_dv + v_in_exc_inh[i]*dc1i_exc_dv)
+        x_f0_exc = x.dt / 2 * (1 / x.tau_mem[0] - x.v_in_ee[i] * x.c1ee_v + x.v_in_ei[i] * x.c1ei_v)
         f1_exc = dt / (4*dv) * ((v-u_res)/tau_exc_membrane + v_in_exc_exc[i]*(-c1e_exc + dc2e_exc_dv) + v_in_exc_inh[i]*(c1i_exc + dc2i_exc_dv))
+        x_f1_exc = x.dt / (4 * x.dv) * (
+                (x.v - x.u_rest) / x.tau_mem[0] + x.v_in_ee[i] * (-x.c1ee + x.c2ee_v) + x.v_in_ei[i] * (
+                    x.c1ei + x.c2ei_v))
         f2_exc = dt / (2*dv**2) * (v_in_exc_exc[i]*c2e_exc + v_in_exc_inh[i]*c2i_exc)
+        x_f2_exc = x.dt / (2 * x.dv ** 2) * (x.v_in_ee[i] * x.c2ee + x.v_in_ie[i] * x.c2ie)
+
 
         # LHS matrix (t+dt)
         A_exc = np.diag(1+2*f2_exc-f0_exc) + np.diagflat((-f2_exc-f1_exc)[:-1], 1) + np.diagflat((f1_exc-f2_exc)[1:], -1)
@@ -292,8 +298,11 @@ def simulate(x=None):
 
         # coefficients for finite difference matrices
         f0_inh = dt / 2 * (1/tau_inh_membrane - v_in_inh_exc[i]*dc1e_inh_dv + v_in_inh_inh[i]*dc1i_inh_dv)
+        x_f0_inh = x.dt / 2 * (1/x.tau_mem[1] - x.v_in_ie[i]*x.c1ie_v + x.v_in_ii[i]*x.c1ii_v)
         f1_inh = dt / (4*dv) * ((v-u_res)/tau_inh_membrane + v_in_inh_exc[i]*(-c1e_inh + dc2e_inh_dv) + v_in_inh_inh[i]*(c1i_inh + dc2i_inh_dv))
+        x_f1_inh = x.dt / (4 * x.dv) * ((x.v - x.u_rest) / x.tau_mem[1] + x.v_in_ie[i] * (-x.c1ie + x.c2ie_v) + x.v_in_ii[i] * (x.c1ii + x.c2ii_v))
         f2_inh = dt / (2*dv**2) * (v_in_inh_exc[i]*c2e_inh + v_in_inh_inh[i]*c2i_inh)
+        x_f2_inh = x.dt / (2*x.dv**2) * (x.v_in_ie[i]*x.c2ie + x.v_in_ii[i]*x.c2ii)
 
         # LHS matrix (t+dt)
         A_inh = np.diag(1+2*f2_inh-f0_inh) + np.diagflat((-f2_inh-f1_inh)[:-1], 1) + np.diagflat((f1_inh-f2_inh)[1:], -1)
@@ -319,6 +328,8 @@ def simulate(x=None):
         rho_inh[:, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho_inh[:, i]))
         rho_inh[:, i+1] += dt * g_inh
         rho_inh_delta[i+1] = rho_inh_delta[i] + dt * (-(v_in_inh_exc[i] + v_in_inh_inh[i])*rho_inh_delta[i] + r_inh_delayed[i])
+        if i == 300:
+            a=1
 
     rho_plot_exc = rho_exc
     rho_plot_exc[v_reset_idx, :] = rho_exc[v_reset_idx, :] + rho_exc_delta[:]
@@ -428,7 +439,7 @@ parameters['input_function_type'] = 'custom'
 parameters['input_function_idx'] = 0
 parameters['population_type'] = ['exc', 'inh']
 
-T = 2 # 200
+T = 50 # 200
 dt = 0.1 # 0.1
 dv = 0.01
 

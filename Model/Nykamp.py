@@ -101,21 +101,21 @@ class Nykamp_Model():
 
         self.c1ee = self.diffusion_coefficients[0]
         self.c2ee = self.diffusion_coefficients[1]
-        self.c1ie = self.diffusion_coefficients[2]
-        self.c2ie = self.diffusion_coefficients[3]
+        self.c1ei = self.diffusion_coefficients[2]
+        self.c2ei = self.diffusion_coefficients[3]
 
-        self.c1ei = self.diffusion_coefficients[4]
-        self.c2ei = self.diffusion_coefficients[5]
+        self.c1ie = self.diffusion_coefficients[4]
+        self.c2ie = self.diffusion_coefficients[5]
         self.c1ii = self.diffusion_coefficients[6]
         self.c2ii = self.diffusion_coefficients[7]
 
         self.c1ee_v = self.diffusion_coefficients_dv[0]
         self.c2ee_v = self.diffusion_coefficients_dv[1]
-        self.c1ie_v = self.diffusion_coefficients_dv[2]
-        self.c2ie_v = self.diffusion_coefficients_dv[3]
+        self.c1ei_v = self.diffusion_coefficients_dv[2]
+        self.c2ei_v = self.diffusion_coefficients_dv[3]
 
-        self.c1ei_v = self.diffusion_coefficients_dv[4]
-        self.c2ei_v = self.diffusion_coefficients_dv[5]
+        self.c1ie_v = self.diffusion_coefficients_dv[4]
+        self.c2ie_v = self.diffusion_coefficients_dv[5]
         self.c1ii_v = self.diffusion_coefficients_dv[6]
         self.c2ii_v = self.diffusion_coefficients_dv[7]
 
@@ -131,30 +131,46 @@ class Nykamp_Model():
 
         for i in range(len(self.population_type)):
             # initialize arrays
+            v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
+            self.v_reset_idx = v_reset_idx
+
             #TODO: check how many of those are replications and eventually use a single array for all of these
             if self.population_type[i] == 'exc':
 
                 rho_exc = np.zeros((len(self.v), len(self.t))) # probability density of discontinuous membrane potential
                 rho_exc_delta = np.zeros(len(self.t)) # probability density of membrane potential
                 ref_exc_delta_idx = int(self.tau_ref[0] / self.dt)  # number of time steps of refractory delay
-                v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
                 r_exc = np.zeros(len(self.t))  # output firing rate
                 r_exc_delayed = np.zeros(len(self.t) + ref_exc_delta_idx)  # delayed output firing rate
                 v_in_ee = np.zeros(len(self.t))
                 v_in_ei = np.zeros(len(self.t))
+
+                rho_exc[:, 0] = scipy.stats.norm.pdf(self.v, self.u_rest, 1)
+                rho_exc[0, 0] = 0
+                rho_exc[-1, 0] = 0
 
 
             elif self.population_type[i] == 'inh':
                 rho_inh = np.zeros((len(self.v), len(self.t)))  # probability density of membrane potential
                 rho_inh_delta = np.zeros(len(self.t))  # probability density of discontinuous membrane potential
                 ref_inh_delta_idx = int(self.tau_ref[1] / self.dt)  # number of time steps of refractory delay
-                v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
                 r_inh = np.zeros(len(self.t))  # output firing rate
                 r_inh_delayed = np.zeros(len(self.t) + ref_inh_delta_idx)  # delayed output firing rate
                 v_in_ie = np.zeros(len(self.t))
                 v_in_ii = np.zeros(len(self.t))
 
+                # initialize rho with a gaussian distribution around the resting potential
+                rho_inh[:, 0] = scipy.stats.norm.pdf(self.v, self.u_rest, 1)
+                rho_inh[0, 0] = 0
+                rho_inh[-1, 0] = 0
+
         # Determine population dynamics (diffusion approximation)
+        self.A_exc = []
+        self.A_inh = []
+        self.g_exc = []
+        self.g_inh = []
+        self.B_exc = []
+        self.B_inh = []
         for i, t_ in enumerate(tqdm(self.t[:-1])):
             # for i, t_ in enumerate(t[:-1]):
 
@@ -182,14 +198,19 @@ class Nykamp_Model():
             Fie_v = self.dFdv[2]
             Fii_v = self.dFdv[3]
 
+            v_in_ee[i] = self.input[0][i] + self.connectivity_matrix[0, 0] * r_exc_conv
+            v_in_ei[i] = self.connectivity_matrix[0, 1] * r_inh_conv
+
             # coefficients for finite difference matrices
             # c1, c2 are over all v steps and i is a time step
-            f0_exc = dt / 2 * (1 / self.tau_mem[0] - v_in_ee[i] * self.c1ee_v + v_in_ei[i] * self.c1ei_v)
 
-            f1_exc = dt / (4 * dv) * (
-                        (self.v - self.u_rest) / self.tau_mem[0] + v_in_ee[i] * (-self.c1ee + self.c2ee_v)
-                        + v_in_ei[i] * (self.c1ei + self.c2ei_v))
-            f2_exc = dt / (2 * dv ** 2) * (v_in_ee[i] * self.c2ee + v_in_ei[i] * self.c2ei)
+            f0_exc = self.dt / 2 * (1 / self.tau_mem[0] - v_in_ee[i] * self.c1ee_v + v_in_ei[i] * self.c1ei_v)
+
+            f1_exc = self.dt / (4 * self.dv) * (
+                    (self.v - self.u_rest) / self.tau_mem[0] + v_in_ee[i] * (-self.c1ee + self.c2ee_v) + v_in_ei[i] * (
+                    self.c1ei + self.c2ei_v))
+            f2_exc = self.dt / (2 * self.dv ** 2) * (v_in_ee[i] * self.c2ee + v_in_ie[i] * self.c2ie)
+
 
             # LHS matrix (t+dt)
             A_exc = np.diag(1 + 2 * f2_exc - f0_exc) + np.diagflat((-f2_exc - f1_exc)[:-1], 1) + np.diagflat(
@@ -206,20 +227,21 @@ class Nykamp_Model():
             # contribution to drho/dt from rho_delta at u_res
             g_exc = rho_exc_delta[i] * (-v_in_ee[i] * Fee_v + v_in_ei[i] * Fei_v)
 
+            if i == 300:
+                self.A_exc = A_exc
+                self.B_exc = B_exc
+                self.g_exc = g_exc
+
             # calculate firing rate
-            r_exc[i] = v_in_ee[i] * (self.c2ee[-1] * rho_exc[-2, i] / dv + self.gamma_ee.sf(
+            r_exc[i] = v_in_ee[i] * (self.c2ee[-1] * rho_exc[-2, i] / self.dv + self.gamma_ee.sf(
                 (self.u_thr - self.u_rest) / (self.u_exc - self.u_rest)) * rho_exc_delta[i])
             if r_exc[i] < 0:
-                # print(f"WARNING: r_exc < 0 ! (r_exc = {r_exc[i]}) ... Setting r_exc to 0")
                 r_exc[i] = 0
             r_exc_delayed[i + ref_exc_delta_idx] = r_exc[i]
 
-            # update rho and rho_delta
-            # rho_exc[:, i+1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho_exc[:, i][:, np.newaxis]))[:, 0]
-            # old overly complicated version
             rho_exc[:, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho_exc[:, i]))
-            rho_exc[:, i + 1] += dt * g_exc
-            rho_exc_delta[i + 1] = rho_exc_delta[i] + dt * (
+            rho_exc[:, i + 1] += self.dt * g_exc
+            rho_exc_delta[i + 1] = rho_exc_delta[i] + self.dt * (
                         -(v_in_ee[i] + v_in_ei[i]) * rho_exc_delta[i] + r_exc_delayed[i])
 
             # inhibitory population
@@ -228,12 +250,11 @@ class Nykamp_Model():
 
 
             # coefficients for finite difference matrices
-            f0_inh = dt / 2 * (1 / self.tau_mem[1] - v_in_ie[i] * self.c1ie_v + v_in_ii[i] * self.c1ii_v)
-
-            f1_inh = dt / (4 * dv) * (
+            f0_inh = self.dt / 2 * (1 / self.tau_mem[1] - v_in_ie[i] * self.c1ie_v + v_in_ii[i] * self.c1ii_v)
+            f1_inh = self.dt / (4 * self.dv) * (
                         (self.v - self.u_rest) / self.tau_mem[1] + v_in_ie[i] * (-self.c1ie + self.c2ie_v) + v_in_ii[
                     i] * (self.c1ii + self.c2ii_v))
-            f2_inh = dt / (2 * dv ** 2) * (v_in_ie[i] * self.c2ie + v_in_ii[i] * self.c2ii)
+            f2_inh = self.dt / (2 * self.dv ** 2) * (v_in_ie[i] * self.c2ie + v_in_ii[i] * self.c2ii)
 
             # LHS matrix (t+dt)
             A_inh = np.diag(1 + 2 * f2_inh - f0_inh) + np.diagflat((-f2_inh - f1_inh)[:-1], 1) + np.diagflat(
@@ -248,11 +269,16 @@ class Nykamp_Model():
             B_inh[-1, -2] = -2 * f1_inh[-2]
 
             # contribution to drho/dt from rho_delta at u_res
-            g_inh = rho_inh_delta[i] * (-v_in_ii[i] * Fie_v + v_in_ii[i] * Fii_v)
+            g_inh = rho_inh_delta[i] * (-v_in_ie[i] * Fie_v + v_in_ii[i] * Fii_v)
+
+            if i == 300:
+                self.A_inh = A_inh
+                self.B_inh = B_inh
+                self.g_inh = g_inh
+
             # calculate firing rate
-            r_inh[i] = v_in_ie[i] * (
-                        self.c2ie[-1] * rho_inh[-2, i] / dv + self.gamma_ie.sf((self.u_thr - self.u_rest) / (self.u_exc - self.u_rest)) *
-                        rho_inh_delta[i])
+            r_inh[i] = v_in_ie[i] * (self.c2ie[-1] * rho_inh[-2, i] / self.dv + self.gamma_ie.sf(
+                (self.u_thr - self.u_rest) / (self.u_exc - self.u_rest)) * rho_inh_delta[i])
             if r_inh[i] < 0:
                 # print(f"WARNING: r_inh < 0 ! (r_inh = {r_inh[i]}) ... Setting r_inh to 0")
                 r_inh[i] = 0
@@ -264,6 +290,11 @@ class Nykamp_Model():
             rho_inh_delta[i + 1] = rho_inh_delta[i] + dt * (
                         -(v_in_ie[i] + v_in_ii[i]) * rho_inh_delta[i] + r_inh_delayed[i])
 
+        self.v_in_ee = v_in_ee
+        self.v_in_ei = v_in_ei
+        self.v_in_ie = v_in_ie
+        self.v_in_ii = v_in_ii
+
         rho_plot_exc = rho_exc
         rho_plot_exc[v_reset_idx, :] = rho_exc[v_reset_idx, :] + rho_exc_delta[:]
         r_plot_exc = r_exc[:]
@@ -271,6 +302,13 @@ class Nykamp_Model():
         rho_plot_inh = rho_inh
         rho_plot_inh[v_reset_idx, :] = rho_inh[v_reset_idx, :] + rho_inh_delta[:]
         r_plot_inh = r_inh[:]
+
+        self.rho_exc_delta = rho_exc_delta
+        self.rho_exc = rho_exc
+        self.rho_inh = rho_inh
+        self.rho_inh_delta = rho_inh_delta
+        self.r_exc = r_exc
+        self.r_inh = r_inh
 
         with h5py.File(self.name + '.hdf5', 'w') as h5file:
             h5file.create_dataset('t', data=self.t)
@@ -414,13 +452,15 @@ class Nykamp_Model():
                         c1ei[i] = np.trapz(x=vpi, y=int_c1ei)
                         c2ei[i] = np.trapz(x=vpi, y=int_c2ei)
 
+                c1ei[0] = c1ei[1]
+                c2ei[0] = 0
+
                 self.diffusion_coefficients[4*k:4*(k+1)] = np.array([c1ee, c2ee, c1ei, c2ei])
                 self.gamma_ee = gamma_ee
-
                 Fee_v = np.gradient(gamma_ee.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
                         * np.heaviside(self.v - self.u_rest, 0.5)
-                Fei_v = np.gradient(gamma_ei.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
-                        * np.heaviside(self.v - self.u_rest, 0.5)
+                Fei_v = np.gradient(gamma_ei.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
+                        * np.heaviside(self.u_rest - self.v, 0.5)
 
                 self.dFdv[2*k:2*(k+1)] = np.array([Fee_v, Fei_v])
 
@@ -464,16 +504,14 @@ class Nykamp_Model():
                         c1ii[i] = np.trapz(x=vpi, y=int_c1ii)
                         c2ii[i] = np.trapz(x=vpi, y=int_c2ii)
 
-                c1ie[0] = c1ie[1]
-                c2ie[0] = 0
-                c1ie[0] = c1ie[1]
-                c2ie[0] = 0
+
+                c1ii[0] = c1ii[1]
+                c2ii[0] = 0
 
                 self.diffusion_coefficients[4*k:4*(k+1)] = c1ie, c2ie, c1ii, c2ii
                 self.gamma_ie = gamma_ie
-
-                Fie_v = np.gradient(gamma_ie.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
-                                   * np.heaviside(self.u_rest - self.v, 0.5)
+                Fie_v = np.gradient(gamma_ie.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
+                                   * np.heaviside(self.v - self.u_rest, 0.5)
                 Fii_v = np.gradient(gamma_ii.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
                                    * np.heaviside(self.u_rest - self.v, 0.5)
                 self.dFdv[2*k:2*(k+1)] = np.array([Fie_v, Fii_v])
