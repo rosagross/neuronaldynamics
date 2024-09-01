@@ -228,9 +228,11 @@ class Nykamp_Model():
             g_exc = rho_exc_delta[i] * (-v_in_ee[i] * Fee_v + v_in_ei[i] * Fei_v)
 
             if i == 300:
+                self.f0_exc = f0_exc
+                self.f1_exc = f1_exc
+                self.f2_exc = f2_exc
                 self.A_exc = A_exc
                 self.B_exc = B_exc
-                self.g_exc = g_exc
 
             # calculate firing rate
             r_exc[i] = v_in_ee[i] * (self.c2ee[-1] * rho_exc[-2, i] / self.dv + self.gamma_ee.sf(
@@ -272,9 +274,12 @@ class Nykamp_Model():
             g_inh = rho_inh_delta[i] * (-v_in_ie[i] * Fie_v + v_in_ii[i] * Fii_v)
 
             if i == 300:
+                self.f0_inh = f0_inh
+                self.f1_inh = f1_inh
+                self.f2_inh = f2_inh
                 self.A_inh = A_inh
                 self.B_inh = B_inh
-                self.g_inh = g_inh
+
 
             # calculate firing rate
             r_inh[i] = v_in_ie[i] * (self.c2ie[-1] * rho_inh[-2, i] / self.dv + self.gamma_ie.sf(
@@ -371,10 +376,10 @@ class Nykamp_Model():
             int_c1ei = gamma_ei.sf((v_ - vpe) / (self.u_exc - vpe))
             int_c2ei = int_c1ei * (v_ - vpe)
 
-            c1ee[i] = np.trapz(x=vpe, y=int_c1ee)
-            c2ee[i] = np.trapz(x=vpe, y=int_c2ee)
-            c1ei[i] = np.trapz(x=vpe, y=int_c1ei)
-            c2ei[i] = np.trapz(x=vpe, y=int_c2ei)
+            c1ee[i] = np.trapezoid(x=vpe, y=int_c1ee)
+            c2ee[i] = np.trapezoid(x=vpe, y=int_c2ee)
+            c1ei[i] = np.trapezoid(x=vpe, y=int_c1ei)
+            c2ei[i] = np.trapezoid(x=vpe, y=int_c2ei)
 
             if i > 0:
                 vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
@@ -383,10 +388,10 @@ class Nykamp_Model():
                 int_c1ii = gamma_ii.sf((v_ - vpi) / (self.u_inh - vpi))
                 int_c2ii = int_c1ii * (vpi - v_)
 
-                c1ie[i] = np.trapz(x=vpi, y=int_c1ie)
-                c2ie[i] = np.trapz(x=vpi, y=int_c2ie)
-                c1ii[i] = np.trapz(x=vpi, y=int_c1ii)
-                c2ii[i] = np.trapz(x=vpi, y=int_c2ii)
+                c1ie[i] = np.trapezoid(x=vpi, y=int_c1ie)
+                c2ie[i] = np.trapezoid(x=vpi, y=int_c2ie)
+                c1ii[i] = np.trapezoid(x=vpi, y=int_c1ii)
+                c2ii[i] = np.trapezoid(x=vpi, y=int_c2ii)
 
         c1ie[0] = c1ie[1]
         c2ie[0] = 0
@@ -442,15 +447,15 @@ class Nykamp_Model():
                     vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
                     int_c1ee = gamma_ee.sf((v_ - vpe) / (self.u_exc - vpe))
                     int_c2ee = int_c1ee * (v_ - vpe)
-                    c1ee[i] = np.trapz(x=vpe, y=int_c1ee)
-                    c2ee[i] = np.trapz(x=vpe, y=int_c2ee)
+                    c1ee[i] = np.trapezoid(x=vpe, y=int_c1ee)
+                    c2ee[i] = np.trapezoid(x=vpe, y=int_c2ee)
 
                     if i > 0:
                         vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
                         int_c1ei = gamma_ei.sf((v_ - vpi) / (self.u_inh - vpi))
                         int_c2ei = int_c1ei * (vpi - v_)
-                        c1ei[i] = np.trapz(x=vpi, y=int_c1ei)
-                        c2ei[i] = np.trapz(x=vpi, y=int_c2ei)
+                        c1ei[i] = np.trapezoid(x=vpi, y=int_c1ei)
+                        c2ei[i] = np.trapezoid(x=vpi, y=int_c2ei)
 
                 c1ei[0] = c1ei[1]
                 c2ei[0] = 0
@@ -494,15 +499,15 @@ class Nykamp_Model():
                     vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
                     int_c1ie = gamma_ie.sf((v_ - vpe) / (self.u_exc - vpe))
                     int_c2ie = int_c1ie * (v_ - vpe)
-                    c1ie[i] = np.trapz(x=vpe, y=int_c1ie)
-                    c2ie[i] = np.trapz(x=vpe, y=int_c2ie)
+                    c1ie[i] = np.trapezoid(x=vpe, y=int_c1ie)
+                    c2ie[i] = np.trapezoid(x=vpe, y=int_c2ie)
 
                     if i > 0:
                         vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
                         int_c1ii = gamma_ii.sf((v_ - vpi) / (self.u_inh - vpi))
                         int_c2ii = int_c1ii * (vpi - v_)
-                        c1ii[i] = np.trapz(x=vpi, y=int_c1ii)
-                        c2ii[i] = np.trapz(x=vpi, y=int_c2ii)
+                        c1ii[i] = np.trapezoid(x=vpi, y=int_c1ii)
+                        c2ii[i] = np.trapezoid(x=vpi, y=int_c2ii)
 
 
                 c1ii[0] = c1ii[1]
@@ -523,4 +528,4 @@ class Nykamp_Model():
         self.t_alpha = self.t[self.t < 10]
         self.alpha = np.exp(-self.t_alpha/self.tau_alpha) / (self.tau_alpha * scipy.special.factorial(self.n_alpha-1)) *\
                 (self.t_alpha/self.tau_alpha)**(self.n_alpha-1)
-        self.alpha = self.alpha/np.trapz(self.alpha, dx=self.dt)
+        self.alpha = self.alpha/np.trapezoid(self.alpha, dx=self.dt)

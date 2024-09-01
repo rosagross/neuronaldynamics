@@ -142,10 +142,10 @@ def simulate(x=None):
         int_inh_c1e = gamma_inh_e.sf((v_-vpe)/(u_exc-vpe))
         int_inh_c2e = int_inh_c1e * (v_-vpe)
 
-        c1e_exc_fine[i] = np.trapz(x=vpe, y=int_exc_c1e)
-        c2e_exc_fine[i] = np.trapz(x=vpe, y=int_exc_c2e)
-        c1e_inh_fine[i] = np.trapz(x=vpe, y=int_inh_c1e)
-        c2e_inh_fine[i] = np.trapz(x=vpe, y=int_inh_c2e)
+        c1e_exc_fine[i] = np.trapezoid(x=vpe, y=int_exc_c1e)
+        c2e_exc_fine[i] = np.trapezoid(x=vpe, y=int_exc_c2e)
+        c1e_inh_fine[i] = np.trapezoid(x=vpe, y=int_inh_c1e)
+        c2e_inh_fine[i] = np.trapezoid(x=vpe, y=int_inh_c2e)
 
         if i > 0:
             vpi = np.arange(v_, u_thr+dv_fine, dv_fine)
@@ -154,10 +154,10 @@ def simulate(x=None):
             int_inh_c1i = gamma_inh_i.sf((v_-vpi)/(u_inh-vpi))
             int_inh_c2i = int_inh_c1i * (vpi-v_)
 
-            c1i_exc_fine[i] = np.trapz(x=vpi, y=int_exc_c1i)
-            c2i_exc_fine[i] = np.trapz(x=vpi, y=int_exc_c2i)
-            c1i_inh_fine[i] = np.trapz(x=vpi, y=int_inh_c1i)
-            c2i_inh_fine[i] = np.trapz(x=vpi, y=int_inh_c2i)
+            c1i_exc_fine[i] = np.trapezoid(x=vpi, y=int_exc_c1i)
+            c2i_exc_fine[i] = np.trapezoid(x=vpi, y=int_exc_c2i)
+            c1i_inh_fine[i] = np.trapezoid(x=vpi, y=int_inh_c1i)
+            c2i_inh_fine[i] = np.trapezoid(x=vpi, y=int_inh_c2i)
 
     c1i_exc_fine[0] = c1i_exc_fine[1]
     c2i_exc_fine[0] = 0
@@ -199,7 +199,7 @@ def simulate(x=None):
     tau_alpha = 1/3
     n_alpha = 9
     alpha = np.exp(-t_alpha/tau_alpha) / (tau_alpha * scipy.special.factorial(n_alpha-1)) * (t_alpha/tau_alpha)**(n_alpha-1)
-    alpha = alpha/np.trapz(alpha, dx=dt) # not necessary
+    alpha = alpha/np.trapezoid(alpha, dx=dt) # not necessary
 
     # contributions from delta distributions to rho_smooth
     dFe_exc_delta_dv = np.gradient(gamma_exc_e.sf(x=(v-u_res)/(u_exc-u_res)), dv) * np.heaviside(v-u_res, 0.5)
@@ -248,11 +248,14 @@ def simulate(x=None):
             r_exc_conv = 0
             r_inh_conv = 0
 
+        if i == 300:
+            la = 12
         v_in_exc_exc[i] = v_e_o[i] + w_ee * r_exc_conv
         v_in_exc_inh[i] = w_ie * r_inh_conv
 
         # coefficients for finite difference matrices
         # c1, c2 are over all v steps and i is a time step
+        # TODO: error stems from v_in
         f0_exc = dt / 2 * (1/tau_exc_membrane - v_in_exc_exc[i]*dc1e_exc_dv + v_in_exc_inh[i]*dc1i_exc_dv)
         x_f0_exc = x.dt / 2 * (1 / x.tau_mem[0] - x.v_in_ee[i] * x.c1ee_v + x.v_in_ei[i] * x.c1ei_v)
         f1_exc = dt / (4*dv) * ((v-u_res)/tau_exc_membrane + v_in_exc_exc[i]*(-c1e_exc + dc2e_exc_dv) + v_in_exc_inh[i]*(c1i_exc + dc2i_exc_dv))
@@ -328,8 +331,6 @@ def simulate(x=None):
         rho_inh[:, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho_inh[:, i]))
         rho_inh[:, i+1] += dt * g_inh
         rho_inh_delta[i+1] = rho_inh_delta[i] + dt * (-(v_in_inh_exc[i] + v_in_inh_inh[i])*rho_inh_delta[i] + r_inh_delayed[i])
-        if i == 300:
-            a=1
 
     rho_plot_exc = rho_exc
     rho_plot_exc[v_reset_idx, :] = rho_exc[v_reset_idx, :] + rho_exc_delta[:]
@@ -412,6 +413,7 @@ def plot(fname):
     ax.grid()
     plt.tight_layout()
     plt.show()
+    return rho_plot_exc
 
     # plt.savefig(f"/home/kporzig/Desktop/Nykamp_network_A_dv_{dv}_dt_{dt}.jpg", dpi=600)
 
@@ -447,25 +449,9 @@ nyk = Nykamp_Model(parameters=parameters, name='nykamp_test')
 nyk.simulate(T=T, dt=dt, dv=dv)
 
 simulate(x=nyk)
-plot('nykamp_test')
-plot('test')
+rho_1 = plot('nykamp_test')
+rho_2 = plot('test')
 
-
-
-#
-# plt.plot(rho_plot_inh[:, 0])
-# plt.plot(rho_plot_inh[:, 600])
-# plt.plot(rho_plot_inh[:, 650])
-# plt.plot(rho_plot_inh[:, 700])
-# plt.plot(rho_plot_inh[:, 1000])
-# plt.plot(rho_plot_inh[:, 1100])
-# plt.plot(rho_plot_inh[:, 1200])
-# plt.plot(rho_plot_inh[:, 1300])
-# plt.plot(rho_plot_inh[:, 1400])
-# plt.plot(rho_plot_inh[:, 1500])
-# plt.plot(rho_plot_inh[:, 1600])
-#
-# plt.plot(r_plot_inh)
-
+print(f'{np.allclose(rho_1, rho_2)}')
 
 
