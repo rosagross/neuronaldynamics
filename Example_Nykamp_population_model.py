@@ -432,12 +432,12 @@ parameters['u_inh'] = -70
 parameters['tau_mem'] = np.array([20, 10])
 parameters['tau_ref'] = np.array([3, 1])
 parameters['mu_gamma'] = np.array([[0.008, 0.027], [0.020, 0.066]])
-parameters['var_coeff_gamma'] = 0.5*np.ones(4)
+parameters['var_coeff_gamma'] = 0.5*np.ones((4, 2))
 parameters['tau_alpha'] = 1/3
 parameters['n_alpha'] = 9
 parameters['input_function'] = input_sine_function
 parameters['input_function_type'] = 'custom'
-parameters['input_function_idx'] = 0
+parameters['input_function_idx'] = [0, 0]
 parameters['population_type'] = ['exc', 'inh']
 
 T = 2 # 200
