@@ -142,10 +142,10 @@ def simulate(x=None):
         int_inh_c1e = gamma_inh_e.sf((v_-vpe)/(u_exc-vpe))
         int_inh_c2e = int_inh_c1e * (v_-vpe)
 
-        c1e_exc_fine[i] = np.trapezoid(x=vpe, y=int_exc_c1e)
-        c2e_exc_fine[i] = np.trapezoid(x=vpe, y=int_exc_c2e)
-        c1e_inh_fine[i] = np.trapezoid(x=vpe, y=int_inh_c1e)
-        c2e_inh_fine[i] = np.trapezoid(x=vpe, y=int_inh_c2e)
+        c1e_exc_fine[i] = np.trapz(x=vpe, y=int_exc_c1e)
+        c2e_exc_fine[i] = np.trapz(x=vpe, y=int_exc_c2e)
+        c1e_inh_fine[i] = np.trapz(x=vpe, y=int_inh_c1e)
+        c2e_inh_fine[i] = np.trapz(x=vpe, y=int_inh_c2e)
 
         if i > 0:
             vpi = np.arange(v_, u_thr+dv_fine, dv_fine)
@@ -154,10 +154,10 @@ def simulate(x=None):
             int_inh_c1i = gamma_inh_i.sf((v_-vpi)/(u_inh-vpi))
             int_inh_c2i = int_inh_c1i * (vpi-v_)
 
-            c1i_exc_fine[i] = np.trapezoid(x=vpi, y=int_exc_c1i)
-            c2i_exc_fine[i] = np.trapezoid(x=vpi, y=int_exc_c2i)
-            c1i_inh_fine[i] = np.trapezoid(x=vpi, y=int_inh_c1i)
-            c2i_inh_fine[i] = np.trapezoid(x=vpi, y=int_inh_c2i)
+            c1i_exc_fine[i] = np.trapz(x=vpi, y=int_exc_c1i)
+            c2i_exc_fine[i] = np.trapz(x=vpi, y=int_exc_c2i)
+            c1i_inh_fine[i] = np.trapz(x=vpi, y=int_inh_c1i)
+            c2i_inh_fine[i] = np.trapz(x=vpi, y=int_inh_c2i)
 
     c1i_exc_fine[0] = c1i_exc_fine[1]
     c2i_exc_fine[0] = 0
@@ -199,7 +199,7 @@ def simulate(x=None):
     tau_alpha = 1/3
     n_alpha = 9
     alpha = np.exp(-t_alpha/tau_alpha) / (tau_alpha * scipy.special.factorial(n_alpha-1)) * (t_alpha/tau_alpha)**(n_alpha-1)
-    alpha = alpha/np.trapezoid(alpha, dx=dt) # not necessary
+    alpha = alpha/np.trapz(alpha, dx=dt) # not necessary
 
     # contributions from delta distributions to rho_smooth
     dFe_exc_delta_dv = np.gradient(gamma_exc_e.sf(x=(v-u_res)/(u_exc-u_res)), dv) * np.heaviside(v-u_res, 0.5)
@@ -210,7 +210,7 @@ def simulate(x=None):
     # plt.plot(v, gamma_exc_e.sf(x=(v-u_res)/(u_exc-u_res)) * np.heaviside(v-u_res, 0.5), v, dFe_delta_dv)
     # plt.plot(v, gamma_exc_i.sf(x=(u_res-v)/(u_exc-u_res)) * np.heaviside(u_res-v, 0.5), v, dFi_delta_dv)
 
-    #TODO: find out why diff coeffs are wrong only here
+
     # initialize arrays
     rho_exc = np.zeros((len(v), len(t)))                        # probability density of membrane potential
     rho_inh = np.zeros((len(v), len(t)))                        # probability density of membrane potential
@@ -248,24 +248,22 @@ def simulate(x=None):
             r_exc_conv = 0
             r_inh_conv = 0
 
-        if i == 300:
+        from Utils import nrmse
+        if nrmse(rho_exc[:, i], x.rho_exc[:, i]) > 0.0:
             la = 12
         v_in_exc_exc[i] = v_e_o[i] + w_ee * r_exc_conv
         v_in_exc_inh[i] = w_ie * r_inh_conv
 
         # coefficients for finite difference matrices
         # c1, c2 are over all v steps and i is a time step
-        # TODO: error stems from v_in
         f0_exc = dt / 2 * (1/tau_exc_membrane - v_in_exc_exc[i]*dc1e_exc_dv + v_in_exc_inh[i]*dc1i_exc_dv)
-        x_f0_exc = x.dt / 2 * (1 / x.tau_mem[0] - x.v_in_ee[i] * x.c1ee_v + x.v_in_ei[i] * x.c1ei_v)
+        # x_f0_exc = x.dt / 2 * (1 / x.tau_mem[0] - x.v_in_ee[i] * x.c1ee_v + x.v_in_ei[i] * x.c1ei_v)
         f1_exc = dt / (4*dv) * ((v-u_res)/tau_exc_membrane + v_in_exc_exc[i]*(-c1e_exc + dc2e_exc_dv) + v_in_exc_inh[i]*(c1i_exc + dc2i_exc_dv))
-        x_f1_exc = x.dt / (4 * x.dv) * (
-                (x.v - x.u_rest) / x.tau_mem[0] + x.v_in_ee[i] * (-x.c1ee + x.c2ee_v) + x.v_in_ei[i] * (
-                    x.c1ei + x.c2ei_v))
+        # x_f1_exc = x.dt / (4 * x.dv) * (
+        #         (x.v - x.u_rest) / x.tau_mem[0] + x.v_in_ee[i] * (-x.c1ee + x.c2ee_v) + x.v_in_ei[i] * (
+        #             x.c1ei + x.c2ei_v))
         f2_exc = dt / (2*dv**2) * (v_in_exc_exc[i]*c2e_exc + v_in_exc_inh[i]*c2i_exc)
-        x_f2_exc = x.dt / (2 * x.dv ** 2) * (x.v_in_ee[i] * x.c2ee + x.v_in_ie[i] * x.c2ie)
-
-
+        # x_f2_exc = x.dt / (2 * x.dv ** 2) * (x.v_in_ee[i] * x.c2ee + x.v_in_ie[i] * x.c2ie)
         # LHS matrix (t+dt)
         A_exc = np.diag(1+2*f2_exc-f0_exc) + np.diagflat((-f2_exc-f1_exc)[:-1], 1) + np.diagflat((f1_exc-f2_exc)[1:], -1)
         A_exc[0, 1] = -2*f1_exc[1]
@@ -301,11 +299,12 @@ def simulate(x=None):
 
         # coefficients for finite difference matrices
         f0_inh = dt / 2 * (1/tau_inh_membrane - v_in_inh_exc[i]*dc1e_inh_dv + v_in_inh_inh[i]*dc1i_inh_dv)
-        x_f0_inh = x.dt / 2 * (1/x.tau_mem[1] - x.v_in_ie[i]*x.c1ie_v + x.v_in_ii[i]*x.c1ii_v)
+        # x_f0_inh = x.dt / 2 * (1/x.tau_mem[1] - x.v_in_ie[i]*x.c1ie_v + x.v_in_ii[i]*x.c1ii_v)
         f1_inh = dt / (4*dv) * ((v-u_res)/tau_inh_membrane + v_in_inh_exc[i]*(-c1e_inh + dc2e_inh_dv) + v_in_inh_inh[i]*(c1i_inh + dc2i_inh_dv))
-        x_f1_inh = x.dt / (4 * x.dv) * ((x.v - x.u_rest) / x.tau_mem[1] + x.v_in_ie[i] * (-x.c1ie + x.c2ie_v) + x.v_in_ii[i] * (x.c1ii + x.c2ii_v))
+        # x_f1_inh = x.dt / (4 * x.dv) * ((x.v - x.u_rest) / x.tau_mem[1] + x.v_in_ie[i] * (-x.c1ie + x.c2ie_v) + x.v_in_ii[i] * (x.c1ii + x.c2ii_v))
         f2_inh = dt / (2*dv**2) * (v_in_inh_exc[i]*c2e_inh + v_in_inh_inh[i]*c2i_inh)
-        x_f2_inh = x.dt / (2*x.dv**2) * (x.v_in_ie[i]*x.c2ie + x.v_in_ii[i]*x.c2ii)
+        # x_f2_inh = x.dt / (2*x.dv**2) * (x.v_in_ie[i]*x.c2ie + x.v_in_ii[i]*x.c2ii)
+
 
         # LHS matrix (t+dt)
         A_inh = np.diag(1+2*f2_inh-f0_inh) + np.diagflat((-f2_inh-f1_inh)[:-1], 1) + np.diagflat((f1_inh-f2_inh)[1:], -1)
@@ -425,7 +424,7 @@ def input_sine_function(t):
     return v0 * (1 + np.sin(2*np.pi*f*t/1000))
 
 parameters = {}
-parameters['connectivity_matrix'] = np.array([[30, 15], [15, 15]])
+parameters['connectivity_matrix'] = np.array([[15, 30], [30, 30]])
 parameters['u_rest'] = -65
 parameters['u_thr'] = -55
 parameters['u_exc'] = 0
@@ -441,17 +440,17 @@ parameters['input_function_type'] = 'custom'
 parameters['input_function_idx'] = 0
 parameters['population_type'] = ['exc', 'inh']
 
-T = 50 # 200
+T = 2 # 200
 dt = 0.1 # 0.1
 dv = 0.01
 
 nyk = Nykamp_Model(parameters=parameters, name='nykamp_test')
 nyk.simulate(T=T, dt=dt, dv=dv)
+# simulate(x=nyk)
 
-simulate(x=nyk)
-rho_1 = plot('nykamp_test')
-rho_2 = plot('test')
+# rho_1 = plot('nykamp_test')
+# rho_2 = plot('test')
 
-print(f'{np.allclose(rho_1, rho_2)}')
+# print(f'{np.allclose(rho_1, rho_2)}')
 
 
