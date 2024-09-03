@@ -87,7 +87,7 @@ class Nykamp_Model():
 
         self.input = np.zeros([self.n_populations, self.n_populations, self.t.shape[0]])
         # set up input_function over time
-        self.input[self.input_function_idx] = self.input_function(t=self.t)
+        self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
 
         # calculate alpha kernel
         self.get_alpha_kernel()
@@ -306,11 +306,11 @@ class Nykamp_Model():
         rho = np.zeros((self.n_populations, len(self.v), len(self.t)))
         rho_delta = np.zeros((self.n_populations, len(self.t)))
         r = np.zeros((self.n_populations, len(self.t)))  # output firing rate
-        r_delayed = np.zeros(self.n_populations, (len(self.t) + max_ref_delta_indx))
+        r_delayed = np.zeros((self.n_populations, (len(self.t) + max_ref_delta_indx)))
         v_in = np.zeros((self.n_populations, self.n_populations, len(self.t))) # ref_exc_delta_idx used to be here
 
         r_conv = np.zeros(self.n_populations)
-        exc_idxs = [i for i, type in enumerate(self.population_type) if type=='exc']
+        exc_idxs = [i for i, type in enumerate(self.population_type) if type == 'exc']
         inh_idxs = [i for i, type in enumerate(self.population_type) if type == 'inh']
 
         for i in range(len(self.population_type)):
@@ -321,10 +321,11 @@ class Nykamp_Model():
 
         # Determine population dynamics (diffusion approximation)
         for i, t_ in enumerate(tqdm(self.t[:-1])):
-            # for i, t_ in enumerate(t[:-1]):
+
             # if i > 0:
             #     r_conv = self.mat_convolve(r[:(i + 1), :], self.alpha)[:, :, -len(self.alpha)] * self.dt
             # v_in[:, :, i] = self.connectivity_matrix * r_conv + self.in2D
+
             for j, type_j in enumerate(self.population_type):
 
                 # as of now r_conv has only one dimension, same as r
@@ -332,6 +333,7 @@ class Nykamp_Model():
                 if i > 0:
                     r_conv[j] = np.convolve(r[j, :(i + 1)], self.alpha)[-len(self.alpha)] * self.dt
                 v_in[:, j, i] = self.connectivity_matrix[:, j] * r_conv + self.input[:, j, i]
+                # viiin = np.array([[v_in_ee[i], v_in_ei[i]], [v_in_ie[i], v_in_ii[i]]])
 
 
 
@@ -339,22 +341,22 @@ class Nykamp_Model():
                 # c1, c2 are over all v steps and i is a time step
                 # here the values need to be probably split between excitatory and inhibitory types
                 if type_j == 'exc':
-                    c1ee = np.reshape(np.repeat(self.c[j, 0, 0], len(exc_idxs)), (len(self.v), len(exc_idxs)))
-                    c1ei = np.reshape(np.repeat(self.c[j, 0, 1], len(inh_idxs)), (len(self.v), len(inh_idxs)))
-                    c2ee = np.reshape(np.repeat(self.c[j, 1, 0], len(exc_idxs)), (len(self.v), len(exc_idxs)))
-                    c2ei = np.reshape(np.repeat(self.c[j, 1, 1], len(inh_idxs)), (len(self.v), len(inh_idxs)))
-                    c1ee_v = np.reshape(np.repeat(self.c_v[j, 0, 0], len(exc_idxs)), (len(self.v), len(exc_idxs)))
-                    c1ei_v = np.reshape(np.repeat(self.c_v[j, 0, 1], len(inh_idxs)), (len(self.v), len(inh_idxs)))
-                    c2ee_v = np.reshape(np.repeat(self.c_v[j, 1, 0], len(exc_idxs)), (len(self.v), len(exc_idxs)))
-                    c2ei_v = np.reshape(np.repeat(self.c_v[j, 1, 1], len(inh_idxs)), (len(self.v), len(inh_idxs)))
+                    c1ee = self.c[j, 0, 0]
+                    c1ei = self.c[j, 0, 1]
+                    c2ee = self.c[j, 1, 0]
+                    c2ei = self.c[j, 1, 1]
+                    c1ee_v = self.c_v[j, 0, 0]
+                    c1ei_v = self.c_v[j, 0, 1]
+                    c2ee_v = self.c_v[j, 1, 0]
+                    c2ei_v = self.c_v[j, 1, 1]
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be take out of the sum
-                    f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[j, exc_idxs, i] * c1ee_v, axis=1)
-                                            + np.sum(v_in[j, inh_idxs, i] * c1ei_v, axis=1))
+                    f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
+                                            + np.sum(v_in[inh_idxs, j, i]) * c1ei_v)
                     f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest) / self.tau_mem[0] +
-                            np.sum(v_in[j, exc_idxs, i] * (-c1ee + c2ee_v), axis=1) +
-                            np.sum(v_in[j, inh_idxs, i] * (c1ei + c2ei_v), axis=1))
-                    f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[j, exc_idxs, i] * c2ee, axis=1) +
-                                                             np.sum(v_in[j, inh_idxs, i] *c2ei, axis=1))
+                                                        np.sum(v_in[exc_idxs, j, i]) * (-c1ee + c2ee_v) +
+                                                        np.sum(v_in[inh_idxs, j, i]) * (c1ei + c2ei_v))
+                    f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
+                                                             np.sum(v_in[inh_idxs, j, i]) * c2ei)
 
                     # LHS matrix (t+dt)
                     A_exc = np.diag(1 + 2 * f2_exc - f0_exc) + np.diagflat((-f2_exc - f1_exc)[:-1], 1) + np.diagflat(
@@ -369,30 +371,44 @@ class Nykamp_Model():
                     B_exc[-1, -2] = -2 * f1_exc[-2]
 
                     # contribution to drho/dt from rho_delta at u_res
-                    g_exc = rho_exc_delta[i] * (-v_in_ee[i] * Fee_v + v_in_ei[i] * Fei_v)
+                    g_exc = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
+                                               np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1])
 
                     # calculate firing rate
-                    r_exc[i] = v_in_ee[i] * (self.c2ee[-1] * rho_exc[-2, i] / self.dv + self.gamma_ee.sf(
-                        (self.u_thr - self.u_rest) / (self.u_exc - self.u_rest)) * rho_exc_delta[i])
-                    if r_exc[i] < 0:
-                        r_exc[i] = 0
-                    r_exc_delayed[i + ref_exc_delta_idx] = r_exc[i]
+                    r[j, i] = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
+                                                               self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
+                                                                           self.u_exc - self.u_rest)) *
+                                                               rho_delta[j, i])
+                    if r[j, i] < 0:
+                        r[j, i] = 0
+                    r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
 
-                    rho_exc[:, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho_exc[:, i]))
-                    rho_exc[:, i + 1] += self.dt * g_exc
-                    rho_exc_delta[i + 1] = rho_exc_delta[i] + self.dt * (
-                            -(v_in_ee[i] + v_in_ei[i]) * rho_exc_delta[i] + r_exc_delayed[i])
+                    rho[j, :, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho[j, :, i]))
+                    rho[j, :, i + 1] += self.dt * g_exc
+                    rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
+                            -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
+                            rho_delta[j, i] + r_delayed[j, i])
                 else:
                     # inhibitory population
                     # ================================================================================================================
-                    # input to inhibitory population
+
+                    c1ie = self.c[j, 0, 0]
+                    c1ii = self.c[j, 0, 1]
+                    c2ie = self.c[j, 1, 0]
+                    c2ii = self.c[j, 1, 1]
+                    c1ie_v = self.c_v[j, 0, 0]
+                    c1ii_v = self.c_v[j, 0, 1]
+                    c2ie_v = self.c_v[j, 1, 0]
+                    c2ii_v = self.c_v[j, 1, 1]
 
                     # coefficients for finite difference matrices
-                    f0_inh = self.dt / 2 * (1 / self.tau_mem[1] - v_in_ie[i] * self.c1ie_v + v_in_ii[i] * self.c1ii_v)
+                    f0_inh = self.dt / 2 * (1 / self.tau_mem[1] - np.sum(v_in[exc_idxs, j, i]) * c1ie_v +
+                                            np.sum(v_in[inh_idxs, j, i]) * c1ii_v)
                     f1_inh = self.dt / (4 * self.dv) * (
-                            (self.v - self.u_rest) / self.tau_mem[1] + v_in_ie[i] * (-self.c1ie + self.c2ie_v) + v_in_ii[
-                        i] * (self.c1ii + self.c2ii_v))
-                    f2_inh = self.dt / (2 * self.dv ** 2) * (v_in_ie[i] * self.c2ie + v_in_ii[i] * self.c2ii)
+                            (self.v - self.u_rest) / self.tau_mem[1] + np.sum(v_in[exc_idxs, j, i]) * (-c1ie + c2ie_v) +
+                            np.sum(v_in[inh_idxs, j, i]) * (c1ii + c2ii_v))
+                    f2_inh = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ie +
+                                                             np.sum(v_in[inh_idxs, j, i]) * c2ii)
 
                     # LHS matrix (t+dt)
                     A_inh = np.diag(1 + 2 * f2_inh - f0_inh) + np.diagflat((-f2_inh - f1_inh)[:-1], 1) + np.diagflat(
@@ -407,34 +423,46 @@ class Nykamp_Model():
                     B_inh[-1, -2] = -2 * f1_inh[-2]
 
                     # contribution to drho/dt from rho_delta at u_res
-                    g_inh = rho_inh_delta[i] * (-v_in_ie[i] * Fie_v + v_in_ii[i] * Fii_v)
+                    g_inh = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
+                                               np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1])
 
                     # calculate firing rate
-                    r_inh[i] = v_in_ie[i] * (self.c2ie[-1] * rho_inh[-2, i] / self.dv + self.gamma_ie.sf(
-                        (self.u_thr - self.u_rest) / (self.u_exc - self.u_rest)) * rho_inh_delta[i])
-                    if r_inh[i] < 0:
+                    if i == 250:
+                        a=1
+                    r[j, i] = np.sum(v_in[exc_idxs, j, i]) * (c2ie[-1] * rho[j, -2, i] / self.dv +
+                                                              self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
+                                                                          self.u_exc - self.u_rest)) *
+                                                              rho_delta[j, i])
+                    if r[j, i] < 0:
                         # print(f"WARNING: r_inh < 0 ! (r_inh = {r_inh[i]}) ... Setting r_inh to 0")
-                        r_inh[i] = 0
-                    r_inh_delayed[i + ref_inh_delta_idx] = r_inh[i]
+                        r[j, i] = 0
+                    r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
 
                     # update rho and rho_delta
-                    rho_inh[:, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho_inh[:, i]))
-                    rho_inh[:, i + 1] += dt * g_inh
-                    rho_inh_delta[i + 1] = rho_inh_delta[i] + dt * (
-                            -(v_in_ie[i] + v_in_ii[i]) * rho_inh_delta[i] + r_inh_delayed[i])
+                    rho[j, :, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho[j, :, i]))
+                    rho[j, :, i + 1] += dt * g_inh
+                    rho_delta[j, i + 1] = rho_delta[j, i] + dt * (
+                            -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
+                            rho_delta[j, i] + r_delayed[j, i])
 
+        rho_plot_exc = rho[0]
+        rho_plot_exc[v_reset_idx, :] = rho[0, v_reset_idx, :] + rho_delta[0, :]
+        r_plot_exc = r[0, :]
 
+        rho_plot_inh = rho[1]
+        rho_plot_inh[v_reset_idx, :] = rho[1, v_reset_idx, :] + rho_delta[1, :]
+        r_plot_inh = r[1, :]
 
-        rho_plot_exc = rho_exc
-        rho_plot_exc[v_reset_idx, :] = rho_exc[v_reset_idx, :] + rho_exc_delta[:]
-        r_plot_exc = r_exc[:]
+        if np.allclose(self.rho_exc, rho[0]) and np.allclose(self.rho_inh, rho[1]):
 
-        rho_plot_inh = rho_inh
-        rho_plot_inh[v_reset_idx, :] = rho_inh[v_reset_idx, :] + rho_inh_delta[:]
-        r_plot_inh = r_inh[:]
-
-        if np.allclose(self.rho_exc, rho_exc) and np.allclose(self.rho_inh, rho_inh):
             print('works!')
+        with h5py.File(self.name + '_1.hdf5', 'w') as h5file:
+            h5file.create_dataset('t', data=self.t)
+            h5file.create_dataset('v', data=self.v)
+            h5file.create_dataset('r_exc', data=r_plot_exc)
+            h5file.create_dataset('r_inh', data=r_plot_inh)
+            h5file.create_dataset('rho_plot_exc', data=rho_plot_exc)
+            h5file.create_dataset('rho_plot_inh', data=rho_plot_inh)
 
     def mat_convolve(self, x, kernel):
         """
@@ -632,7 +660,12 @@ class Nykamp_Model():
                 c1ei[0] = c1ei[1]
                 c2ei[0] = 0
 
-                self.c[k] = np.array([[[c1ee, c2ee], [c1ei, c2ei]]])
+                self.c[k] = np.array([[[c1ee, c1ei], [c2ee, c2ei]]])
+                c1ee_v = np.gradient(c1ee, self.v)
+                c1ei_v = np.gradient(c1ei, self.v)
+                c2ee_v = np.gradient(c2ee, self.v)
+                c2ei_v = np.gradient(c2ei, self.v)
+                self.c_v[k] = np.array([[[c1ee_v, c1ei_v], [c2ee_v, c2ei_v]]])
                 self.gamma_funcs.append(gamma_ee)
                 Fee_v = np.gradient(gamma_ee.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
                         * np.heaviside(self.v - self.u_rest, 0.5)
@@ -675,7 +708,398 @@ class Nykamp_Model():
                 c1ii[0] = c1ii[1]
                 c2ii[0] = 0
 
-                self.c[k] = np.array([[c1ie, c2ie], [c1ii, c2ii]])
+                self.c[k] = np.array([[c1ie, c1ii], [c2ie, c2ii]])
+                c1ie_v = np.gradient(c1ie, self.v)
+                c1ii_v = np.gradient(c1ii, self.v)
+                c2ie_v = np.gradient(c2ie, self.v)
+                c2ii_v = np.gradient(c2ii, self.v)
+                self.c_v[k] = np.array([[[c1ie_v, c1ii_v], [c2ie_v, c2ii_v]]])
+                self.gamma_funcs.append(gamma_ie)
+                Fie_v = np.gradient(gamma_ie.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
+                                   * np.heaviside(self.v - self.u_rest, 0.5)
+                Fii_v = np.gradient(gamma_ii.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
+                                   * np.heaviside(self.u_rest - self.v, 0.5)
+                self.dFdv[k] = np.array([Fie_v, Fii_v])
+
+            else:
+                raise NotImplementedError('population types must be "exc" or "inh"!')
+
+    def get_alpha_kernel(self):
+        self.t_alpha = self.t[self.t < 10]
+        self.alpha = np.exp(-self.t_alpha/self.tau_alpha) / (self.tau_alpha * scipy.special.factorial(self.n_alpha-1)) *\
+                (self.t_alpha/self.tau_alpha)**(self.n_alpha-1)
+        self.alpha = self.alpha/np.trapz(self.alpha, dx=self.dt)
+
+class Nykamp_Model_1():
+    """
+    Class for the population model of Nykamp and Tranchina
+    Probability flux over time is used to model synaptic membrane and firing rates of neuron
+    populations
+    """
+
+    def __init__(self, parameters, name='Nykamp'):
+
+        self.connectivity_matrix = np.ones([2, 2])
+        self.tau_alpha = 1/3
+        self.n_alpha = 9
+
+        self.dt = 0.1
+        self.dv = 0.01
+        self.T = 100
+
+        self.name = name
+
+        if 'connectivity_matrix' in parameters:
+            self.connectivity_matrix = parameters['connectivity_matrix']
+        if 'u_rest' in parameters:
+            self.u_rest = parameters['u_rest']
+        if 'u_reset' in parameters:
+            self.u_reset = parameters['u_reset']
+        else:
+            self.u_reset = parameters['u_rest']
+        if 'u_thr' in parameters:
+            self.u_thr = parameters['u_thr']
+        if 'u_exc' in parameters:
+            self.u_exc = parameters['u_exc']
+        if 'u_inh' in parameters:
+            self.u_inh = parameters['u_inh']
+        if 'tau_mem' in parameters:
+            self.tau_mem = parameters['tau_mem']
+        if 'tau_ref' in parameters:
+            self.tau_ref = parameters['tau_ref']
+        if 'mu_gamma' in parameters:
+            self.mu_gamma = parameters['mu_gamma']
+        if 'var_coeff_gamma' in parameters:
+            self.var_coeff_gamma = parameters['var_coeff_gamma']
+        if 'tau_alpha' in parameters:
+            self.tau_alpha = parameters['tau_alpha']
+        if 'n_alpha' in parameters:
+            self.n_alpha = parameters['n_alpha']
+        if 'input_function' in parameters:
+            self.input_function = parameters['input_function']
+        if 'input_function_type' in parameters:
+            self.input_function_type = parameters['input_function_type']
+        if 'input_function_idx' in parameters:
+            self.input_function_idx = parameters['input_function_idx']
+        if 'population_type' in parameters:
+            self.population_type = parameters['population_type']
+
+        self.n_populations = len(self.population_type)
+
+
+    def simulate(self, dv=None, dt=None, T=None, dv_fine=None):
+
+        if dv is not None:
+            self.dv = dv
+        if dt is not None:
+            self.dt = dt
+        if T is not None:
+            self.T = T
+        if dv_fine is None:
+            self.dv_fine = dv
+        else:
+            self.dv_fine = dv_fine
+
+        self.t = np.arange(0, T, dt)
+        self.v = np.arange(self.u_inh, self.u_thr + dv, dv)
+
+        self.input = np.zeros([self.n_populations, self.n_populations, self.t.shape[0]])
+        # set up input_function over time
+        self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
+
+        # calculate alpha kernel
+        self.get_alpha_kernel()
+
+        # loop version of code
+        self.get_diffusion_coeffs()
+
+        # first init all arrays
+        v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
+        self.v_reset_idx = v_reset_idx
+        ref_delta_idxs = np.array([int(self.tau_ref[k] / self.dt) for k in range(self.n_populations)])
+        max_ref_delta_indx = np.max(ref_delta_idxs)
+        rho = np.zeros((self.n_populations, len(self.v), len(self.t)))
+        rho_delta = np.zeros((self.n_populations, len(self.t)))
+        r = np.zeros((self.n_populations, len(self.t)))  # output firing rate
+        r_delayed = np.zeros((self.n_populations, (len(self.t) + max_ref_delta_indx)))
+        v_in = np.zeros((self.n_populations, self.n_populations, len(self.t))) # ref_exc_delta_idx used to be here
+
+        r_conv = np.zeros(self.n_populations)
+        exc_idxs = [i for i, type in enumerate(self.population_type) if type == 'exc']
+        inh_idxs = [i for i, type in enumerate(self.population_type) if type == 'inh']
+
+        for i in range(len(self.population_type)):
+            # initialize arrays
+            rho[i, :, 0] = scipy.stats.norm.pdf(self.v, self.u_rest, 1)
+            rho[i, 0, 0] = 0
+            rho[i, -1, 0] = 0
+
+        # Determine population dynamics (diffusion approximation)
+        for i, t_ in enumerate(tqdm(self.t[:-1])):
+
+            # if i > 0:
+            #     r_conv = self.mat_convolve(r[:(i + 1), :], self.alpha)[:, :, -len(self.alpha)] * self.dt
+            # v_in[:, :, i] = self.connectivity_matrix * r_conv + self.in2D
+
+            for j, type_j in enumerate(self.population_type):
+
+                # as of now r_conv has only one dimension, same as r
+                # each entry is convoluted by its representing kernel
+                if i > 0:
+                    r_conv[j] = np.convolve(r[j, :(i + 1)], self.alpha)[-len(self.alpha)] * self.dt
+                v_in[:, j, i] = self.connectivity_matrix[:, j] * r_conv + self.input[:, j, i]
+                # viiin = np.array([[v_in_ee[i], v_in_ei[i]], [v_in_ie[i], v_in_ii[i]]])
+
+
+
+                # coefficients for finite difference matrices
+                # c1, c2 are over all v steps and i is a time step
+                # here the values need to be probably split between excitatory and inhibitory types
+                if type_j == 'exc':
+                    c1ee = self.c[j, 0, 0]
+                    c1ei = self.c[j, 0, 1]
+                    c2ee = self.c[j, 1, 0]
+                    c2ei = self.c[j, 1, 1]
+                    c1ee_v = self.c_v[j, 0, 0]
+                    c1ei_v = self.c_v[j, 0, 1]
+                    c2ee_v = self.c_v[j, 1, 0]
+                    c2ei_v = self.c_v[j, 1, 1]
+                    # TODO: this can be collapsed into drawing out the coeffs, since they can be take out of the sum
+                    f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
+                                            + np.sum(v_in[inh_idxs, j, i]) * c1ei_v)
+                    f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest) / self.tau_mem[0] +
+                                                        np.sum(v_in[exc_idxs, j, i]) * (-c1ee + c2ee_v) +
+                                                        np.sum(v_in[inh_idxs, j, i]) * (c1ei + c2ei_v))
+                    f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
+                                                             np.sum(v_in[inh_idxs, j, i]) * c2ei)
+
+                    # LHS matrix (t+dt)
+                    A_exc = np.diag(1 + 2 * f2_exc - f0_exc) + np.diagflat((-f2_exc - f1_exc)[:-1], 1) + np.diagflat(
+                        (f1_exc - f2_exc)[1:], -1)
+                    A_exc[0, 1] = -2 * f1_exc[1]
+                    A_exc[-1, -2] = 2 * f1_exc[-2]
+
+                    # RHS matrix (t)
+                    B_exc = np.diag(1 - 2 * f2_exc + f0_exc) + np.diagflat((f2_exc + f1_exc)[:-1], 1) + np.diagflat(
+                        (f2_exc - f1_exc)[1:], -1)
+                    B_exc[0, 1] = 2 * f1_exc[1]
+                    B_exc[-1, -2] = -2 * f1_exc[-2]
+
+                    # contribution to drho/dt from rho_delta at u_res
+                    g_exc = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
+                                               np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1])
+
+                    # calculate firing rate
+                    r[j, i] = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
+                                                               self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
+                                                                           self.u_exc - self.u_rest)) *
+                                                               rho_delta[j, i])
+                    if r[j, i] < 0:
+                        r[j, i] = 0
+                    r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
+
+                    rho[j, :, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho[j, :, i]))
+                    rho[j, :, i + 1] += self.dt * g_exc
+                    rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
+                            -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
+                            rho_delta[j, i] + r_delayed[j, i])
+                else:
+                    # inhibitory population
+                    # ================================================================================================================
+
+                    c1ie = self.c[j, 0, 0]
+                    c1ii = self.c[j, 0, 1]
+                    c2ie = self.c[j, 1, 0]
+                    c2ii = self.c[j, 1, 1]
+                    c1ie_v = self.c_v[j, 0, 0]
+                    c1ii_v = self.c_v[j, 0, 1]
+                    c2ie_v = self.c_v[j, 1, 0]
+                    c2ii_v = self.c_v[j, 1, 1]
+
+                    # coefficients for finite difference matrices
+                    f0_inh = self.dt / 2 * (1 / self.tau_mem[1] - np.sum(v_in[exc_idxs, j, i]) * c1ie_v +
+                                            np.sum(v_in[inh_idxs, j, i]) * c1ii_v)
+                    f1_inh = self.dt / (4 * self.dv) * (
+                            (self.v - self.u_rest) / self.tau_mem[1] + np.sum(v_in[exc_idxs, j, i]) * (-c1ie + c2ie_v) +
+                            np.sum(v_in[inh_idxs, j, i]) * (c1ii + c2ii_v))
+                    f2_inh = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ie +
+                                                             np.sum(v_in[inh_idxs, j, i]) * c2ii)
+
+                    # LHS matrix (t+dt)
+                    A_inh = np.diag(1 + 2 * f2_inh - f0_inh) + np.diagflat((-f2_inh - f1_inh)[:-1], 1) + np.diagflat(
+                        (f1_inh - f2_inh)[1:], -1)
+                    A_inh[0, 1] = -2 * f1_inh[1]
+                    A_inh[-1, -2] = 2 * f1_inh[-2]
+
+                    # RHS matrix (t)
+                    B_inh = np.diag(1 - 2 * f2_inh + f0_inh) + np.diagflat((f2_inh + f1_inh)[:-1], 1) + np.diagflat(
+                        (f2_inh - f1_inh)[1:], -1)
+                    B_inh[0, 1] = 2 * f1_inh[1]
+                    B_inh[-1, -2] = -2 * f1_inh[-2]
+
+                    # contribution to drho/dt from rho_delta at u_res
+                    g_inh = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
+                                               np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1])
+
+                    # calculate firing rate
+                    if i == 250:
+                        a=1
+                    r[j, i] = np.sum(v_in[exc_idxs, j, i]) * (c2ie[-1] * rho[j, -2, i] / self.dv +
+                                                              self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
+                                                                          self.u_exc - self.u_rest)) *
+                                                              rho_delta[j, i])
+                    if r[j, i] < 0:
+                        # print(f"WARNING: r_inh < 0 ! (r_inh = {r_inh[i]}) ... Setting r_inh to 0")
+                        r[j, i] = 0
+                    r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
+
+                    # update rho and rho_delta
+                    rho[j, :, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho[j, :, i]))
+                    rho[j, :, i + 1] += dt * g_inh
+                    rho_delta[j, i + 1] = rho_delta[j, i] + dt * (
+                            -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
+                            rho_delta[j, i] + r_delayed[j, i])
+
+        rho_plot = np.zeros_like(rho)
+        for k in range(self.n_populations):
+            rho_plot[k, :] = rho[k, :]
+            rho_plot[k, v_reset_idx, :] = rho[k, v_reset_idx, :] + rho_delta[k, :]
+
+
+        with h5py.File(self.name + '.hdf5', 'w') as h5file:
+            h5file.create_dataset('t', data=self.t)
+            h5file.create_dataset('v', data=self.v)
+            h5file.create_dataset('r', data=r)
+            h5file.create_dataset('rho_plot', data=rho_plot)
+            h5file.create_dataset('p_types', data=self.population_type)
+    def mat_convolve(self, x, kernel):
+        """
+        Function that convolves an array of time series with the same kernel unsing np.convolve
+
+        Parameter
+        ---------
+        x : np.array of float (2D)
+            input array
+        kernel : np.array of float (1D)
+            convolution kernel
+
+        Returns
+        -------
+        B : np.array of float (2D)
+            convolved input array
+        """
+
+        n_x = x.shape[0]
+        n_y = x.shape[1]
+
+        # use extra convolution to determine shape of output array
+        n_b = np.convolve(x[0, 0], kernel).shape[0]
+
+        b = np.zeros((n_x, n_y, n_b))
+        for i in range(n_x):
+            for j in range(n_y):
+                b[i, j] = np.convolve(x[i, j], kernel)
+        return b
+
+    def get_diffusion_coeffs(self):
+
+        # TODO: make these matrix operations
+        v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
+        n_v = v.shape[0]
+
+        self.c = np.zeros((self.n_populations, 2, 2, n_v))
+        self.c_v = np.zeros_like(self.c)
+        self.dFdv = np.zeros([self.n_populations, 2, n_v])
+
+        self.gamma_funcs = []
+        for k in range(self.n_populations):
+            if self.population_type[k] == 'exc':
+
+                # init arrays for diffuson coeffs
+                c1ee = np.zeros(len(v))
+                c2ee = np.zeros(len(v))
+                c1ei = np.zeros(len(v))
+                c2ei = np.zeros(len(v))
+
+                # conductance jump distributions
+                # input synapse parameters into gamma distribution
+                gamma_ee = gamma(a=self.var_coeff_gamma[k, 0] ** (-2), loc=0,
+                                 scale=self.var_coeff_gamma[k, 0]**2*self.mu_gamma[k, 0])
+                gamma_ei = gamma(a=self.var_coeff_gamma[k, 1] ** (-2),
+                                 loc=0, scale=self.var_coeff_gamma[k, 1]**2*self.mu_gamma[k, 1])
+
+                for i, v_ in enumerate(v):
+
+                    vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
+                    int_c1ee = gamma_ee.sf((v_ - vpe) / (self.u_exc - vpe))
+                    int_c2ee = int_c1ee * (v_ - vpe)
+                    c1ee[i] = np.trapz(x=vpe, y=int_c1ee)
+                    c2ee[i] = np.trapz(x=vpe, y=int_c2ee)
+
+                    if i > 0:
+                        vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
+                        int_c1ei = gamma_ei.sf((v_ - vpi) / (self.u_inh - vpi))
+                        int_c2ei = int_c1ei * (vpi - v_)
+                        c1ei[i] = np.trapz(x=vpi, y=int_c1ei)
+                        c2ei[i] = np.trapz(x=vpi, y=int_c2ei)
+
+                c1ei[0] = c1ei[1]
+                c2ei[0] = 0
+
+                self.c[k] = np.array([[[c1ee, c1ei], [c2ee, c2ei]]])
+                c1ee_v = np.gradient(c1ee, self.v)
+                c1ei_v = np.gradient(c1ei, self.v)
+                c2ee_v = np.gradient(c2ee, self.v)
+                c2ei_v = np.gradient(c2ei, self.v)
+                self.c_v[k] = np.array([[[c1ee_v, c1ei_v], [c2ee_v, c2ei_v]]])
+                self.gamma_funcs.append(gamma_ee)
+                Fee_v = np.gradient(gamma_ee.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
+                        * np.heaviside(self.v - self.u_rest, 0.5)
+                Fei_v = np.gradient(gamma_ei.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
+                        * np.heaviside(self.u_rest - self.v, 0.5)
+
+                self.dFdv[k] = np.array([Fee_v, Fei_v])
+
+
+            elif self.population_type[k] == 'inh':
+
+
+                # init arrays for diffusion coeffs
+                c1ie = np.zeros(len(v))
+                c2ie = np.zeros(len(v))
+                c1ii = np.zeros(len(v))
+                c2ii = np.zeros(len(v))
+
+                # conductance jump distributions
+                gamma_ie = gamma(a=self.var_coeff_gamma[k, 0] ** (-2), loc=0,
+                                 scale=self.var_coeff_gamma[k, 0] ** 2 * self.mu_gamma[k, 0])
+                gamma_ii = gamma(a=self.var_coeff_gamma[k, 1] ** (-2),
+                                 loc=0, scale=self.var_coeff_gamma[k, 1] ** 2 * self.mu_gamma[k, 1])
+
+                for i, v_ in enumerate(v):
+
+                    vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
+                    int_c1ie = gamma_ie.sf((v_ - vpe) / (self.u_exc - vpe))
+                    int_c2ie = int_c1ie * (v_ - vpe)
+                    c1ie[i] = np.trapz(x=vpe, y=int_c1ie)
+                    c2ie[i] = np.trapz(x=vpe, y=int_c2ie)
+
+                    if i > 0:
+                        vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
+                        int_c1ii = gamma_ii.sf((v_ - vpi) / (self.u_inh - vpi))
+                        int_c2ii = int_c1ii * (vpi - v_)
+                        c1ii[i] = np.trapz(x=vpi, y=int_c1ii)
+                        c2ii[i] = np.trapz(x=vpi, y=int_c2ii)
+
+                c1ii[0] = c1ii[1]
+                c2ii[0] = 0
+
+                self.c[k] = np.array([[c1ie, c1ii], [c2ie, c2ii]])
+                c1ie_v = np.gradient(c1ie, self.v)
+                c1ii_v = np.gradient(c1ii, self.v)
+                c2ie_v = np.gradient(c2ie, self.v)
+                c2ii_v = np.gradient(c2ii, self.v)
+                self.c_v[k] = np.array([[[c1ie_v, c1ii_v], [c2ie_v, c2ii_v]]])
                 self.gamma_funcs.append(gamma_ie)
                 Fie_v = np.gradient(gamma_ie.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
                                    * np.heaviside(self.v - self.u_rest, 0.5)

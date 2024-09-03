@@ -432,7 +432,7 @@ parameters['u_inh'] = -70
 parameters['tau_mem'] = np.array([20, 10])
 parameters['tau_ref'] = np.array([3, 1])
 parameters['mu_gamma'] = np.array([[0.008, 0.027], [0.020, 0.066]])
-parameters['var_coeff_gamma'] = 0.5*np.ones((4, 2))
+parameters['var_coeff_gamma'] = 0.5*np.ones((2, 2))
 parameters['tau_alpha'] = 1/3
 parameters['n_alpha'] = 9
 parameters['input_function'] = input_sine_function
@@ -440,7 +440,7 @@ parameters['input_function_type'] = 'custom'
 parameters['input_function_idx'] = [0, 0]
 parameters['population_type'] = ['exc', 'inh']
 
-T = 2 # 200
+T = 200 # 200
 dt = 0.1 # 0.1
 dv = 0.01
 
@@ -448,9 +448,11 @@ nyk = Nykamp_Model(parameters=parameters, name='nykamp_test')
 nyk.simulate(T=T, dt=dt, dv=dv)
 # simulate(x=nyk)
 
-# rho_1 = plot('nykamp_test')
-# rho_2 = plot('test')
+rho_1 = plot('nykamp_test')
+rho_2 = plot('nykamp_test_1')
 
-# print(f'{np.allclose(rho_1, rho_2)}')
+print(f'{np.allclose(rho_1, rho_2)}')
+from Utils import nrmse
+print(f'nrmse: {nrmse(rho_1, rho_2)*100:.5f}%')
 
 
