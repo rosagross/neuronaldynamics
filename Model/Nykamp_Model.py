@@ -942,8 +942,6 @@ class Nykamp_Model_1():
                                                np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1])
 
                     # calculate firing rate
-                    if i == 250:
-                        a=1
                     r[j, i] = np.sum(v_in[exc_idxs, j, i]) * (c2ie[-1] * rho[j, -2, i] / self.dv +
                                                               self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
                                                                           self.u_exc - self.u_rest)) *

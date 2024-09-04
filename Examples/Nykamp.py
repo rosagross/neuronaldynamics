@@ -4,11 +4,11 @@ Authors and editors: Konstantin Weise, Aaron Miller, Erik Müller
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from Model.Nykamp import Nykamp_Model
+from Model.Nykamp_Model import Nykamp_Model
 import h5py
 import matplotlib
 import os
-from Model.Nykamp import Nykamp_Model_1
+from Model.Nykamp_Model import Nykamp_Model_1
 matplotlib.use('TkAgg')
 
 def plot(fname, heat_map=False, plot_idxs=None):
@@ -95,11 +95,12 @@ parameters_1['tau_ref'] = np.array([3, 1, 3])
 parameters_1['mu_gamma'] = np.array([[0.008, 0.027], [0.020, 0.066], [0.008, 0.027]])
 parameters_1['var_coeff_gamma'] = 0.5*np.ones((3, 2))
 parameters_1['population_type'] = ['exc', 'inh', 'exc']
+parameters_1['input_function_idx'] = [2, 2]
 nyk_1 = Nykamp_Model_1(parameters=parameters_1, name='nykamp_test_3D')
-# nyk_1.simulate(T=T, dt=dt, dv=dv)
+nyk_1.simulate(T=T, dt=dt, dv=dv)
 
 # plot results
-plot('nykamp_test_2D', heat_map=True)
+# plot('nykamp_test_2D', heat_map=True)
 plot('nykamp_test_3D', heat_map=True)
 
 # os.remove('nykamp_test_2D' + '.hdf5')

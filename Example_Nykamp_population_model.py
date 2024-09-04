@@ -416,7 +416,7 @@ def plot(fname):
 
     # plt.savefig(f"/home/kporzig/Desktop/Nykamp_network_A_dv_{dv}_dt_{dt}.jpg", dpi=600)
 
-from Model.Nykamp import Nykamp_Model
+from Model.Nykamp_Model import Nykamp_Model
 
 def input_sine_function(t):
     v0 = .7
