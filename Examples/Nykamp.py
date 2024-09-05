@@ -86,7 +86,7 @@ dt = 0.1 # 0.1
 dv = 0.01
 
 nyk = Nykamp_Model_1(parameters=parameters, name='nykamp_test_2D')
-# nyk.simulate(T=T, dt=dt, dv=dv)
+# nyk.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
 
 parameters_1 = parameters.copy()
 parameters_1['connectivity_matrix'] = np.array([[15, 30, 30], [30, 30, 30], [30, 30, 30]])
@@ -95,13 +95,154 @@ parameters_1['tau_ref'] = np.array([3, 1, 3])
 parameters_1['mu_gamma'] = np.array([[0.008, 0.027], [0.020, 0.066], [0.008, 0.027]])
 parameters_1['var_coeff_gamma'] = 0.5*np.ones((3, 2))
 parameters_1['population_type'] = ['exc', 'inh', 'exc']
-parameters_1['input_function_idx'] = [2, 2]
+parameters_1['input_function_idx'] = [0, 0]
 nyk_1 = Nykamp_Model_1(parameters=parameters_1, name='nykamp_test_3D')
-nyk_1.simulate(T=T, dt=dt, dv=dv)
+# nyk_1.simulate(T=T, dt=dt, dv=dv)
 
 # plot results
 # plot('nykamp_test_2D', heat_map=True)
-plot('nykamp_test_3D', heat_map=True)
+# plot('nykamp_test_3D', heat_map=True)
 
 # os.remove('nykamp_test_2D' + '.hdf5')
 # os.remove('nykamp_test_3D' + '.hdf5')
+
+#############################################################################################
+
+# test sparse vs non-spares
+dts = np.array([0.1, 0.2, 0.5, 1, 2])
+dvs = np.array([0.01, 0.02, 0.05, 0.1, 0.2])
+T = 50
+n_repetitions = 10
+
+
+import time
+def test_timing(n_repetitions, dts, dvs, T, model):
+
+    ts_t = np.zeros((dts.shape[0], n_repetitions))
+    ts_t_sparse = np.zeros_like(ts_t)
+    ts_v = np.zeros_like(ts_t)
+    ts_v_sparse = np.zeros_like(ts_t)
+
+    for n in range(n_repetitions):
+        print(f'>n = {n + 1} ---------------------------------------')
+        for i in range(5):
+            t0 = time.time()
+            model.simulate(T=T, dt=dts[i], dv=0.01, sparse_mat=False)
+            t1 = time.time()
+
+            t0_sparse = time.time()
+            model.simulate(T=T, dt=dts[i], dv=0.01, sparse_mat=True)
+            t1_sparse = time.time()
+
+            t_n = t1-t0
+            t_n_sparse = t1_sparse - t0_sparse
+
+            ts_t[i, n] = t_n
+            ts_t_sparse[i, n] = t_n_sparse
+
+            if i != 0:
+                t0 = time.time()
+                model.simulate(T=T, dt=0.1, dv=dvs[i], sparse_mat=False)
+                t1 = time.time()
+
+                t0_sparse = time.time()
+                model.simulate(T=T, dt=0.1, dv=dvs[i], sparse_mat=True)
+                t1_sparse = time.time()
+
+            t_n = t1 - t0
+            t_n_sparse = t1_sparse - t0_sparse
+
+            ts_v[i, n] = t_n
+            ts_v_sparse[i, n] = t_n_sparse
+
+            with h5py.File('speed_test.hdf5', 'w') as h5file:
+                h5file.create_dataset('dts', data=dts)
+                h5file.create_dataset('dvs', data=dvs)
+                h5file.create_dataset('T', data=T)
+                h5file.create_dataset('n_repetitions', data=n_repetitions)
+                h5file.create_dataset('ts_t', data=ts_t)
+                h5file.create_dataset('ts_t_sparse', data=ts_t_sparse)
+                h5file.create_dataset('ts_v', data=ts_v)
+                h5file.create_dataset('ts_v_sparse', data=ts_v_sparse)
+def plot_timing(fname):
+    with h5py.File(fname + '.hdf5', 'r') as h5file:
+        dts = np.array(h5file['dts'])
+        dvs = np.array(h5file['dvs'])
+        T = np.array(h5file['T'])
+        n_repetitions = np.array(h5file['n_repetitions'])
+        ts_t = np.array(h5file['ts_t'])
+        ts_t_sparse = np.array(h5file['ts_t_sparse'])
+        ts_v = np.array(h5file['ts_v'])
+        ts_v_sparse = np.array(h5file['ts_v_sparse'])
+
+    ##########################################################################
+    # ax # 1
+    ##########################################################################
+
+    fig = plt.figure(figsize=(12, 5))
+    ax = fig.add_subplot(1, 2, 1)
+
+    mean_t = np.mean(ts_t, axis=1)[::-1]
+    t_vals = dts[::-1]
+    xticks = [k for k in t_vals]
+    t_min, t_max = np.min(ts_t, axis=1), np.max(ts_t, axis=1)
+    t_errors = t_max - t_min
+
+    mean_t_s = np.mean(ts_t_sparse, axis=1)[::-1]
+    t_min_s, t_max_s = np.min(ts_t_sparse, axis=1), np.max(ts_t_sparse, axis=1)
+    t_errors_s = t_max_s - t_min_s
+
+    ax.plot(t_vals, mean_t, c='red', alpha=0.4, linestyle='--')
+    ax.errorbar(t_vals, mean_t, yerr=t_errors, fmt='x', c='red')
+
+    ax.plot(t_vals, mean_t_s, c='blue', alpha=0.4, linestyle='--')
+    ax.errorbar(t_vals, mean_t_s, yerr=t_errors_s, fmt='o', c='blue')
+
+    ax.set_title(f"Computation time over dt for T=50ms simulation")
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+    ax.legend(['original', 'sparse'])
+    ax.set_ylim(1e0, 1e3)
+    ax.set_ylabel("t in s")
+    ax.set_xticks(xticks)
+    ax.set_xlabel("dt")
+    ax.grid()
+
+    ##########################################################################
+    # ax # 2
+    ##########################################################################
+
+    ax = fig.add_subplot(1, 2, 2)
+    mean_t = np.mean(ts_v, axis=1)[::-1]
+    v_vals = dvs[::-1]
+    xticks = [k for k in v_vals]
+    t_min, t_max = np.min(ts_v, axis=1), np.max(ts_v, axis=1)
+    t_errors = t_max - t_min
+
+    mean_t_s = np.mean(ts_v_sparse, axis=1)[::-1]
+    t_min_s, t_max_s = np.min(ts_v_sparse, axis=1), np.max(ts_v_sparse, axis=1)
+    t_errors_s = t_max_s - t_min_s
+
+    ax.plot(v_vals, mean_t, c='red', alpha=0.4, linestyle='--')
+    ax.errorbar(v_vals, mean_t, yerr=t_errors, fmt='x', c='red')
+
+    ax.plot(v_vals, mean_t_s, c='blue', alpha=0.4, linestyle='--')
+    ax.errorbar(v_vals, mean_t_s, yerr=t_errors_s, fmt='o', c='blue')
+
+    ax.set_title(f"Computation time over dv for T=50ms simulation")
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+    ax.legend(['original', 'sparse'])
+    ax.set_ylim(1e0, 1e3)
+    ax.set_ylabel("t in s")
+    ax.set_xticks(xticks)
+    ax.set_xlabel("dv")
+
+    ax.grid()
+    plt.tight_layout()
+    plt.show()
+
+
+
+# test_timing(n_repetitions=n_repetitions, dts=dts, dvs=dvs, T=T, model=nyk)
+plot_timing('speed_test')

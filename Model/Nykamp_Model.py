@@ -787,7 +787,7 @@ class Nykamp_Model_1():
         self.n_populations = len(self.population_type)
 
 
-    def simulate(self, dv=None, dt=None, T=None, dv_fine=None):
+    def simulate(self, dv=None, dt=None, T=None, dv_fine=None, sparse_mat=True, verbose=0):
 
         if dv is not None:
             self.dv = dv
@@ -800,6 +800,8 @@ class Nykamp_Model_1():
         else:
             self.dv_fine = dv_fine
 
+        self.sparse_mat = sparse_mat
+
         self.t = np.arange(0, T, dt)
         self.v = np.arange(self.u_inh, self.u_thr + dv, dv)
 
@@ -810,8 +812,15 @@ class Nykamp_Model_1():
         # calculate alpha kernel
         self.get_alpha_kernel()
 
+        if verbose > 0:
+            t0_coeff = time.time()
+
         # loop version of code
         self.get_diffusion_coeffs()
+
+        if verbose > 0:
+            t1_coeff = time.time()
+            print(f'time for coeffs: {t1_coeff - t0_coeff:.3f}s')
 
         # first init all arrays
         v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
@@ -873,17 +882,31 @@ class Nykamp_Model_1():
                     f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
                                                              np.sum(v_in[inh_idxs, j, i]) * c2ei)
 
+                    if i == 0 and verbose > 0:
+                        time0_A_exc = time.time()
                     # LHS matrix (t+dt)
-                    A_exc = np.diag(1 + 2 * f2_exc - f0_exc) + np.diagflat((-f2_exc - f1_exc)[:-1], 1) + np.diagflat(
-                        (f1_exc - f2_exc)[1:], -1)
-                    A_exc[0, 1] = -2 * f1_exc[1]
-                    A_exc[-1, -2] = 2 * f1_exc[-2]
+                    # A_exc = np.diag(1 + 2 * f2_exc - f0_exc) + np.diagflat((-f2_exc - f1_exc)[:-1], 1) + np.diagflat(
+                    #     (f1_exc - f2_exc)[1:], -1)
+                    # A_exc[0, 1] = -2 * f1_exc[1]
+                    # A_exc[-1, -2] = 2 * f1_exc[-2]
+
+                    A_exc = self.get_A(f0_exc, f1_exc, f2_exc)
+
+                    if i == 0 and verbose > 0:
+                        time0_B_exc = time.time()
+                        time1_A_exc = time.time()
 
                     # RHS matrix (t)
-                    B_exc = np.diag(1 - 2 * f2_exc + f0_exc) + np.diagflat((f2_exc + f1_exc)[:-1], 1) + np.diagflat(
-                        (f2_exc - f1_exc)[1:], -1)
-                    B_exc[0, 1] = 2 * f1_exc[1]
-                    B_exc[-1, -2] = -2 * f1_exc[-2]
+                    # B_exc = np.diag(1 - 2 * f2_exc + f0_exc) + np.diagflat((f2_exc + f1_exc)[:-1], 1) + np.diagflat(
+                    #     (f2_exc - f1_exc)[1:], -1)
+                    # B_exc[0, 1] = 2 * f1_exc[1]
+                    # B_exc[-1, -2] = -2 * f1_exc[-2]
+
+                    B_exc = self.get_B(f0_exc, f1_exc, f2_exc)
+
+                    if i == 0 and verbose > 0:
+                        time1_B_exc = time.time()
+                        time0_rho_exc = time.time()
 
                     # contribution to drho/dt from rho_delta at u_res
                     g_exc = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
@@ -898,11 +921,18 @@ class Nykamp_Model_1():
                         r[j, i] = 0
                     r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
 
-                    rho[j, :, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho[j, :, i]))
+                    if not self.sparse_mat:
+                        rho[j, :, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho[j, :, i]))
+                    else:
+                        rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_exc, B_exc.dot(rho[j, :, i]))
                     rho[j, :, i + 1] += self.dt * g_exc
                     rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
                             -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
                             rho_delta[j, i] + r_delayed[j, i])
+
+                    if i == 0 and verbose > 0:
+                        time1_rho_exc = time.time()
+
                 else:
                     # inhibitory population
                     # ================================================================================================================
@@ -925,17 +955,30 @@ class Nykamp_Model_1():
                     f2_inh = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ie +
                                                              np.sum(v_in[inh_idxs, j, i]) * c2ii)
 
+                    if i == 0 and verbose > 0:
+                        time0_A_inh = time.time()
+
                     # LHS matrix (t+dt)
-                    A_inh = np.diag(1 + 2 * f2_inh - f0_inh) + np.diagflat((-f2_inh - f1_inh)[:-1], 1) + np.diagflat(
-                        (f1_inh - f2_inh)[1:], -1)
-                    A_inh[0, 1] = -2 * f1_inh[1]
-                    A_inh[-1, -2] = 2 * f1_inh[-2]
+                    # A_inh = np.diag(1 + 2 * f2_inh - f0_inh) + np.diagflat((-f2_inh - f1_inh)[:-1], 1) + np.diagflat(
+                    #     (f1_inh - f2_inh)[1:], -1)
+                    # A_inh[0, 1] = -2 * f1_inh[1]
+                    # A_inh[-1, -2] = 2 * f1_inh[-2]
+                    A_inh = self.get_A(f0_inh, f1_inh, f2_inh)
+
+                    if i == 0 and verbose > 0:
+                        time0_B_inh = time.time()
+                        time1_A_inh = time.time()
 
                     # RHS matrix (t)
-                    B_inh = np.diag(1 - 2 * f2_inh + f0_inh) + np.diagflat((f2_inh + f1_inh)[:-1], 1) + np.diagflat(
-                        (f2_inh - f1_inh)[1:], -1)
-                    B_inh[0, 1] = 2 * f1_inh[1]
-                    B_inh[-1, -2] = -2 * f1_inh[-2]
+                    # B_inh = np.diag(1 - 2 * f2_inh + f0_inh) + np.diagflat((f2_inh + f1_inh)[:-1], 1) + np.diagflat(
+                    #     (f2_inh - f1_inh)[1:], -1)
+                    # B_inh[0, 1] = 2 * f1_inh[1]
+                    # B_inh[-1, -2] = -2 * f1_inh[-2]
+                    B_inh = self.get_B(f0_inh, f1_inh, f2_inh)
+
+                    if i == 0 and verbose > 0:
+                        time1_B_inh = time.time()
+                        time0_rho_inh = time.time()
 
                     # contribution to drho/dt from rho_delta at u_res
                     g_inh = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
@@ -952,11 +995,36 @@ class Nykamp_Model_1():
                     r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
 
                     # update rho and rho_delta
-                    rho[j, :, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho[j, :, i]))
+                    if not self.sparse_mat:
+                        rho[j, :, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho[j, :, i]))
+                    else:
+                        rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_inh, B_inh.dot(rho[j, :, i]))
                     rho[j, :, i + 1] += dt * g_inh
                     rho_delta[j, i + 1] = rho_delta[j, i] + dt * (
                             -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
                             rho_delta[j, i] + r_delayed[j, i])
+
+                    if i == 0 and verbose > 0:
+                        time1_rho_inh = time.time()
+
+            if i == 1 and verbose > 0:
+                print('\n')
+                if 'exc' in self.population_type:
+                    time_A_exc = time1_A_exc - time0_A_exc
+                    time_B_exc = time1_B_exc - time0_B_exc
+                    time_rho_exc = time1_rho_exc - time0_rho_exc
+
+                    print(f'time for A_exc: {time_A_exc:.3f}s')
+                    print(f'time for B_exc: {time_B_exc:.3f}s')
+                    print(f'time for rho_exc: {time_rho_exc:.3f}s')
+                if 'inh' in self.population_type:
+                    time_A_inh = time1_A_inh - time0_A_inh
+                    time_B_inh = time1_B_inh - time0_B_inh
+                    time_rho_inh = time1_rho_inh - time0_rho_inh
+
+                    print(f'time for A_inh: {time_A_inh:.3f}s')
+                    print(f'time for B_inh: {time_B_inh:.3f}s')
+                    print(f'time for rho_inh: {time_rho_inh:.3f}s')
 
         rho_plot = np.zeros_like(rho)
         for k in range(self.n_populations):
@@ -970,6 +1038,51 @@ class Nykamp_Model_1():
             h5file.create_dataset('r', data=r)
             h5file.create_dataset('rho_plot', data=rho_plot)
             h5file.create_dataset('p_types', data=self.population_type)
+
+    def get_A(self, f0, f1, f2):
+        if not self.sparse_mat:
+            A = np.diag(1 + 2 * f2 - f0) + np.diagflat((-f2 - f1)[:-1], 1) + np.diagflat(
+                (f1 - f2)[1:], -1)
+            A[0, 1] = -2 * f1[1]
+            A[-1, -2] = 2 * f1[-2]
+        else:
+            n_v = f0.shape[0]
+            main = 1 + 2 * f2 - f0
+            lower = (f1 - f2)[1:]
+            upper = (-f2 - f1)[:-1]
+            # Insert boundary conditions
+            lower[-1] = 2 * f1[-2]
+            upper[0] = -2 * f1[1]
+
+            A = scipy.sparse.diags(
+                diagonals=[main, lower, upper],
+                offsets=[0, -1, 1], shape=(n_v, n_v),
+                format='csr')
+        return A
+
+    def get_B(self, f0, f1, f2):
+        if not self.sparse_mat:
+
+            B = np.diag(1 - 2 * f2 + f0) + np.diagflat((f2 + f1)[:-1], 1) + np.diagflat(
+                (f2 - f1)[1:], -1)
+            B[0, 1] = 2 * f1[1]
+            B[-1, -2] = -2 * f1[-2]
+        else:
+            n_v = f0.shape[0]
+            main = 1 - 2 * f2 + f0
+            upper = (f2 + f1)[:-1]
+            lower = (f2 - f1)[1:]
+            # Insert boundary conditions
+            upper[0] = 2 * f1[1]
+            lower[-1] = -2 * f1[-2]
+
+            B = scipy.sparse.diags(
+                diagonals=[main, lower, upper],
+                offsets=[0, -1, 1], shape=(n_v, n_v),
+                format='csr')
+            B_ = B.todense()
+        return B
+
     def mat_convolve(self, x, kernel):
         """
         Function that convolves an array of time series with the same kernel unsing np.convolve
