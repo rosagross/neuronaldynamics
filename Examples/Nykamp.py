@@ -192,11 +192,11 @@ def plot_timing(fname):
     t_min_s, t_max_s = np.min(ts_t_sparse, axis=1), np.max(ts_t_sparse, axis=1)
     t_errors_s = t_max_s - t_min_s
 
-    ax.plot(t_vals, mean_t, c='red', alpha=0.4, linestyle='--')
     ax.errorbar(t_vals, mean_t, yerr=t_errors, fmt='x', c='red')
+    ax.plot(t_vals, mean_t, c='red', alpha=0.4, linestyle='--')
 
-    ax.plot(t_vals, mean_t_s, c='blue', alpha=0.4, linestyle='--')
     ax.errorbar(t_vals, mean_t_s, yerr=t_errors_s, fmt='o', c='blue')
+    ax.plot(t_vals, mean_t_s, c='blue', alpha=0.4, linestyle='--')
 
     ax.set_title(f"Computation time over dt for T=50ms simulation")
     ax.set_yscale("log")
@@ -223,11 +223,11 @@ def plot_timing(fname):
     t_min_s, t_max_s = np.min(ts_v_sparse, axis=1), np.max(ts_v_sparse, axis=1)
     t_errors_s = t_max_s - t_min_s
 
-    ax.plot(v_vals, mean_t, c='red', alpha=0.4, linestyle='--')
     ax.errorbar(v_vals, mean_t, yerr=t_errors, fmt='x', c='red')
+    ax.plot(v_vals, mean_t, c='red', alpha=0.4, linestyle='--')
 
-    ax.plot(v_vals, mean_t_s, c='blue', alpha=0.4, linestyle='--')
     ax.errorbar(v_vals, mean_t_s, yerr=t_errors_s, fmt='o', c='blue')
+    ax.plot(v_vals, mean_t_s, c='blue', alpha=0.4, linestyle='--')
 
     ax.set_title(f"Computation time over dv for T=50ms simulation")
     ax.set_yscale("log")
