@@ -146,7 +146,7 @@ def gen_poisson_spikes(T, dt=0.001, i_max=300, rate=1):
 
   return ts, i_s
 
-def run_LIF(pars, Iinj, stop=False, custom_i=False):
+def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2):
   """
   Simulate the LIF dynamics with external input current
 
@@ -170,8 +170,8 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False):
   tref = pars['tref']
 
   # Initialize voltage
-  v = np.zeros(Lt)
-  v[0] = V_init
+  v = np.zeros((n_neurons, Lt))
+  v[:, 0] = V_init
 
   if not custom_i:
 
@@ -184,29 +184,34 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False):
       Iinj[int(len(Iinj) / 2) + 1000:] = 0
 
   # Loop over time
-  rec_spikes = []  # record spike times
-  tr = 0.  # the count for refractory duration
+  rec_spikes = []
 
-  for it in range(Lt - 1):
+    # record spike times
 
-    if tr > 0:  # check if in refractory period
-      v[it] = V_reset  # set voltage to reset
-      tr = tr - 1 # reduce running counter of refractory period
+  for i in range(n_neurons):
+    rec_spikes.append([])
+    tr = 0.  # the count for refractory duration
 
-    elif v[it] >= V_th:  # if voltage over threshold
-      rec_spikes.append(it)  # record spike event
-      v[it] = V_reset  # reset voltage
-      tr = tref / dt  # set refractory time
+    for it in range(Lt - 1):
 
-   # Calculate the increment of the membrane potential
-    dv = (-(v[it] - E_L) + Iinj[it] / g_L) * (dt / tau_m)
+      if tr > 0:  # check if in refractory period
+        v[i, it] = V_reset  # set voltage to reset
+        tr = tr - 1 # reduce running counter of refractory period
 
-    # Update the membrane potential
-    v[it + 1] = v[it] + dv
+      elif v[i, it] >= V_th:  # if voltage over threshold
+        rec_spikes[i].append(it)  # record spike event
+        v[i, it] = V_reset  # reset voltage
+        tr = tref / dt  # set refractory time
 
-  # Get spike times in ms
-  rec_spikes = np.array(rec_spikes) * dt
+     # Calculate the increment of the membrane potential
+      dv = (-(v[i, it] - E_L) + Iinj[it] / g_L) * (dt / tau_m)
 
+      # Update the membrane potential
+      v[i, it + 1] = v[i, it] + dv
+
+    # Get spike times in ms
+    rec_spikes[i] = np.array(rec_spikes[i]) * dt
+  rec_spikes = rec_spikes
   return v, rec_spikes
 
 
@@ -221,8 +226,8 @@ dt = 0.1
 # is need to be gamma distributed according to paper
 
 ts, i_s = gen_poisson_spikes(T=T, dt=dt, rate=10, i_max=1e3)
-# i_s[:t_start] = 0
-# i_s[t_end:] = 0
+i_s[:int(t_start/dt)] = 0
+i_s[int(t_end/dt):] = 0
 
 # Get parameters
 pars = default_pars(T=500, dt=dt)
@@ -230,5 +235,6 @@ pars = default_pars(T=500, dt=dt)
 v, sp = run_LIF(pars, Iinj=i_s, stop=True, custom_i=True)
 
 # Visualize
-plot_volt_trace(pars, v, sp)
+plot_volt_trace(pars, v[0], sp[0])
+plot_volt_trace(pars, v[1], sp[1])
 
