@@ -7,6 +7,8 @@ Modified by Erik Müller
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
 def default_pars(**kwargs):
   pars = {}
 
@@ -111,7 +113,40 @@ def my_hists(isi1, isi2, cv1, cv2, sigma1, sigma2):
   plt.tight_layout()
   plt.show()
 
-def run_LIF(pars, Iinj, stop=False):
+
+def gen_poisson_spikes(T, dt=0.001, i_max=300, rate=1):
+  """
+  Generate spike times and currents for a neuron with a time-dependent firing rate using an inhomogeneous Poisson
+   process.
+  modified from:
+  https://medium.com/@baxterbarlow/poisson-spike-generators-stochastic-theory-to-python-code-a76f8cc7cc32
+
+  Parameters:
+  rate (float): Firing rate at time t (spikes per second).
+  T (float): Total duration of the simulation (seconds).
+  dt (float): Time step for simulation (seconds).
+  imax (float): Max value if I which is used as scaling factor for random sampling
+
+  Returns:
+  spike_times (list): List of spike times.
+  """
+  t_last_spike = 0
+  ts = np.arange(0, T, dt)
+  i_s = np.zeros_like(ts)
+
+  for i, t_i in enumerate(ts):
+
+    if i == 0:
+      interval = -np.log(np.random.rand()) / rate
+
+    if t_i - t_last_spike > interval:
+      i_s[i] = np.random.rand() * i_max
+      t_last_spike = t_i
+      interval = -np.log(np.random.rand()) / rate
+
+  return ts, i_s
+
+def run_LIF(pars, Iinj, stop=False, custom_i=False):
   """
   Simulate the LIF dynamics with external input current
 
@@ -138,13 +173,15 @@ def run_LIF(pars, Iinj, stop=False):
   v = np.zeros(Lt)
   v[0] = V_init
 
-  # Set current time course
-  Iinj = Iinj * np.ones(Lt)
+  if not custom_i:
 
-  # If current pulse, set beginning and end to 0
-  if stop:
-    Iinj[:int(len(Iinj) / 2) - 1000] = 0
-    Iinj[int(len(Iinj) / 2) + 1000:] = 0
+    # Set current time course
+    Iinj = Iinj * np.ones(Lt)
+
+    # If current pulse, set beginning and end to 0
+    if stop:
+      Iinj[:int(len(Iinj) / 2) - 1000] = 0
+      Iinj[int(len(Iinj) / 2) + 1000:] = 0
 
   # Loop over time
   rec_spikes = []  # record spike times
@@ -173,11 +210,24 @@ def run_LIF(pars, Iinj, stop=False):
   return v, rec_spikes
 
 
-# Get parameters
-pars = default_pars(T=500)
 
+rate = 10
+T = 500
+t_end = 400
+t_start = 100
+dt = 0.1
+
+#TODO:
+# is need to be gamma distributed according to paper
+
+ts, i_s = gen_poisson_spikes(T=T, dt=dt, rate=10, i_max=1e3)
+# i_s[:t_start] = 0
+# i_s[t_end:] = 0
+
+# Get parameters
+pars = default_pars(T=500, dt=dt)
 # Simulate LIF model
-v, sp = run_LIF(pars, Iinj=240, stop=True)
+v, sp = run_LIF(pars, Iinj=i_s, stop=True, custom_i=True)
 
 # Visualize
 plot_volt_trace(pars, v, sp)
