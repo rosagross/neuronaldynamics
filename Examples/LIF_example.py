@@ -180,6 +180,8 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2, alpha=None, wei
   Iin = np.zeros_like(Iinj)
   v[:, 0] = V_init
   tr = np.zeros(n_neurons) # the count for refractory duration
+  t_last_spike = np.zeros(n_neurons)
+  r = np.zeros_like(v)
 
   if not custom_i:
 
@@ -198,11 +200,10 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2, alpha=None, wei
   for _ in range(n_neurons):
     rec_spikes.append([])
 
+
   for it in tqdm(range(Lt - 1)):
     for i in range(n_neurons):
 
-      if it == 3000:
-        a=1
       # get input from other neurons
       if n_neurons > 1:
         if it > 0:
@@ -220,6 +221,8 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2, alpha=None, wei
       elif v[i, it] >= V_th:  # if voltage over threshold
         rec_spikes[i].append(it)  # record spike event
         t_spikes[i, it] = 1
+        r[i, int(t_last_spike[i]):it] = 1000/(it - t_last_spike[i])*dt # times 1000 for conversion 1/ms -> Hz
+        t_last_spike[i] = it
         v[i, it] = V_reset  # reset voltage
         tr[i] = tref / dt  # set refractory time
 
@@ -234,7 +237,7 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2, alpha=None, wei
     rec_spikes[i] = np.array(rec_spikes[i]) * dt
 
   rec_spikes = rec_spikes
-  return v, rec_spikes
+  return v, rec_spikes, r
 
 
 
@@ -267,7 +270,7 @@ np.fill_diagonal(con, 0)
 # Get parameters
 pars = default_pars(T=500, dt=dt)
 # Simulate LIF model
-v, sp = run_LIF(pars, Iinj=i_s, stop=True, custom_i=True, weights=con, alpha=alpha, n_neurons=dim)
+v, sp, r = run_LIF(pars, Iinj=i_s, stop=True, custom_i=True, weights=con, alpha=alpha, n_neurons=dim)
 
 # Visualize
 plot_volt_trace(pars, v[0], sp[0])
@@ -278,10 +281,25 @@ times = [500, 1000, 2000, 3000, 4000]
 for n, time in enumerate(times):
   ax = fig.add_subplot(len(times), 1, int(n+1))
   ax.hist(v[:, time], bins=100, density=True, alpha=0.7)
-# plt.subplots_adjust(hspace=0.5)
+
 plt.tight_layout()
 ax.set_xlabel('V in mv')
 plt.show()
+
+fig = plt.figure(figsize=(8, 8))
+neuron_num = [0, 2, 5, 12, 22]
+#TODO: find out how to make this plot the same way it is in the paper
+# also create a spike raster plot and check for availabilty of this via pyrates
+for n, n_neuron in enumerate(neuron_num):
+  ax = fig.add_subplot(len(times), 1, int(n+1))
+  # ax.hist(r[n_neuron, :], bins=100, density=True, alpha=0.7)
+  ax.plot(np.mean(r, axis=0))
+  ax.set_ylabel('r in Hz')
+plt.tight_layout()
+ax.set_xlabel('time in ms')
+plt.show()
+# plt.subplots_adjust(hspace=0.5)
+
 # plt.hist(v[:, 3000], bins=100, density=True, alpha=0.7)
 
 
