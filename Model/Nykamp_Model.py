@@ -919,6 +919,8 @@ class Nykamp_Model_1():
                                                                rho_delta[j, i])
                     if r[j, i] < 0:
                         r[j, i] = 0
+                    if not r[j, i] < 0 and not r[j, i] >0 and not r[j, i] == 0:
+                        a=1
                     r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
 
                     if not self.sparse_mat:

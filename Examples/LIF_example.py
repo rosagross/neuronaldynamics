@@ -8,7 +8,11 @@ Modified by Erik Müller
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+import scipy
+from tqdm import tqdm
 matplotlib.use('TkAgg')
+
+
 def default_pars(**kwargs):
   pars = {}
 
@@ -146,7 +150,7 @@ def gen_poisson_spikes(T, dt=0.001, i_max=300, rate=1):
 
   return ts, i_s
 
-def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2):
+def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2, alpha=None, weights=None):
   """
   Simulate the LIF dynamics with external input current
 
@@ -159,6 +163,7 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2):
   Returns:
     rec_v      : membrane potential
     rec_sp     : spike times
+
   """
 
   # Set parameters
@@ -171,7 +176,10 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2):
 
   # Initialize voltage
   v = np.zeros((n_neurons, Lt))
+  t_spikes = np.zeros_like(v)
+  Iin = np.zeros_like(Iinj)
   v[:, 0] = V_init
+  tr = np.zeros(n_neurons) # the count for refractory duration
 
   if not custom_i:
 
@@ -186,31 +194,45 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2):
   # Loop over time
   rec_spikes = []
 
-    # record spike times
-
-  for i in range(n_neurons):
+  # record spike times
+  for _ in range(n_neurons):
     rec_spikes.append([])
-    tr = 0.  # the count for refractory duration
 
-    for it in range(Lt - 1):
+  for it in tqdm(range(Lt - 1)):
+    for i in range(n_neurons):
 
-      if tr > 0:  # check if in refractory period
+      if it == 3000:
+        a=1
+      # get input from other neurons
+      if n_neurons > 1:
+        if it > 0:
+          # connectivity weight is parameter that scales the current here
+          input = np.convolve(np.sum(weights[:, i] * t_spikes.T, axis=1), alpha)
+          Iin[it] = Iinj[it] + input[it]
+
+      else:
+        Iin = Iinj
+
+      if tr[i] > 0:  # check if in refractory period
         v[i, it] = V_reset  # set voltage to reset
-        tr = tr - 1 # reduce running counter of refractory period
+        tr[i] = tr[i] - 1 # reduce running counter of refractory period
 
       elif v[i, it] >= V_th:  # if voltage over threshold
         rec_spikes[i].append(it)  # record spike event
+        t_spikes[i, it] = 1
         v[i, it] = V_reset  # reset voltage
-        tr = tref / dt  # set refractory time
+        tr[i] = tref / dt  # set refractory time
 
      # Calculate the increment of the membrane potential
-      dv = (-(v[i, it] - E_L) + Iinj[it] / g_L) * (dt / tau_m)
+      dv = (-(v[i, it] - E_L) + Iin[it] / g_L) * (dt / tau_m)
 
       # Update the membrane potential
       v[i, it + 1] = v[i, it] + dv
 
+  for i in range(n_neurons):
     # Get spike times in ms
     rec_spikes[i] = np.array(rec_spikes[i]) * dt
+
   rec_spikes = rec_spikes
   return v, rec_spikes
 
@@ -219,22 +241,50 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2):
 rate = 10
 T = 500
 t_end = 400
-t_start = 100
+t_start = 0
 dt = 0.1
+t = np.arange(0.0, T, dt)
+
+t_alpha = t[t < 10]
+tau_alpha = 1/3
+n_alpha = 9
+alpha = np.exp(-t_alpha/tau_alpha) / (tau_alpha * scipy.special.factorial(n_alpha-1)) * (t_alpha/tau_alpha)**(n_alpha-1)
+alpha = alpha/np.trapz(alpha, dx=dt)
 
 #TODO:
 # is need to be gamma distributed according to paper
 
-ts, i_s = gen_poisson_spikes(T=T, dt=dt, rate=10, i_max=1e3)
+ts, i_s = gen_poisson_spikes(T=T, dt=dt, rate=5, i_max=1e3)
 i_s[:int(t_start/dt)] = 0
 i_s[int(t_end/dt):] = 0
+w0 = 30
+dim = 30
+# con = w0*(np.ones((dim, dim)) - np.eye(dim))
+con = w0*np.random.uniform(size=(dim, dim))
+np.fill_diagonal(con, 0)
+# con = np.array([[100, 500], [700, 100]])
 
 # Get parameters
 pars = default_pars(T=500, dt=dt)
 # Simulate LIF model
-v, sp = run_LIF(pars, Iinj=i_s, stop=True, custom_i=True)
+v, sp = run_LIF(pars, Iinj=i_s, stop=True, custom_i=True, weights=con, alpha=alpha, n_neurons=dim)
 
 # Visualize
 plot_volt_trace(pars, v[0], sp[0])
-plot_volt_trace(pars, v[1], sp[1])
+plot_volt_trace(pars, v[-1], sp[-1])
+fig = plt.figure(figsize=(8, 8))
+times = [500, 1000, 2000, 3000, 4000]
+
+for n, time in enumerate(times):
+  ax = fig.add_subplot(len(times), 1, int(n+1))
+  ax.hist(v[:, time], bins=100, density=True, alpha=0.7)
+# plt.subplots_adjust(hspace=0.5)
+plt.tight_layout()
+ax.set_xlabel('V in mv')
+plt.show()
+# plt.hist(v[:, 3000], bins=100, density=True, alpha=0.7)
+
+
+print(f'neuron 1 spikes: {sp[0].shape}')
+print(f'neuron 2 spikes: {sp[1].shape}')
 

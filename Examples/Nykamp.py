@@ -65,7 +65,9 @@ def input_sine_function(t):
     return v0 * (1 + np.sin(2*np.pi*f*t/1000))
 
 parameters = {}
-parameters['connectivity_matrix'] = np.array([[15, 30], [30, 30]])
+w0 = 30
+# TODO: if this factor is too high, rates and voltage pdf becomes inf! Find out why
+parameters['connectivity_matrix'] = w0*np.array([[1/2, 1], [1, 1]])
 parameters['u_rest'] = -65
 parameters['u_thr'] = -55
 parameters['u_exc'] = 0
@@ -86,7 +88,7 @@ dt = 0.1 # 0.1
 dv = 0.01
 
 nyk = Nykamp_Model_1(parameters=parameters, name='nykamp_test_2D')
-# nyk.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
+nyk.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
 
 parameters_1 = parameters.copy()
 parameters_1['connectivity_matrix'] = np.array([[15, 30, 30], [30, 30, 30], [30, 30, 30]])
@@ -100,7 +102,7 @@ nyk_1 = Nykamp_Model_1(parameters=parameters_1, name='nykamp_test_3D')
 # nyk_1.simulate(T=T, dt=dt, dv=dv)
 
 # plot results
-# plot('nykamp_test_2D', heat_map=True)
+plot('nykamp_test_2D', heat_map=True)
 # plot('nykamp_test_3D', heat_map=True)
 
 # os.remove('nykamp_test_2D' + '.hdf5')
@@ -245,4 +247,4 @@ def plot_timing(fname):
 
 
 # test_timing(n_repetitions=n_repetitions, dts=dts, dvs=dvs, T=T, model=nyk)
-plot_timing('speed_test')
+# plot_timing('speed_test')
