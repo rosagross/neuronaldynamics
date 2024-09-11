@@ -6,14 +6,24 @@ from tqdm import tqdm
 from Model.LIF import LIF_population
 matplotlib.use('TkAgg')
 
-w0 = 30
-dim = 10
-# con = w0*(np.ones((dim, dim)) - np.eye(dim))
-con = w0*np.random.uniform(size=(dim, dim))
-np.fill_diagonal(con, 0)
+def input_sine_function(t):
+    v0 = .7e2 # .7
+    f = 10
+    return v0 * (1 + np.sin(2*np.pi*f*t/1000))
 
-lif = LIF_population(T=100, tau_m=20,  weights=con, n_neurons=dim)
-lif.gen_poisson_spikes_input(rate=0.1, i_max=2e4)
+T = 500
+dt  = 0.1
+t = np.arange(0.0, T, dt)
+in_sine = input_sine_function(t)
+
+w0 = 30
+dim = 30
+con = w0*(np.ones((dim, dim)) - np.eye(dim))
+# con = w0*np.random.uniform(size=(dim, dim))
+# np.fill_diagonal(con, 0)
+
+lif = LIF_population(T=T, tau_m=20,  weights=con, n_neurons=dim, Iext=in_sine)
+# lif.gen_poisson_spikes_input(rate=0.3, i_max=5e5)
 lif.run()
 
 # Visualize

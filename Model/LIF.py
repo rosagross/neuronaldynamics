@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 import scipy
 from scipy.special import factorial
+from scipy.stats import gamma
+import random
 from tqdm import tqdm
 from Utils import raster
 
@@ -19,8 +21,6 @@ class LIF_population():
         # Set parameters
         self.default_pars(**kwargs)
         self.Iinj = None
-
-
     def default_pars(self, **kwargs):
         """
         Function that sets default parameters
@@ -31,18 +31,18 @@ class LIF_population():
 
         # typical neuron parameters#
         self.pars['V_th'] = -55.  # spike threshold [mV]
-        self.pars['V_reset'] = -75.  # reset potential [mV]
+        self.pars['V_reset'] = -65.  # reset potential [mV]
         self.pars['tau_m'] = 10.  # membrane time constant [ms]
         self.pars['g_L'] = 10.  # leak conductance [nS]
-        self.pars['V_init'] = -75.  # initial potential [mV]
-        self.pars['E_L'] = -75.  # leak reversal potential [mV]
+        self.pars['V_init'] = -65.  # initial potential [mV]
+        self.pars['E_L'] = -65.  # leak reversal potential [mV]
         self.pars['tref'] = 2.  # refractory time (ms)
 
         # simulation parameters #
         self.pars['T'] = 400.  # Total duration of simulation [ms]
         self.pars['dt'] = .1  # Simulation time step [ms]
         self.pars['weights'] = None
-
+        self.pars['Iext'] = None
 
         self.pars['tau_alpha'] = 1/3 # parameters from Nykamp 2000 here
         self.pars['n_alpha'] = 9
@@ -60,6 +60,7 @@ class LIF_population():
         self.Lt = self.t.size
         self.T = self.pars['T']
         self.tref = self.pars['tref']
+        self.Iext = self.pars['Iext']
         self.weights = self.pars['weights']
         self.n_neurons = self.pars['n_neurons']
         self.tau_alpha = self.pars['tau_alpha']
@@ -82,7 +83,15 @@ class LIF_population():
 
         """
         if self.Iinj is not None:
-          Iinj = self.Iinj
+            Iinj = self.Iinj
+        else:
+            Iinj = np.zeros((self.n_neurons, self.t.shape[0]))
+
+        if self.Iext is not None:
+            if len(self.Iext.shape) == 1:
+                Iext_shape_init = self.Iext.shape[0]
+                self.Iext = np.repeat(self.Iext, self.n_neurons)
+                self.Iext = np.reshape(self.Iext, (self.n_neurons, Iext_shape_init))
 
         self.get_alpha_kernel()
 
@@ -99,6 +108,8 @@ class LIF_population():
 
             # Set current time course
             Iinj = Iinj * np.ones(self.Lt)
+
+
 
         # If current pulse, set beginning and end to 0
         if stop:
@@ -141,9 +152,9 @@ class LIF_population():
                               # connectivity weight is parameter that scales the current here
                               # input = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
 
-                Iin[:, it] = Iinj[:, it] + input[:, it]
+                Iin[:, it] = Iinj[:, it] + input[:, it] + self.Iext[:, it]
             else:
-                Iin = Iinj
+                Iin = Iinj + self.Iext
 
             # Calculate the increment of the membrane potential
             dv = (-(self.v[:, it] - self.E_L) + Iin[:, it] / self.g_L) * (self.dt / self.tau_m)
@@ -191,7 +202,7 @@ class LIF_population():
       plt.tight_layout()
       plt.show()
 
-    def gen_poisson_spikes_input(self, i_max=300, rate=1, t_start=0.0, t_end=None):
+    def gen_poisson_spikes_input(self, i_max=300, rate=1, mu=0.008, coeff_of_var=0.5, t_start=0.0, t_end=None):
         """
         Generate spike times and currents for a neuron with a time-dependent firing rate using an inhomogeneous Poisson
          process.
@@ -203,6 +214,10 @@ class LIF_population():
         rate (float): Firing rate at time t (spikes per second).
 
         """
+
+        scale = (coeff_of_var * mu) ** 2 / mu
+        gamma_pdf = gamma(a=coeff_of_var ** (-2), loc=0, scale=scale)
+
         if t_end is None:
             t_end = self.T
 
@@ -219,7 +234,8 @@ class LIF_population():
                     interval = -np.log(np.random.rand()) / rate
 
                 if t_i - t_last_spike > interval:
-                    i_s[j, i] = np.random.rand() * i_max
+                    sign = [-1,1][random.randrange(2)]
+                    i_s[j, i] = gamma_pdf.rvs(size=1) * i_max * sign
                     t_last_spike = t_i
                     interval = -np.log(np.random.rand()) / rate
 
