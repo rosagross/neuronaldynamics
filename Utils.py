@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def get_stability_2D(eigvals):
     """function to test the stability of a 2D system by evaluating common cases of its eigenvalues """
@@ -38,3 +39,30 @@ def nrmse(reference, x):
     rmse = np.sqrt(mse)
     nrmse = rmse / (np.max(x) - np.min(x))
     return nrmse
+
+
+def raster(event_times_list, color='k'):
+  """
+  Creates a raster plot **with spikes saved at 300 dpi as raster art**
+
+  Original code from https://gist.github.com/kylerbrown/5530238
+
+  Parameters
+  ----------
+  event_times_list : iterable
+                     a list of event time iterables
+  color : string
+          color of vlines
+
+  Returns
+  -------
+  ax : an axis containing the raster plot
+
+  This version attempts to rasterize the plot
+  Reference: https://matplotlib.org/stable/gallery/misc/rasterization_demo.html
+  """
+  ax = plt.gca()
+  for ith, trial in enumerate(event_times_list):
+    plt.vlines(trial, ith + .5, ith + 1.5, color=color, rasterized=True)
+  plt.ylim(.5, len(event_times_list) + .5)
+  return ax

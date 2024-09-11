@@ -11,6 +11,7 @@ import matplotlib
 import scipy
 from scipy.special import factorial
 from tqdm import tqdm
+from Utils import raster
 
 class LIF_population():
 
@@ -140,7 +141,7 @@ class LIF_population():
                               # connectivity weight is parameter that scales the current here
                               # input = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
 
-                Iin[:, it] = Iinj[it] + input[:, it]
+                Iin[:, it] = Iinj[:, it] + input[:, it]
             else:
                 Iin = Iinj
 
@@ -205,22 +206,58 @@ class LIF_population():
         if t_end is None:
             t_end = self.T
 
-        t_last_spike = 0
+
         ts = np.arange(0, self.T, self.dt)
-        i_s = np.zeros_like(ts)
+        i_s = np.zeros((self.n_neurons, ts.shape[0]))
+        for j in range(self.n_neurons):
+            t_last_spike = 0
+            for i, t_i in enumerate(ts):
 
-        for i, t_i in enumerate(ts):
+                if i == 0:
+                    # TODO:
+                    #  is need to be gamma distributed according to paper
+                    interval = -np.log(np.random.rand()) / rate
 
-            if i == 0:
-                # TODO:
-                #  is need to be gamma distributed according to paper
-                interval = -np.log(np.random.rand()) / rate
-
-            if t_i - t_last_spike > interval:
-                i_s[i] = np.random.rand() * i_max
-                t_last_spike = t_i
-                interval = -np.log(np.random.rand()) / rate
+                if t_i - t_last_spike > interval:
+                    i_s[j, i] = np.random.rand() * i_max
+                    t_last_spike = t_i
+                    interval = -np.log(np.random.rand()) / rate
 
         i_s[:int(t_start / self.dt)] = 0
         i_s[int(t_end / self.dt):] = 0
         self.Iinj = i_s
+
+    def raster_plot(self, idxs=None, color='k'):
+        if idxs is not None:
+            ax = raster(self.rec_spikes[idxs], color=color)
+        else:
+            ax = raster(self.rec_spikes, color=color)
+        ax.set_xlabel('Time (ms)')
+        ax.set_ylabel('# neurons')
+        ax.set_title('Spike raster plot')
+        plt.show()
+
+    def plot_firing_rate(self, neuron_num):
+        fig = plt.figure(figsize=(8, 8))
+        # TODO: find out how to make this plot the same way it is in the paper
+        # also create a spike raster plot and check for availabilty of this via pyrates
+        for n, n_neuron in enumerate(neuron_num):
+            ax = fig.add_subplot(len(neuron_num), 1, int(n + 1))
+            ax.hist(self.r[n_neuron, :], bins=100, density=True, alpha=0.7)
+            ax.plot(np.mean(self.r, axis=0))
+            ax.set_ylabel('r in Hz')
+        plt.tight_layout()
+        ax.set_xlabel('time in ms')
+        plt.show()
+
+    def plot_voltage_hist(self, times):
+        fig = plt.figure(figsize=(8, 8))
+
+
+        for n, time in enumerate(times):
+            ax = fig.add_subplot(len(times), 1, int(n + 1))
+            ax.hist(self.v[:, time], bins=100, density=True, alpha=0.7)
+
+        plt.tight_layout()
+        ax.set_xlabel('V in mv')
+        plt.show()
