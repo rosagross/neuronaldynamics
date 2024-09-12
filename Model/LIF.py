@@ -14,6 +14,7 @@ from scipy.stats import gamma
 import random
 from tqdm import tqdm
 from Utils import raster
+import time
 
 class LIF_population():
 
@@ -21,6 +22,8 @@ class LIF_population():
         # Set parameters
         self.default_pars(**kwargs)
         self.Iinj = None
+
+
     def default_pars(self, **kwargs):
         """
         Function that sets default parameters
@@ -47,6 +50,7 @@ class LIF_population():
         self.pars['tau_alpha'] = 1/3 # parameters from Nykamp 2000 here
         self.pars['n_alpha'] = 9
         self.pars['n_neurons'] = 1
+        self.pars['verbose'] = 0
 
         # external parameters if any #
         for k in kwargs:
@@ -65,7 +69,7 @@ class LIF_population():
         self.n_neurons = self.pars['n_neurons']
         self.tau_alpha = self.pars['tau_alpha']
         self.n_alpha = self.pars['n_alpha']
-
+        self.verbose = self.pars['verbose']
 
     def run(self, Iinj=None, stop=False, custom_i=True):
         """
@@ -82,6 +86,10 @@ class LIF_population():
         rec_sp     : spike times
 
         """
+
+        if self.verbose > 0:
+            t1 = time.time()
+
         if self.Iinj is not None:
             Iinj = self.Iinj
         else:
@@ -127,6 +135,10 @@ class LIF_population():
         for _ in range(self.n_neurons):
             self.rec_spikes.append([])
 
+        if self.verbose > 0:
+            t2 = time.time()
+            print(f'set-up: {t2-t1:.4f}s')
+
         for it in tqdm(range(self.Lt - 1)):
             for i in range(self.n_neurons):
 
@@ -142,12 +154,13 @@ class LIF_population():
                     t_last_spike[i] = it
                     self.v[i, it] = self.V_reset  # reset voltage
                     tr[i] = self.tref / self.dt  # set refractory time
-
-
+            if self.verbose > 0:
+                t_conv_1 = time.time()
             if self.n_neurons > 1:
                 for i in range(self.n_neurons):
                     # get input from other neurons
                         if it > 0:
+                            # TODO: This is a bottleneck-find out if this can be done faster ma<be through vectori<ation
                               input[i, :] = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
                               # connectivity weight is parameter that scales the current here
                               # input = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
@@ -156,11 +169,20 @@ class LIF_population():
             else:
                 Iin = Iinj + self.Iext
 
+            if self.verbose > 0:
+                t_conv_2 = time.time()
+                print(f'convolve: {t_conv_2 - t_conv_1:.4f}s')
+                t_sim_1 = t_conv_2
+
             # Calculate the increment of the membrane potential
             dv = (-(self.v[:, it] - self.E_L) + Iin[:, it] / self.g_L) * (self.dt / self.tau_m)
 
             # Update the membrane potential
             self.v[:, it + 1] = self.v[:, it] + dv
+
+            if self.verbose > 0 :
+                t_sim_2 = time.time()
+                print(f'simulate: {t_sim_2 - t_sim_1:.4f}s')
 
         for i in range(self.n_neurons):
             # Get spike times in ms

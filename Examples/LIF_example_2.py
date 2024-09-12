@@ -22,7 +22,7 @@ con = w0*(np.ones((dim, dim)) - np.eye(dim))
 # con = w0*np.random.uniform(size=(dim, dim))
 # np.fill_diagonal(con, 0)
 
-lif = LIF_population(T=T, tau_m=20,  weights=con, n_neurons=dim, Iext=in_sine)
+lif = LIF_population(T=T, tau_m=20,  weights=con, n_neurons=dim, Iext=in_sine, verbose=1)
 # lif.gen_poisson_spikes_input(rate=0.3, i_max=5e5)
 lif.run()
 
@@ -33,14 +33,6 @@ times = [500, 1000, 2000, 3000, 4000]
 lif.plot_voltage_hist(times=times)
 neuron_num = [0, 2, 5, 12, 22]
 lif.plot_firing_rate(neuron_num=neuron_num)
-
-# plt.subplots_adjust(hspace=0.5)
-
-# plt.hist(v[:, 3000], bins=100, density=True, alpha=0.7)
-
-
-
-
 
 print(f'neuron 1 spikes: {lif.rec_spikes[0].shape}')
 print(f'neuron 2 spikes: {lif.rec_spikes[1].shape}')
