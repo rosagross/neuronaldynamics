@@ -12,17 +12,17 @@ def input_sine_function(t):
     return v0 * (1 + np.sin(2*np.pi*f*t/1000))
 
 T = 500
-dt  = 0.1
+dt = 0.1
 t = np.arange(0.0, T, dt)
 in_sine = input_sine_function(t)
 
 w0 = 30
-dim = 30
+dim = 50
 con = w0*(np.ones((dim, dim)) - np.eye(dim))
 # con = w0*np.random.uniform(size=(dim, dim))
 # np.fill_diagonal(con, 0)
 
-lif = LIF_population(T=T, tau_m=20,  weights=con, n_neurons=dim, Iext=in_sine, verbose=1)
+lif = LIF_population(T=T, tau_m=20,  weights=con, n_neurons=dim, Iext=in_sine, verbose=0)
 # lif.gen_poisson_spikes_input(rate=0.3, i_max=5e5)
 lif.run()
 

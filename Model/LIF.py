@@ -13,7 +13,7 @@ from scipy.special import factorial
 from scipy.stats import gamma
 import random
 from tqdm import tqdm
-from Utils import raster
+from Utils import raster, nrmse
 import time
 
 class LIF_population():
@@ -154,13 +154,16 @@ class LIF_population():
                     t_last_spike[i] = it
                     self.v[i, it] = self.V_reset  # reset voltage
                     tr[i] = self.tref / self.dt  # set refractory time
+
             if self.verbose > 0:
                 t_conv_1 = time.time()
             if self.n_neurons > 1:
+                # problem with this version: keeps the dimension fixed while np.convolve extends for overshoot
+                # test = np.einsum('i,kl->kl', self.alpha, np.sum(self.weights[:, i] * np.reshape(np.repeat(t_spikes, 50), (5000, 50, 50)), axis=1)).T
                 for i in range(self.n_neurons):
                     # get input from other neurons
                         if it > 0:
-                            # TODO: This is a bottleneck-find out if this can be done faster ma<be through vectori<ation
+                            # TODO: This is a bottleneck-find out if this can be done faster maybe through vectorization
                               input[i, :] = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
                               # connectivity weight is parameter that scales the current here
                               # input = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
