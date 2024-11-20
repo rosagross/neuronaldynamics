@@ -141,9 +141,10 @@ class LIF_population():
         # Loop over time
         self.rec_spikes = []
 
-        conv_dummy = np.convolve(self.v[0], self.alpha)
-        conv_shape = conv_dummy.shape
-        input = np.zeros((self.n_neurons, conv_shape[0]))
+        # conv_dummy = np.convolve(self.v[0], self.alpha)
+        # conv_shape = conv_dummy.shape
+        conv_shape = self.v[0].shape[0] + self.alpha.shape[0] - 1
+        input = np.zeros((self.n_neurons, conv_shape))
 
         # record spike times
         # create list of lists with n_neurons as fisrt dimension
@@ -154,7 +155,7 @@ class LIF_population():
             t2 = time.time()
             print(f'set-up: {t2-t1:.4f}s')
 
-        for it in tqdm(range(self.Lt - 1)):
+        for it in tqdm(range(self.Lt - 1), f'simulating network for {self.Lt - 1} time steps'):
             for i in range(self.n_neurons):
 
                 if tr[i] > 0:  # check if in refractory period
@@ -175,13 +176,16 @@ class LIF_population():
             if self.n_neurons > 1:
                 # problem with this version: keeps the dimension fixed while np.convolve extends for overshoot
                 # test = np.einsum('i,kl->kl', self.alpha, np.sum(self.weights[:, i] * np.reshape(np.repeat(t_spikes, 50), (5000, 50, 50)), axis=1)).T
+                # for i in range(self.n_neurons):
+                #     # get input from other neurons
+                #         if it > 0:
+                #             # TODO: This is a bottleneck-find out if this can be done faster maybe through vectorization
+                #               input[i, :] = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
+                #               # connectivity weight is parameter that scales the current here
+                #               # input = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
                 for i in range(self.n_neurons):
-                    # get input from other neurons
-                        if it > 0:
-                            # TODO: This is a bottleneck-find out if this can be done faster maybe through vectorization
-                              input[i, :] = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
-                              # connectivity weight is parameter that scales the current here
-                              # input = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
+                    for j in range(len(self.rec_spikes[i])):
+                        input[i, self.rec_spikes[i][j]:self.rec_spikes[i][j] + self.alpha.shape[0]] = self.alpha
 
                 Iin[:, it] = Iinj[:, it] + input[:, it] + self.Iext[:, it]
             else:
@@ -264,7 +268,7 @@ class LIF_population():
 
         ts = np.arange(0, self.T, self.dt)
         i_s = np.zeros((self.n_neurons, ts.shape[0]))
-        for j in range(self.n_neurons):
+        for j in tqdm(range(self.n_neurons), f'creating background activity for {self.n_neurons} neurons'):
             t_last_spike = 0
             for i, t_i in enumerate(ts):
 

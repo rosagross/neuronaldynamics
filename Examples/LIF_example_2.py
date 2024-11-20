@@ -17,7 +17,7 @@ t = np.arange(0.0, T, dt)
 in_sine = input_sine_function(t)
 
 w0 = 30
-dim = 50
+dim = 1000
 con = w0*(np.ones((dim, dim)) - np.eye(dim))
 # con = w0*np.random.uniform(size=(dim, dim))
 # np.fill_diagonal(con, 0)
@@ -32,7 +32,7 @@ lif.raster_plot()
 times = [500, 1000, 2000, 3000, 4000]
 lif.plot_voltage_hist(times=times)
 neuron_num = [0, 2, 5, 12, 22]
-lif.plot_firing_rate(neuron_num=neuron_num)
+# lif.plot_firing_rate(neuron_num=neuron_num)
 
 print(f'neuron 1 spikes: {lif.rec_spikes[0].shape}')
 print(f'neuron 2 spikes: {lif.rec_spikes[1].shape}')
