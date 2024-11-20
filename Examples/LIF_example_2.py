@@ -23,7 +23,7 @@ con = w0*(np.ones((dim, dim)) - np.eye(dim))
 # np.fill_diagonal(con, 0)
 
 lif = LIF_population(T=T, tau_m=20,  weights=con, n_neurons=dim, Iext=in_sine, verbose=0)
-# lif.gen_poisson_spikes_input(rate=0.3, i_max=5e5)
+lif.gen_poisson_spikes_input(rate=0.3, i_max=5e5) #input in nA?
 lif.run()
 
 # Visualize

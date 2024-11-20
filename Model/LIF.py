@@ -27,8 +27,22 @@ class LIF_population():
     def default_pars(self, **kwargs):
         """
         Function that sets default parameters
-        :param kwargs:
-        :return:
+        :param kwargs: arguments that may contain defaults
+            - V_th: threshold voltage
+            - V_reset: reset voltage
+            - tau_m: membrane time constant
+            - g_L: leak conductance
+            - V_init: initial potential
+            - E_L: leak reversal potential
+            - tref: refractory time
+            - T: simulation time
+            - dt: time step
+            - weights: connectivity matrix
+            - Iext: external current
+            - tau_alpha: time constant of alpha kernel
+            - n_alpha: n constant of alpha kernel
+            - n_neurons: number of neurons in population
+            - verbose: value to identify output
         """
         self.pars = {}
 
@@ -98,8 +112,8 @@ class LIF_population():
         if self.Iext is not None:
             if len(self.Iext.shape) == 1:
                 Iext_shape_init = self.Iext.shape[0]
-                self.Iext = np.repeat(self.Iext, self.n_neurons)
-                self.Iext = np.reshape(self.Iext, (self.n_neurons, Iext_shape_init))
+                self.Iext = self.Iext.repeat(self.n_neurons).reshape(Iext_shape_init, self.n_neurons).T
+
 
         self.get_alpha_kernel()
 
@@ -132,6 +146,7 @@ class LIF_population():
         input = np.zeros((self.n_neurons, conv_shape[0]))
 
         # record spike times
+        # create list of lists with n_neurons as fisrt dimension
         for _ in range(self.n_neurons):
             self.rec_spikes.append([])
 

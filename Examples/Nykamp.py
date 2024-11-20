@@ -60,7 +60,7 @@ def plot(fname, heat_map=False, plot_idxs=None):
 
 # init parameters
 def input_sine_function(t):
-    v0 = .7
+    v0 = 0.7
     f = 10
     return v0 * (1 + np.sin(2*np.pi*f*t/1000))
 
@@ -83,7 +83,7 @@ parameters['input_function_type'] = 'custom'
 parameters['input_function_idx'] = [0, 0]
 parameters['population_type'] = ['exc', 'inh']
 
-T = 200 # 200
+T = 100 # 200
 dt = 0.1 # 0.1
 dv = 0.01
 
@@ -118,7 +118,7 @@ n_repetitions = 10
 
 
 import time
-def test_timing(n_repetitions, dts, dvs, T, model):
+def model_timing(n_repetitions, dts, dvs, T, model):
 
     ts_t = np.zeros((dts.shape[0], n_repetitions))
     ts_t_sparse = np.zeros_like(ts_t)
@@ -246,5 +246,5 @@ def plot_timing(fname):
 
 
 
-# test_timing(n_repetitions=n_repetitions, dts=dts, dvs=dvs, T=T, model=nyk)
+# model_timing(n_repetitions=n_repetitions, dts=dts, dvs=dvs, T=T, model=nyk)
 # plot_timing('speed_test')
