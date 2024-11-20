@@ -183,9 +183,9 @@ class LIF_population():
                 #               input[i, :] = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
                 #               # connectivity weight is parameter that scales the current here
                 #               # input = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
-                for i in range(self.n_neurons):
-                    for j in range(len(self.rec_spikes[i])):
-                        input[i, self.rec_spikes[i][j]:self.rec_spikes[i][j] + self.alpha.shape[0]] = self.alpha
+                for k in range(self.n_neurons):
+                    for l in range(len(self.rec_spikes[k])):
+                        input[k, self.rec_spikes[k][l]:self.rec_spikes[k][l] + self.alpha.shape[0]] = self.alpha
 
                 Iin[:, it] = Iinj[:, it] + input[:, it] + self.Iext[:, it]
             else:
@@ -283,8 +283,8 @@ class LIF_population():
                     t_last_spike = t_i
                     interval = -np.log(np.random.rand()) / rate
 
-        i_s[:int(t_start / self.dt)] = 0
-        i_s[int(t_end / self.dt):] = 0
+        i_s[:, int(t_start / self.dt)] = 0
+        i_s[:, int(t_end / self.dt):] = 0
         self.Iinj = i_s
 
     def raster_plot(self, idxs=None, color='k'):

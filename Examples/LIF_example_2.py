@@ -11,13 +11,13 @@ def input_sine_function(t):
     f = 10
     return v0 * (1 + np.sin(2*np.pi*f*t/1000))
 
-T = 500
+T = 100
 dt = 0.1
 t = np.arange(0.0, T, dt)
 in_sine = input_sine_function(t)
 
 w0 = 30
-dim = 1000
+dim = 7000
 con = w0*(np.ones((dim, dim)) - np.eye(dim))
 # con = w0*np.random.uniform(size=(dim, dim))
 # np.fill_diagonal(con, 0)
@@ -27,9 +27,12 @@ lif.gen_poisson_spikes_input(rate=0.3, i_max=5e5) #input in nA?
 lif.run()
 
 # Visualize
-lif.plot_volt_trace(idx=0)
+lif.plot_volt_trace(idx=5003)
+lif.plot_volt_trace(idx=5004)
+lif.plot_volt_trace(idx=5005)
 lif.raster_plot()
-times = [500, 1000, 2000, 3000, 4000]
+# times = [500, 1000, 2000, 3000, 4000]
+times = [100, 200, 500, 700, 900]
 lif.plot_voltage_hist(times=times)
 neuron_num = [0, 2, 5, 12, 22]
 # lif.plot_firing_rate(neuron_num=neuron_num)
