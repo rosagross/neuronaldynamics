@@ -66,3 +66,23 @@ def raster(event_times_list, color='k'):
     plt.vlines(trial, ith + .5, ith + 1.5, color=color, rasterized=True)
   plt.ylim(.5, len(event_times_list) + .5)
   return ax
+
+
+def time_bin(x, bin=5):
+    """
+    function that creates sum over bin region and then replaces all entries in this region with its sum
+    :param x: array, np.1darray
+    :param bin: bin, int
+    :return: binned array
+    """
+
+    # Create an array of indices for the chunks
+    indices = np.arange(len(x)) // bin
+    #Sum the values in each chunk using bincount
+    sums = np.bincount(indices, weights=x)
+    # Map the sums back to the original array
+    result = sums[indices]
+
+    return result
+
+

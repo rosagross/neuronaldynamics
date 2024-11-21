@@ -13,7 +13,8 @@ from scipy.special import factorial
 from scipy.stats import gamma
 import random
 from tqdm import tqdm
-from Utils import raster, nrmse
+from Utils import raster, nrmse, time_bin
+from scipy.ndimage import gaussian_filter1d
 import time
 
 class LIF_population():
@@ -46,14 +47,14 @@ class LIF_population():
         """
         self.pars = {}
 
-        # typical neuron parameters#
+        # typical neuron parameters# arranged for nykamp model
         self.pars['V_th'] = -55.  # spike threshold [mV]
         self.pars['V_reset'] = -65.  # reset potential [mV]
-        self.pars['tau_m'] = 10.  # membrane time constant [ms]
+        self.pars['tau_m'] = 20.  # membrane time constant [ms]
         self.pars['g_L'] = 10.  # leak conductance [nS]
         self.pars['V_init'] = -65.  # initial potential [mV]
         self.pars['E_L'] = -65.  # leak reversal potential [mV]
-        self.pars['tref'] = 2.  # refractory time (ms)
+        self.pars['tref'] = 3.  # refractory time (ms)
 
         # simulation parameters #
         self.pars['T'] = 400.  # Total duration of simulation [ms]
@@ -119,7 +120,7 @@ class LIF_population():
 
         # Initialize voltage
         self.v = np.zeros((self.n_neurons, self.Lt))
-        t_spikes = np.zeros_like(self.v)
+        self.t_spikes = np.zeros_like(self.v)
         Iin = np.zeros_like(self.v)
         self.v[:, 0] = self.V_init
         tr = np.zeros(self.n_neurons) # the count for refractory duration
@@ -164,7 +165,7 @@ class LIF_population():
 
                 elif self.v[i, it] >= self.V_th:  # if voltage over threshold
                     self.rec_spikes[i].append(it)  # record spike event
-                    t_spikes[i, it] = 1
+                    self.t_spikes[i, it] = 1
                     self.r[i, int(t_last_spike[i]):it] = 1000 / (
                           it - t_last_spike[i]) * self.dt  # times 1000 for conversion 1/ms -> Hz
                     t_last_spike[i] = it
@@ -175,14 +176,14 @@ class LIF_population():
                 t_conv_1 = time.time()
             if self.n_neurons > 1:
                 # problem with this version: keeps the dimension fixed while np.convolve extends for overshoot
-                # test = np.einsum('i,kl->kl', self.alpha, np.sum(self.weights[:, i] * np.reshape(np.repeat(t_spikes, 50), (5000, 50, 50)), axis=1)).T
+                # test = np.einsum('i,kl->kl', self.alpha, np.sum(self.weights[:, i] * np.reshape(np.repeat(self.t_spikes, 50), (5000, 50, 50)), axis=1)).T
                 # for i in range(self.n_neurons):
                 #     # get input from other neurons
                 #         if it > 0:
-                #             # TODO: This is a bottleneck-find out if this can be done faster maybe through vectorization
-                #               input[i, :] = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
+                #               # this is a bottle neck, the faster implementation is below
+                #               input[i, :] = np.convolve(np.sum(self.weights[:, i] * self.t_spikes.T, axis=1), self.alpha)
                 #               # connectivity weight is parameter that scales the current here
-                #               # input = np.convolve(np.sum(self.weights[:, i] * t_spikes.T, axis=1), self.alpha)
+                #               # input = np.convolve(np.sum(self.weights[:, i] * self.t_spikes.T, axis=1), self.alpha)
                 for k in range(self.n_neurons):
                     for l in range(len(self.rec_spikes[k])):
                         input[k, self.rec_spikes[k][l]:self.rec_spikes[k][l] + self.alpha.shape[0]] = self.alpha
@@ -297,26 +298,38 @@ class LIF_population():
         ax.set_title('Spike raster plot')
         plt.show()
 
-    def plot_firing_rate(self, neuron_num):
-        fig = plt.figure(figsize=(8, 8))
-        # TODO: find out how to make this plot the same way it is in the paper
-        # also create a spike raster plot and check for availabilty of this via pyrates
-        for n, n_neuron in enumerate(neuron_num):
-            ax = fig.add_subplot(len(neuron_num), 1, int(n + 1))
-            ax.hist(self.r[n_neuron, :], bins=100, density=True, alpha=0.7)
-            ax.plot(np.mean(self.r, axis=0))
-            ax.set_ylabel('r in Hz')
+    def plot_firing_rate(self, size=(8, 6), step_bin=50, sigma=10):
+        fig = plt.figure(figsize=size)
+
+        blu = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
+
+        spike_sum = np.sum(self.t_spikes, axis=0)
+        spike_hist = time_bin(spike_sum, bin=self.n_neurons // step_bin) / step_bin * 2.5
+        spike_sum_gauss = gaussian_filter1d(spike_sum, sigma=sigma)
+        ax = fig.add_subplot(1, 1, 1)
+        # dt factor for scaling to per ms
+        # 1000 factor for conversion from ms to s (kHz to Hz)
+
+        #TODO: the time formatting is wrong here!
+        # suggestion (not working for stairs?):
+        # ax.plot(self.t, spike_sum_gauss*self.dt**-1 * 1000, c=blu, linewidth=2)
+        ax.plot(spike_sum_gauss*self.dt**-1 * 1000, c=blu, linewidth=2)
+        ax.stairs(spike_hist*self.dt**-1 * 1000, fill=True, alpha=0.5)
+        ax.set_ylabel('r in spikes/second')
         plt.tight_layout()
         ax.set_xlabel('time in ms')
+        plt.tight_layout()
         plt.show()
 
-    def plot_voltage_hist(self, times):
-        fig = plt.figure(figsize=(8, 8))
+    def plot_voltage_hist(self, times, size=(8, 8)):
+        fig = plt.figure(figsize=size)
 
 
         for n, time in enumerate(times):
             ax = fig.add_subplot(len(times), 1, int(n + 1))
             ax.hist(self.v[:, time], bins=100, density=True, alpha=0.7)
+            ax.set_title(f't = {time*self.dt}ms')
+            ax.set_xlabel(f'V in mV')
 
         plt.tight_layout()
         ax.set_xlabel('V in mv')
