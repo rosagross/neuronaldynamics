@@ -21,7 +21,8 @@ class Test():
 class General2DSystem():
     """ A class to investigate general 2D systems in terms of their dynamics """
 
-    def __init__(self, model_name=None,  model=None, variables=None, parameters=None, t=None, solver=None, usetex=True):
+    def __init__(self, model_name=None,  model=None, variables=None, parameters=None, input_func=None,
+                 t=None, solver=None, usetex=True):
         self.model_name = '2D_system'
         self.model = ['y', '-x']
         self.variables = ['x', 'y']
@@ -39,6 +40,10 @@ class General2DSystem():
             self.variables = variables
         if parameters != None:
             self.parameters = parameters
+        if input_func != None:
+            self.input_func = input_func
+        else:
+            self.input_func = lambda t: 0
         if solver != None:
             self.solver = solver
         if usetex:
@@ -52,8 +57,8 @@ class General2DSystem():
         for _, pname in enumerate(self.parameters.keys()):
             exec(f"{pname} = self.parameters['{pname}']")
         exec(f'{self.variables[0]}, {self.variables[1]} = u')
-        out[0] = eval(self.model[0])
-        out[1] = eval(self.model[1])
+        out[0] = eval(self.model[0]) + self.input_func(t)[0]
+        out[1] = eval(self.model[1]) + self.input_func(t)[0]
         return out
 
     def solve(self, x0, t, step_size=0.1, **kwargs):
@@ -67,8 +72,8 @@ class General2DSystem():
             raise AttributeError("Solution hasn't been evaluated yet!")
 
         if x_compare is None:
-            plt.plot(self.time_vals, self.sol[:, 0], label=self.variables[0])
-            plt.plot(self.time_vals, self.sol[:, 1], label=self.variables[1])
+            for i in range(self.sol.shape[1]):
+                plt.plot(self.time_vals, self.sol[:, i], label=self.variables[i])
         else:
             if type(compare_idx) is not list:
                 compare_idx = [compare_idx]
@@ -177,6 +182,9 @@ class General2DSystem():
 
                 print('equilibria:')
                 for i in range(n_intersect):
+
+                    # TODO: caution here is a numpy version problem, if a float x is returned as np.float(x) it will
+                    #  cause trouble in sympy
                     local_jacobi = np.array(self.Jacobian.subs([(self.sympy_var_1,  intersections[0, i]),
                                                                 (self.sympy_var_2, intersections[1, i])]), dtype=float)
                     eigvals, eigvec = np.linalg.eig(local_jacobi)
@@ -291,3 +299,26 @@ class General2DSystem():
             if i+1 == max_iter:
                 print(f'maxmimum iterations ({max_iter}) reached')
                 self.fit_error = min_error
+
+class General1DSystem(General2DSystem):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        if self.model_name == None:
+            self.model_name = '1D_system'
+        if self.model == None:
+            self.model = 'x'
+
+
+    def system(self, u, t):
+        for _, pname in enumerate(self.parameters.keys()):
+            exec(f"{pname} = self.parameters['{pname}']")
+        exec(f'{self.variables[0]} = u')
+        out = eval(self.model) + self.input_func(t)
+        return out
+
+    def solve(self, x0, t, step_size=0.1, **kwargs):
+        if self.solver == 'odeint':
+            self.sol = odeint(self.system, x0, t, **kwargs)
+            self.time_vals = t
