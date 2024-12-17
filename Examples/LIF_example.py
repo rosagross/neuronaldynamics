@@ -257,11 +257,12 @@ alpha = alpha/np.trapz(alpha, dx=dt)
 #TODO:
 # is need to be gamma distributed according to paper
 
-ts, i_s = gen_poisson_spikes(T=T, dt=dt, rate=5, i_max=1e3)
+# ts, i_s = gen_poisson_spikes(T=T, dt=dt, rate=0.03, i_max=2e4)
+i_s = 150*np.ones(int(T/dt))
 i_s[:int(t_start/dt)] = 0
 i_s[int(t_end/dt):] = 0
 w0 = 30
-dim = 30
+dim = 1
 # con = w0*(np.ones((dim, dim)) - np.eye(dim))
 con = w0*np.random.uniform(size=(dim, dim))
 np.fill_diagonal(con, 0)
@@ -270,11 +271,11 @@ np.fill_diagonal(con, 0)
 # Get parameters
 pars = default_pars(T=500, dt=dt)
 # Simulate LIF model
-v, sp, r = run_LIF(pars, Iinj=i_s, stop=True, custom_i=True, weights=con, alpha=alpha, n_neurons=dim)
+v, sp, r = run_LIF(pars, Iinj=i_s, stop=True, custom_i=False, weights=con, alpha=alpha, n_neurons=dim)
 
 # Visualize
 plot_volt_trace(pars, v[0], sp[0])
-plot_volt_trace(pars, v[-1], sp[-1])
+# plot_volt_trace(pars, v[-1], sp[-1])
 fig = plt.figure(figsize=(8, 8))
 times = [500, 1000, 2000, 3000, 4000]
 
@@ -284,12 +285,11 @@ for n, time in enumerate(times):
 
 plt.tight_layout()
 ax.set_xlabel('V in mv')
-plt.show()
+# plt.show()
 
 fig = plt.figure(figsize=(8, 8))
 neuron_num = [0, 2, 5, 12, 22]
-#TODO: find out how to make this plot the same way it is in the paper
-# also create a spike raster plot and check for availabilty of this via pyrates
+
 for n, n_neuron in enumerate(neuron_num):
   ax = fig.add_subplot(len(times), 1, int(n+1))
   # ax.hist(r[n_neuron, :], bins=100, density=True, alpha=0.7)
@@ -297,12 +297,12 @@ for n, n_neuron in enumerate(neuron_num):
   ax.set_ylabel('r in Hz')
 plt.tight_layout()
 ax.set_xlabel('time in ms')
-plt.show()
+# plt.show()
 # plt.subplots_adjust(hspace=0.5)
 
 # plt.hist(v[:, 3000], bins=100, density=True, alpha=0.7)
 
 
 print(f'neuron 1 spikes: {sp[0].shape}')
-print(f'neuron 2 spikes: {sp[1].shape}')
+# print(f'neuron 2 spikes: {sp[1].shape}')
 
