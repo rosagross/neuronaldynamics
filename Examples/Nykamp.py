@@ -1,14 +1,13 @@
 """
-Pythonic implementation of Nykamp et al. 2000 population density model for 3 populations.
+Python implementation of Nykamp et al. 2000 population density model for 3 populations.
 Authors and editors: Konstantin Weise, Aaron Miller, Erik Müller
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from Model.Nykamp_Model import Nykamp_Model
 import h5py
 import matplotlib
 import os
-from Model.Nykamp_Model import Nykamp_Model_1
+from Model.Nykamp_Model import Nykamp_Model, Nykamp_Model_1
 matplotlib.use('TkAgg')
 
 def plot(fname, heat_map=False, plot_idxs=None):

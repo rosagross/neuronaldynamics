@@ -166,16 +166,12 @@ class Nykamp_Model():
             # excitatory population
             # ================================================================================================================
             # input to excitatory population
-            # TODO: this needs to be done for each population at the start, best as a vector
             if i > 0:
                 r_exc_conv = np.convolve(r_exc[:(i + 1)], self.alpha)[-len(self.alpha)] * self.dt
                 r_inh_conv = np.convolve(r_inh[:(i + 1)], self.alpha)[-len(self.alpha)] * self.dt
             else:
                 r_exc_conv = 0
                 r_inh_conv = 0
-
-            # TODO: think about a flattened version of all idxs here for iterating over all connections
-            #  for each time step
 
             v_in_ee[i] = self.connectivity_matrix[0, 0] * r_exc_conv + self.input[0, 0][i]
             v_in_ei[i] = self.connectivity_matrix[0, 1] * r_inh_conv + self.input[0, 1][i]
@@ -865,6 +861,8 @@ class Nykamp_Model_1():
                 # c1, c2 are over all v steps and i is a time step
                 # here the values need to be probably split between excitatory and inhibitory types
                 if type_j == 'exc':
+                    # excitatory population
+                    # ================================================================================================================
                     c1ee = self.c[j, 0, 0]
                     c1ei = self.c[j, 0, 1]
                     c2ee = self.c[j, 1, 0]
@@ -873,7 +871,7 @@ class Nykamp_Model_1():
                     c1ei_v = self.c_v[j, 0, 1]
                     c2ee_v = self.c_v[j, 1, 0]
                     c2ei_v = self.c_v[j, 1, 1]
-                    # TODO: this can be collapsed into drawing out the coeffs, since they can be take out of the sum
+                    # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
                     f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
                                             + np.sum(v_in[inh_idxs, j, i]) * c1ei_v)
                     f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest) / self.tau_mem[0] +

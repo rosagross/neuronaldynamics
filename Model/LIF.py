@@ -9,11 +9,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import scipy
+import h5py
 from scipy.special import factorial
 from scipy.stats import gamma
 import random
 from tqdm import tqdm
-from Utils import raster, nrmse, time_bin
+from Utils import raster, nrmse, time_bin, divide_axis
 from scipy.ndimage import gaussian_filter1d
 import time
 
@@ -24,9 +25,13 @@ class LIF_population():
         self.default_pars(**kwargs)
         self.Iinj = None
         self.get_alpha_kernel()
+        # TODO: properly init with if ... is none ... is 'lif'
+        self.fname = 'lif'
+        self.population_type = ['exc']
 
 
     def default_pars(self, **kwargs):
+        #TODO: replace this with proper init
         """
         Function that sets default parameters
         :param kwargs: arguments that may contain defaults
@@ -210,6 +215,14 @@ class LIF_population():
             # Get spike times in ms
             self.rec_spikes[i] = np.array(self.rec_spikes[i]) * self.dt
 
+        spike_sum = np.sum(self.t_spikes, axis=0)
+
+        with h5py.File(self.fname + '.hdf5', 'w') as h5file:
+            h5file.create_dataset('t', data=self.t)
+            h5file.create_dataset('v', data=self.v)
+            h5file.create_dataset('r', data=spike_sum)
+            h5file.create_dataset('p_types', data=self.population_type)
+
     def get_alpha_kernel(self):
         self.t_alpha = self.t[self.t < 10]
         self.alpha = np.exp(-self.t_alpha/self.tau_alpha) / (self.tau_alpha * factorial(self.n_alpha-1)) *\
@@ -306,26 +319,32 @@ class LIF_population():
         ax.set_title('Spike raster plot')
         plt.show()
 
-    def plot_firing_rate(self, size=(8, 6), step_bin=50, sigma=10):
+    def plot_firing_rate(self, size=(8, 6), bin_size=10, smoothing=False, sigma=2):
         fig = plt.figure(figsize=size)
 
         blu = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
 
         spike_sum = np.sum(self.t_spikes, axis=0)
-        spike_hist = time_bin(spike_sum, bin=self.n_neurons // step_bin) / step_bin * 2.5
-        spike_sum_gauss = gaussian_filter1d(spike_sum, sigma=sigma)
+        spike_hist = time_bin(spike_sum, bin_size=bin_size)
+        if smoothing:
+            spike_sum = gaussian_filter1d(spike_sum, sigma=sigma)
         ax = fig.add_subplot(1, 1, 1)
         # dt factor for scaling to per ms
         # 1000 factor for conversion from ms to s (kHz to Hz)
+        time_scaling_factor = self.dt**-1 * 1000
 
         #TODO: the time formatting is wrong here!
         # suggestion (not working for stairs?):
+
         # ax.plot(self.t, spike_sum_gauss*self.dt**-1 * 1000, c=blu, linewidth=2)
-        ax.plot(spike_sum_gauss*self.dt**-1 * 1000, c=blu, linewidth=2)
-        ax.stairs(spike_hist*self.dt**-1 * 1000, fill=True, alpha=0.5)
+        t = np.arange(0, self.T, self.dt)
+        ax.plot(spike_sum*time_scaling_factor, c=blu, linewidth=2)
+        ax.stairs(spike_hist * time_scaling_factor, fill=True, alpha=0.5)
         ax.set_ylabel('r in spikes/second')
         plt.tight_layout()
         ax.set_xlabel('time in ms')
+
+        divide_axis(ax, self.dt**-1, set_int=True)
         plt.tight_layout()
         plt.show()
 
@@ -341,4 +360,48 @@ class LIF_population():
 
         plt.tight_layout()
         ax.set_xlabel('V in mv')
+        plt.show()
+
+    def plot_populations(self, plot_idxs=None, bins=100):
+
+        with h5py.File(self.fname + '.hdf5', 'r') as h5file:
+
+            t_plot = np.array(h5file['t'])
+            v = np.array(h5file['v'])
+            r_plot = np.array(h5file['r'])
+            p_types_raw = h5file['p_types']
+            p_types = p_types_raw.asstr()[:]
+
+        if plot_idxs is None:
+            n_plots = len(p_types)
+            plot_idxs = np.arange(n_plots)
+        else:
+            n_plots = len(plot_idxs)
+
+        fig = plt.figure(figsize=(10, 8.5))
+        for i_plot, plot_idx in enumerate(plot_idxs):
+            plot_loc_1 = int(2 * i_plot + 1)
+            plot_loc_2 = int(2 * i_plot + 2)
+            ax = fig.add_subplot(n_plots, 2, plot_loc_1)
+            z_min, z_max = np.abs(v).min(), np.abs(v).max()
+            v_mesh = np.linspace(z_min, z_max, bins+1)
+            v_hist = np.array([np.histogram(v[:, k], bins=v_mesh)[0] for k in range(v.shape[1])])
+
+            X, Y = np.meshgrid(t_plot, v_mesh[1:])
+            c = ax.pcolormesh(X, Y, v_hist, cmap='viridis', vmin=z_min, vmax=z_max)
+            fig.colorbar(c, ax=ax)
+
+            # ax.hist2d(t_plot, v, bins=bins, cmap="viridis")
+
+            ax.set_title(f"Membrane potential histogram ({str(p_types[plot_idx])})")
+            ax.set_xlabel("time (ms)")
+            ax.set_ylabel("membrane potential (mv)")
+
+            ax = fig.add_subplot(n_plots, 2, plot_loc_2)
+            ax.plot(t_plot, r_plot * 1000)
+            ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
+            ax.set_ylabel("Firing rate (Hz)")
+            ax.set_xlabel("time (ms)")
+            ax.grid()
+        plt.tight_layout()
         plt.show()

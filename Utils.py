@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 
 def get_stability_2D(eigvals):
@@ -68,21 +69,54 @@ def raster(event_times_list, color='k'):
   return ax
 
 
-def time_bin(x, bin=5):
+def time_bin(x, bin_size=5):
     """
     function that creates sum over bin region and then replaces all entries in this region with its sum
     :param x: array, np.1darray
-    :param bin: bin, int
+    :param bin_size: bin_size, int
     :return: binned array
     """
 
     # Create an array of indices for the chunks
-    indices = np.arange(len(x)) // bin
+    indices = np.arange(len(x)) // bin_size
     #Sum the values in each chunk using bincount
     sums = np.bincount(indices, weights=x)
     # Map the sums back to the original array
-    result = sums[indices]
+    result = sums[indices] / bin_size
 
     return result
+
+# Custom formatter function to divide labels by 10
+def make_div_func(value, set_int):
+    """
+     function that divides x by value used for formatting axes in matplotlib plots
+    :param value: value by which x is divided
+    :param set_int: bool, if true, function returns ints
+    :return: function that does x/value
+    """
+    def function(x, pos):
+        """
+        subfunction of make_div_func since matplotlib.ticker.FuncFormatter() needs a function with arguments
+        x and pos as input
+        :param x: incoming value
+        :param pos: parameter for matplotlib.ticker.FuncFormatter()
+        :return: string of function x/value
+        """
+        if set_int:
+            return f'{int(x / value)}'
+        else:
+            return f'{x / value}'
+    return function
+
+def divide_axis(ax, value=10, axis='x', set_int=False):
+
+    function = make_div_func(value, set_int)
+
+    if axis == 'x':
+        ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(function))
+    elif axis == 'y':
+        ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(function))
+    else:
+        raise NotImplementedError('only "x" or "y" are implemented as axis for this function')
 
 

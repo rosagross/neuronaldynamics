@@ -27,14 +27,15 @@ lif.gen_poisson_spikes_input(rate=0.5, i_max=5e3) #input in nA? #rate of 0.5 see
 lif.run()
 
 # Visualize
-lif.plot_volt_trace(idx=3)
-lif.plot_volt_trace(idx=53)
-lif.raster_plot()
-# times = [500, 1000, 2000, 3000, 4000]
-times = [100, 200, 300, 400, 500]
-lif.plot_voltage_hist(times=times)
-neuron_num = [0, 2, 5, 12, 22]
-lif.plot_firing_rate()
+# lif.plot_volt_trace(idx=3)
+# lif.plot_volt_trace(idx=53)
+# lif.raster_plot()
+# # times = [500, 1000, 2000, 3000, 4000]
+# times = [100, 200, 300, 400, 500]
+# lif.plot_voltage_hist(times=times)
+# neuron_num = [0, 2, 5, 12, 22]
+# lif.plot_firing_rate(bin_size=20, smoothing=True)
+lif.plot_populations(bins=1000)
 
 print(f'neuron 1 spikes: {lif.rec_spikes[0].shape}')
 print(f'neuron 2 spikes: {lif.rec_spikes[1].shape}')
