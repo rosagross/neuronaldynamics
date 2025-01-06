@@ -23,6 +23,7 @@ class LIF_population():
         # Set parameters
         self.default_pars(**kwargs)
         self.Iinj = None
+        self.get_alpha_kernel()
 
 
     def default_pars(self, **kwargs):
@@ -115,8 +116,6 @@ class LIF_population():
                 Iext_shape_init = self.Iext.shape[0]
                 self.Iext = self.Iext.repeat(self.n_neurons).reshape(Iext_shape_init, self.n_neurons).T
 
-
-        self.get_alpha_kernel()
 
         # Initialize voltage
         self.v = np.zeros((self.n_neurons, self.Lt))
@@ -247,7 +246,8 @@ class LIF_population():
       plt.tight_layout()
       plt.show()
 
-    def gen_poisson_spikes_input(self, i_max=300, rate=1, mu=0.008, coeff_of_var=0.5, t_start=0.0, t_end=None):
+    def gen_poisson_spikes_input(self, i_max=300, rate=1, mu=0.008, coeff_of_var=0.5, t_start=0.0, t_end=None,
+                                 delay=True):
         """
         Generate spike times and currents for a neuron with a time-dependent firing rate using an inhomogeneous Poisson
          process.
@@ -283,6 +283,14 @@ class LIF_population():
                     i_s[j, i] = gamma_pdf.rvs(size=1) * i_max * sign
                     t_last_spike = t_i
                     interval = -np.log(np.random.rand()) / rate
+
+            if delay:
+                i_shape = i_s[j].shape[0] + self.alpha.shape[0] - 1
+                i_delayed = np.zeros(i_shape)
+                idxs = np.where(i_s[j] > 0)[0]
+                for i_idx, idx in enumerate(idxs):
+                    i_delayed[idx:idx + self.alpha.shape[0]] += self.alpha * i_s[j, idx]
+                i_s[j] = i_delayed[:ts.shape[0]]
 
         i_s[:, int(t_start / self.dt)] = 0
         i_s[:, int(t_end / self.dt):] = 0
