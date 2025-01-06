@@ -126,7 +126,7 @@ class LIF_population():
         self.v = np.zeros((self.n_neurons, self.Lt))
         self.t_spikes = np.zeros_like(self.v)
         Iin = np.zeros_like(self.v)
-        self.v[:, 0] = self.V_init
+        self.v[:, 0] = self.V_init + np.random.normal(0, 0.7, self.v.shape[0])
         tr = np.zeros(self.n_neurons) # the count for refractory duration
         t_last_spike = np.zeros(self.n_neurons)
         self.r = np.zeros_like(self.v)
@@ -146,8 +146,6 @@ class LIF_population():
         # Loop over time
         self.rec_spikes = []
 
-        # conv_dummy = np.convolve(self.v[0], self.alpha)
-        # conv_shape = conv_dummy.shape
         conv_shape = self.v[0].shape[0] + self.alpha.shape[0] - 1
         input = np.zeros((self.n_neurons, conv_shape))
 
@@ -383,12 +381,13 @@ class LIF_population():
             plot_loc_1 = int(2 * i_plot + 1)
             plot_loc_2 = int(2 * i_plot + 2)
             ax = fig.add_subplot(n_plots, 2, plot_loc_1)
-            z_min, z_max = np.abs(v).min(), np.abs(v).max()
-            v_mesh = np.linspace(z_min, z_max, bins+1)
+            v_min, v_max = v.min(), v.max()
+            v_mesh = np.linspace(v_min, v_max, bins+1)
             v_hist = np.array([np.histogram(v[:, k], bins=v_mesh)[0] for k in range(v.shape[1])])
+            z_max, z_min = 100, 0#v_hist.max(), v_hist.min()
 
             X, Y = np.meshgrid(t_plot, v_mesh[1:])
-            c = ax.pcolormesh(X, Y, v_hist, cmap='viridis', vmin=z_min, vmax=z_max)
+            c = ax.pcolormesh(X, Y, v_hist.T, cmap='viridis', vmin=z_min, vmax=z_max)
             fig.colorbar(c, ax=ax)
 
             # ax.hist2d(t_plot, v, bins=bins, cmap="viridis")

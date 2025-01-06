@@ -21,8 +21,7 @@ dim = 1000
 con = w0*(np.ones((dim, dim)) - np.eye(dim))
 # con = w0*np.random.uniform(size=(dim, dim))
 # np.fill_diagonal(con, 0)
-
-lif = LIF_population(T=T, tau_m=20,  weights=con, n_neurons=dim, Iext=in_sine, verbose=0)
+lif = LIF_population(T=T, tau_m=20, tau_ref=1,  weights=con, n_neurons=dim, Iext=in_sine, verbose=0)
 lif.gen_poisson_spikes_input(rate=0.5, i_max=5e3) #input in nA? #rate of 0.5 seems to be fitting for nykamp plot
 lif.run()
 
