@@ -26,7 +26,7 @@ def plot(fname, heat_map=False, plot_idxs=None):
     else:
         n_plots = len(plot_idxs)
 
-    fig = plt.figure(figsize=(10, 8.5))
+    fig = plt.figure(figsize=(10, 4.25*n_plots))
     for i_plot, plot_idx in enumerate(plot_idxs):
         plot_loc_1 = int(2*i_plot + 1)
         plot_loc_2 = int(2 * i_plot + 2)
@@ -62,6 +62,32 @@ def input_sine_function(t):
     v0 = 0.7
     f = 10
     return v0 * (1 + np.sin(2*np.pi*f*t/1000))
+
+### single population test ###
+pars_1D = {}
+pars_1D['connectivity_matrix'] = 30*np.array([[1/2]])
+pars_1D['u_rest'] = -65
+pars_1D['u_thr'] = -55
+pars_1D['u_exc'] = 0
+pars_1D['u_inh'] = -70
+pars_1D['tau_mem'] = np.array([20])
+pars_1D['tau_ref'] = np.array([3])
+pars_1D['mu_gamma'] = np.array([[0.008, 0.027]])
+pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
+pars_1D['tau_alpha'] = 1/3
+pars_1D['n_alpha'] = 9
+pars_1D['input_function'] = input_sine_function
+pars_1D['input_function_type'] = 'custom'
+pars_1D['input_function_idx'] = [0, 0]
+pars_1D['population_type'] = ['exc']
+
+T = 200 # 200
+dt = 0.1 # 0.1
+dv = 0.01
+
+nyk1D = Nykamp_Model_1(parameters=pars_1D, name='nykamp_test_1D')
+nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
+plot('nykamp_test_1D', heat_map=True)
 
 parameters = {}
 w0 = 30

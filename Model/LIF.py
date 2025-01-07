@@ -254,6 +254,7 @@ class LIF_population():
       plt.legend(['Membrane\npotential', r'Threshold V$_{\mathrm{th}}$'],
                  loc=[1.05, 0.75])
       plt.ylim([-80, -40])
+      plt.grid()
       plt.tight_layout()
       plt.show()
 
@@ -331,9 +332,6 @@ class LIF_population():
         # 1000 factor for conversion from ms to s (kHz to Hz)
         time_scaling_factor = self.dt**-1 * 1000
 
-        #TODO: the time formatting is wrong here!
-        # suggestion (not working for stairs?):
-
         # ax.plot(self.t, spike_sum_gauss*self.dt**-1 * 1000, c=blu, linewidth=2)
         t = np.arange(0, self.T, self.dt)
         ax.plot(spike_sum*time_scaling_factor, c=blu, linewidth=2)
@@ -360,7 +358,7 @@ class LIF_population():
         ax.set_xlabel('V in mv')
         plt.show()
 
-    def plot_populations(self, plot_idxs=None, bins=100):
+    def plot_populations(self, plot_idxs=None, bins=100, cutoff=None, smoothing=False, sigma=2):
 
         with h5py.File(self.fname + '.hdf5', 'r') as h5file:
 
@@ -376,7 +374,10 @@ class LIF_population():
         else:
             n_plots = len(plot_idxs)
 
-        fig = plt.figure(figsize=(10, 8.5))
+        if smoothing:
+            r_plot = gaussian_filter1d(r_plot, sigma=sigma)
+
+        fig = plt.figure(figsize=(10, 4.25*n_plots))
         for i_plot, plot_idx in enumerate(plot_idxs):
             plot_loc_1 = int(2 * i_plot + 1)
             plot_loc_2 = int(2 * i_plot + 2)
@@ -384,7 +385,10 @@ class LIF_population():
             v_min, v_max = v.min(), v.max()
             v_mesh = np.linspace(v_min, v_max, bins+1)
             v_hist = np.array([np.histogram(v[:, k], bins=v_mesh)[0] for k in range(v.shape[1])])
-            z_max, z_min = 100, 0#v_hist.max(), v_hist.min()
+
+            if cutoff == None:
+                cutoff = v_hist.max()
+            z_max, z_min = cutoff, 0#v_hist.max(), v_hist.min()
 
             X, Y = np.meshgrid(t_plot, v_mesh[1:])
             c = ax.pcolormesh(X, Y, v_hist.T, cmap='viridis', vmin=z_min, vmax=z_max)
