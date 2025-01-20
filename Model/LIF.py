@@ -358,7 +358,7 @@ class LIF_population():
         ax.set_xlabel('V in mv')
         plt.show()
 
-    def plot_populations(self, plot_idxs=None, bins=100, cutoff=None, smoothing=False, sigma=2):
+    def plot_populations(self, plot_idxs=None, bins=100, cutoff=None, smoothing=False, sigma=2, hide_refractory=True):
 
         with h5py.File(self.fname + '.hdf5', 'r') as h5file:
 
@@ -384,7 +384,12 @@ class LIF_population():
             ax = fig.add_subplot(n_plots, 2, plot_loc_1)
             v_min, v_max = v.min(), v.max()
             v_mesh = np.linspace(v_min, v_max, bins+1)
-            v_hist = np.array([np.histogram(v[:, k], bins=v_mesh)[0] for k in range(v.shape[1])])
+            if hide_refractory:
+                # take out all values of v[:, k] where v = V_reset
+                v_hist = np.array([np.histogram(v[np.where(v[:, k] != self.V_reset), k], bins=v_mesh)[0] for k in range(v.shape[1])])
+            else:
+                v_hist = np.array([np.histogram(v[:, k], bins=v_mesh)[0] for k in range(v.shape[1])])
+
 
             if cutoff == None:
                 cutoff = v_hist.max()
@@ -394,11 +399,10 @@ class LIF_population():
             c = ax.pcolormesh(X, Y, v_hist.T, cmap='viridis', vmin=z_min, vmax=z_max)
             fig.colorbar(c, ax=ax)
 
-            # ax.hist2d(t_plot, v, bins=bins, cmap="viridis")
-
             ax.set_title(f"Membrane potential histogram ({str(p_types[plot_idx])})")
             ax.set_xlabel("time (ms)")
             ax.set_ylabel("membrane potential (mv)")
+            # ax.set_ylim = [self.V_reset * 1.1, self.V_th*1.1]
 
             ax = fig.add_subplot(n_plots, 2, plot_loc_2)
             ax.plot(t_plot, r_plot * 1000)
