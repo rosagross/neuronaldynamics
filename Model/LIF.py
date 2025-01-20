@@ -92,7 +92,7 @@ class LIF_population():
         self.n_alpha = self.pars['n_alpha']
         self.verbose = self.pars['verbose']
 
-    def run(self, Iinj=None, stop=False, custom_i=True):
+    def run(self, Iinj=None, stop=False, custom_i=True, no_weighting=False):
         """
         Simulate the LIF dynamics with external input current
 
@@ -187,13 +187,19 @@ class LIF_population():
                 #               input[i, :] = np.convolve(np.sum(self.weights[:, i] * self.t_spikes.T, axis=1), self.alpha)
                 #               # connectivity weight is parameter that scales the current here
                 #               # input = np.convolve(np.sum(self.weights[:, i] * self.t_spikes.T, axis=1), self.alpha)
-                for k in range(self.n_neurons):
-                    for l in range(len(self.rec_spikes[k])):
-                        # reshape weights for alpha kernel
-                        weights_repeat = self.weights.repeat(self.alpha.shape[0]).reshape(
-                            (self.weights.shape[0], self.weights.shape[1], self.alpha.shape[0]))
-                        kernel_idxs = self.rec_spikes[k][l], self.rec_spikes[k][l] + self.alpha.shape[0]
-                        input[:, kernel_idxs[0]:kernel_idxs[1]] = weights_repeat[k, :] * self.alpha
+                if no_weighting:
+                    for k in range(self.n_neurons):
+                        for l in range(len(self.rec_spikes[k])):
+                            input[:, self.rec_spikes[k][l]: self.rec_spikes[k][l] + self.alpha.shape[0]] += self.alpha
+
+                else:
+                    # reshape weights for alpha kernel
+                    weights_repeat = self.weights.repeat(self.alpha.shape[0]).reshape(
+                        (self.weights.shape[0], self.weights.shape[1], self.alpha.shape[0]))
+                    for k in range(self.n_neurons):
+                        for l in range(len(self.rec_spikes[k])):
+                            kernel_idxs = self.rec_spikes[k][l], self.rec_spikes[k][l] + self.alpha.shape[0]
+                            input[:, kernel_idxs[0]:kernel_idxs[1]] += weights_repeat[k, :, :] * self.alpha
 
                 Iin[:, it] = Iinj[:, it] + input[:, it] + self.Iext[:, it]
             else:
