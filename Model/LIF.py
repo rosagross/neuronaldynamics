@@ -286,9 +286,12 @@ class LIF_population():
         scale = (coeff_of_var * mu) ** 2 / mu
         gamma_pdf = gamma(a=coeff_of_var ** (-2), loc=0, scale=scale)
 
+        if not callable(rate):
+            rate_copy = rate
+            rate = lambda x : rate_copy
+
         if t_end is None:
             t_end = self.T
-
 
         ts = np.arange(0, self.T, self.dt)
         i_s = np.zeros((self.n_neurons, ts.shape[0]))
@@ -299,13 +302,14 @@ class LIF_population():
                 if i == 0:
                     # TODO:
                     #  is need to be gamma distributed according to paper
-                    interval = -np.log(np.random.rand()) / rate
+                    interval = -np.log(np.random.rand()) / (rate(t_i)+1e-10)
 
                 if t_i - t_last_spike > interval:
                     sign = [-1,1][random.randrange(2)]
-                    i_s[j, i] = gamma_pdf.rvs(size=1) * i_max * sign
+                    i_s[j, i] = gamma_pdf.rvs(size=1) * i_max # * sign
                     t_last_spike = t_i
-                    interval = -np.log(np.random.rand()) / rate
+                    # amp = gamma.rvs(size=1)
+                    interval = -np.log(np.random.rand()) / (rate(t_i) + 1e-10)
 
             if delay:
                 i_shape = i_s[j].shape[0] + self.alpha.shape[0] - 1

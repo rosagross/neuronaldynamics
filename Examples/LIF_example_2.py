@@ -6,10 +6,10 @@ from tqdm import tqdm
 from Model.LIF import LIF_population
 matplotlib.use('TkAgg')
 
-def input_sine_function(t):
-    v0 = 700
+def v0(t):
+    v0_bar = 700
     f = 10
-    return v0 * (1 + np.sin(2*np.pi*f*t/1000))
+    return v0_bar * (1 + np.sin(2*np.pi*f*t/1000))
 
 def input_step_function(t):
     res = np.zeros_like(t)
@@ -20,15 +20,15 @@ def input_step_function(t):
 T = 100
 dt = 0.1
 t = np.arange(0.0, T, dt)
-in_sine = input_sine_function(t)
+# in_sine = input_sine_function(t)
 
-w0 = 1
+w0 = 30
 dim = 100
 con = w0*(np.ones((dim, dim)) - np.eye(dim))
 # con = w0*np.random.uniform(size=(dim, dim))
 # np.fill_diagonal(con, 0)
-lif = LIF_population(T=T, tau_m=20, tref=3,  weights=con, n_neurons=dim, Iext=input_step_function(t), verbose=0)
-lif.gen_poisson_spikes_input(rate=1.0, i_max=1e2, delay=True) #input in nA? #rate of 0.5 seems to be fitting for nykamp plot
+lif = LIF_population(T=T, tau_m=20, tref=3,  weights=con, n_neurons=dim, Iext=np.zeros_like(t), verbose=0)
+lif.gen_poisson_spikes_input(rate=v0, i_max=1.2e3, delay=True) #input in nA? #rate of 0.5 seems to be fitting for nykamp plot
 lif.run()
 
 # Visualize
