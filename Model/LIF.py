@@ -126,6 +126,7 @@ class LIF_population():
         self.v = np.zeros((self.n_neurons, self.Lt))
         self.t_spikes = np.zeros_like(self.v)
         Iin = np.zeros_like(self.v)
+        # randomization hard coded here
         self.v[:, 0] = self.V_init + np.random.normal(0, 0.7, self.v.shape[0])
         tr = np.zeros(self.n_neurons) # the count for refractory duration
         t_last_spike = np.zeros(self.n_neurons)
@@ -188,7 +189,11 @@ class LIF_population():
                 #               # input = np.convolve(np.sum(self.weights[:, i] * self.t_spikes.T, axis=1), self.alpha)
                 for k in range(self.n_neurons):
                     for l in range(len(self.rec_spikes[k])):
-                        input[k, self.rec_spikes[k][l]:self.rec_spikes[k][l] + self.alpha.shape[0]] = self.alpha
+                        # reshape weights for alpha kernel
+                        weights_repeat = self.weights.repeat(self.alpha.shape[0]).reshape(
+                            (self.weights.shape[0], self.weights.shape[1], self.alpha.shape[0]))
+                        kernel_idxs = self.rec_spikes[k][l], self.rec_spikes[k][l] + self.alpha.shape[0]
+                        input[:, kernel_idxs[0]:kernel_idxs[1]] = weights_repeat[k, :] * self.alpha
 
                 Iin[:, it] = Iinj[:, it] + input[:, it] + self.Iext[:, it]
             else:
@@ -402,7 +407,7 @@ class LIF_population():
             ax.set_title(f"Membrane potential histogram ({str(p_types[plot_idx])})")
             ax.set_xlabel("time (ms)")
             ax.set_ylabel("membrane potential (mv)")
-            # ax.set_ylim = [self.V_reset * 1.1, self.V_th*1.1]
+            # ax.set_ylim([self.V_reset * 1.1, self.V_th*1.1])
 
             ax = fig.add_subplot(n_plots, 2, plot_loc_2)
             ax.plot(t_plot, r_plot * 1000)
