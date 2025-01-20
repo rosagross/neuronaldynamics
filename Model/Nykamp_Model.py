@@ -2,12 +2,12 @@ import time
 import scipy
 import numpy as np
 import matplotlib.pyplot as plt
-import numba
 
 import scipy
 from tqdm import tqdm
 from scipy.stats import gamma
 from scipy.stats import norm
+import os
 import h5py
 import matplotlib
 matplotlib.use('TkAgg')
@@ -743,10 +743,10 @@ class Nykamp_Model_1():
         self.dv = 0.01
         self.T = 100
 
-        if 'name' is None:
-            self.name = name
-        else:
+        if name is None:
             self.name = 'Nykamp_example'
+        else:
+            self.name = name
         if 'connectivity_matrix' in parameters:
             self.connectivity_matrix = parameters['connectivity_matrix']
         if 'u_rest' in parameters:
@@ -1279,3 +1279,6 @@ class Nykamp_Model_1():
             ax.grid()
         plt.tight_layout()
         plt.show()
+
+    def clean(self):
+        os.remove(self.name + '.hdf5')

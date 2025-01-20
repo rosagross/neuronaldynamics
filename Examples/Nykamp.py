@@ -43,6 +43,7 @@ dv = 0.01
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='nykamp_test_1D')
 nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
 nyk1D.plot(heat_map=True)
+nyk1D.clean()
 
 parameters = {}
 w0 = 30
@@ -83,10 +84,10 @@ nyk_1 = Nykamp_Model_1(parameters=parameters_1, name='nykamp_test_3D')
 
 # plot results
 nyk.plot('nykamp_test_2D', heat_map=True)
+nyk.clean()
 # plot('nykamp_test_3D', heat_map=True)
 
-# os.remove('nykamp_test_2D' + '.hdf5')
-# os.remove('nykamp_test_3D' + '.hdf5')
+
 
 #############################################################################################
 
