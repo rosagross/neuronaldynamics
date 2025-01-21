@@ -184,9 +184,9 @@ class LIF_population():
                             kernel_idxs = self.rec_spikes[k][l], self.rec_spikes[k][l] + self.alpha.shape[0]
                             input[:, kernel_idxs[0]:kernel_idxs[1]] += weights_repeat[k, :, :] * self.alpha
 
-                Iin[:, it] = input[:, it] + self.Iext[:, it]
+                Iin[:, it] = self.Iinj[:, it] + input[:, it] + self.Iext[:, it]
             else:
-                Iin = self.Iext
+                Iin = self.Iinj + self.Iext
 
             if self.verbose > 0:
                 t_conv_2 = time.time()
