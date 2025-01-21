@@ -14,7 +14,7 @@ from scipy.special import factorial
 from scipy.stats import gamma
 import random
 from tqdm import tqdm
-from Utils import raster, nrmse, time_bin, divide_axis
+from Utils import raster, nrmse, time_bin, divide_axis, round_to_1dgrid
 from scipy.ndimage import gaussian_filter1d
 import time
 
@@ -22,8 +22,10 @@ class LIF_population():
 
     def __init__(self, **kwargs):
         # Set parameters
-        self.default_pars(**kwargs)
         self.Iinj = None
+        self.default_pars(**kwargs)
+        if self.Iinj == None:
+            self.Iinj = np.zeros((self.n_neurons, self.t.shape[0]))
         self.get_alpha_kernel()
         # TODO: properly init with if ... is none ... is 'lif'
         self.fname = 'lif'
@@ -122,7 +124,7 @@ class LIF_population():
         self.t_spikes = np.zeros_like(self.v)
         Iin = np.zeros_like(self.v)
         # randomization hard coded here
-        self.v[:, 0] = self.V_init + np.random.normal(0, 0.7, self.v.shape[0])
+        self.v[:, 0] = np.random.normal(self.V_init, 1, self.v.shape[0])
         tr = np.zeros(self.n_neurons) # the count for refractory duration
         t_last_spike = np.zeros(self.n_neurons)
         self.r = np.zeros_like(self.v)
@@ -214,6 +216,7 @@ class LIF_population():
             h5file.create_dataset('v', data=self.v)
             h5file.create_dataset('r', data=spike_sum)
             h5file.create_dataset('p_types', data=self.population_type)
+            h5file.create_dataset('Iinj', data=self.Iinj)
 
     def get_alpha_kernel(self):
         self.t_alpha = self.t[self.t < 10]
@@ -253,16 +256,15 @@ class LIF_population():
       plt.show()
 
     def gen_poisson_spikes_input(self, i_max=300, rate=1, mu=0.008, coeff_of_var=0.5, t_start=0.0, t_end=None,
-                                 delay=True):
+                                 delay=True, save=True):
         """
         Generate spike times and currents for a neuron with a time-dependent firing rate using an inhomogeneous Poisson
          process.
         modified from:
-        https://medium.com/@baxterbarlow/poisson-spike-generators-stochastic-theory-to-python-code-a76f8cc7cc32
-
+        https://stackoverflow.com/questions/72970651/how-to-simulate-a-non-homogenous-poisson-process
         Parameters:
         imax (float): Max value if I which is used as scaling factor for random sampling
-        rate (float): Firing rate at time t (spikes per second).
+        rate (float): Firing rate at time t (spikes per second), can be function or float
 
         """
 
@@ -278,33 +280,50 @@ class LIF_population():
 
         ts = np.arange(0, self.T, self.dt)
         i_s = np.zeros((self.n_neurons, ts.shape[0]))
+
+        rate_max = np.max(rate(ts))
+
         for j in tqdm(range(self.n_neurons), f'creating background activity for {self.n_neurons} neurons'):
-            t_last_spike = 0
-            for i, t_i in enumerate(ts):
+            # The following should generate 5 cycles of non-zero
+            # event epochs between time 0 and time 100
+            t = 0.0
+            while True:
+                # generate Poisson candidate event times using
+                # exponentially distributed inter-event delays
+                # at the maximal rate
+                if t > self.T:
+                    break
+                t += random.expovariate(rate_max)
+                if random.random() <= rate(t) / rate_max:
+                    # Accept and print this as an actual event if
+                    # a U(0,1) is below the threshold probability
+                    t_grid, idx = round_to_1dgrid(t, ts, idx=True)
+                    i_s[j, idx] += gamma_pdf.rvs(1) * i_max
 
-                if i == 0:
-                    # TODO:
-                    #  is need to be gamma distributed according to paper
-                    interval = -np.log(np.random.rand()) / (rate(t_i)+1e-10)
 
-                if t_i - t_last_spike > interval:
-                    sign = [-1,1][random.randrange(2)]
-                    i_s[j, i] = gamma_pdf.rvs(size=1) * i_max # * sign
-                    t_last_spike = t_i
-                    # amp = gamma.rvs(size=1)
-                    interval = -np.log(np.random.rand()) / (rate(t_i) + 1e-10)
 
             if delay:
-                i_shape = i_s[j].shape[0] + self.alpha.shape[0] - 1
-                i_delayed = np.zeros(i_shape)
-                idxs = np.where(i_s[j] > 0)[0]
-                for i_idx, idx in enumerate(idxs):
-                    i_delayed[idx:idx + self.alpha.shape[0]] += self.alpha * i_s[j, idx]
-                i_s[j] = i_delayed[:ts.shape[0]]
+                    i_shape = i_s[j].shape[0] + self.alpha.shape[0] - 1
+                    i_delayed = np.zeros(i_shape)
+                    idxs = np.where(i_s[j] > 0)[0]
+                    for i_idx, idx in enumerate(idxs):
+                        i_delayed[idx:idx + self.alpha.shape[0]] += self.alpha * i_s[j, idx]
+                    i_s[j] = i_delayed[:ts.shape[0]]
 
         i_s[:, int(t_start / self.dt)] = 0
         i_s[:, int(t_end / self.dt):] = 0
         self.Iinj = i_s
+
+        if save:
+            with h5py.File(self.fname + '.hdf5', 'w') as h5file:
+                h5file.create_dataset('Iinj', data=self.Iinj)
+            print(f'save poisson input to {self.fname}.hdf5')
+
+
+    def read_poisson_spikes_input(self, scale=1):
+        with h5py.File(self.fname + '.hdf5', 'r') as h5file:
+            Iinj = np.array(h5file['Iinj'])
+        self.Iinj = scale*Iinj
 
     def raster_plot(self, idxs=None, color='k'):
         if idxs is not None:

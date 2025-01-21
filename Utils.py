@@ -120,3 +120,31 @@ def divide_axis(ax, value=10, axis='x', set_int=False):
         raise NotImplementedError('only "x" or "y" are implemented as axis for this function')
 
 
+
+# Function to find the closest value in the reference array
+def find_closest(array, value):
+    """
+    function that finds closest idx of closest point in array to a given value
+    :param array: array
+    :param value: value
+    :return: idx
+    """
+    return np.abs(array - value).argmin()
+
+# Map each float to the closest integer in reference_array
+def round_to_1dgrid(x, grid, idx=False):
+    """
+    function that rounds input data x to closest points on a 1d grid
+    :param x: input array
+    :param grid: grid
+    :return: mapped array
+    """
+    if not type(x) == np.ndarray:
+        x = np.array([x])
+
+    idxs = [find_closest(grid, val) for val in x]
+    res = np.array(idxs)
+    if idx:
+        return res, int(np.array(idxs))
+    else:
+        return res
