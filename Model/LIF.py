@@ -92,7 +92,7 @@ class LIF_population():
         self.n_alpha = self.pars['n_alpha']
         self.verbose = self.pars['verbose']
 
-    def run(self, Iinj=None, stop=False, custom_i=True, no_weighting=False):
+    def run(self, no_weighting=False):
         """
         Simulate the LIF dynamics with external input current
 
@@ -111,11 +111,6 @@ class LIF_population():
         if self.verbose > 0:
             t1 = time.time()
 
-        if self.Iinj is not None:
-            Iinj = self.Iinj
-        else:
-            Iinj = np.zeros((self.n_neurons, self.t.shape[0]))
-
         if self.Iext is not None:
             if len(self.Iext.shape) == 1:
                 Iext_shape_init = self.Iext.shape[0]
@@ -131,18 +126,6 @@ class LIF_population():
         tr = np.zeros(self.n_neurons) # the count for refractory duration
         t_last_spike = np.zeros(self.n_neurons)
         self.r = np.zeros_like(self.v)
-
-        if not custom_i:
-
-            # Set current time course
-            Iinj = Iinj * np.ones(self.Lt)
-
-
-
-        # If current pulse, set beginning and end to 0
-        if stop:
-          Iinj[:int(len(Iinj) / 2) - 1000] = 0
-          Iinj[int(len(Iinj) / 2) + 1000:] = 0
 
         # Loop over time
         self.rec_spikes = []
@@ -201,9 +184,9 @@ class LIF_population():
                             kernel_idxs = self.rec_spikes[k][l], self.rec_spikes[k][l] + self.alpha.shape[0]
                             input[:, kernel_idxs[0]:kernel_idxs[1]] += weights_repeat[k, :, :] * self.alpha
 
-                Iin[:, it] = Iinj[:, it] + input[:, it] + self.Iext[:, it]
+                Iin[:, it] = input[:, it] + self.Iext[:, it]
             else:
-                Iin = Iinj + self.Iext
+                Iin = self.Iext
 
             if self.verbose > 0:
                 t_conv_2 = time.time()
