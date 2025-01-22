@@ -24,7 +24,7 @@ t = np.arange(0.0, T, dt)
 
 dim = 100
 # w0 = 3 * (10/dim)
-w0 = 0.3
+w0 = 30/dim
 con = w0*(np.ones((dim, dim)) - np.eye(dim))
 
 con_prob = 0.2
@@ -34,12 +34,12 @@ for i in range(dim):
 # con = w0*np.random.uniform(size=(dim, dim))
 # np.fill_diagonal(con, 0)
 lif = LIF_population(T=T, tau_m=20, tref=3,  weights=con, n_neurons=dim, Iext=np.zeros_like(t), verbose=0)
-# lif.gen_poisson_spikes_input(rate=v0, i_max=1, delay=True)
+lif.gen_poisson_spikes_input(rate=v0, i_max=15, delay=True)
 lif.read_poisson_spikes_input(scale=1)
-lif.run()
+# lif.run()
 
 # Visualize
-lif.plot_volt_trace(idx=3)
+# lif.plot_volt_trace(idx=3)
 # lif.plot_volt_trace(idx=53)
 lif.raster_plot()
 # # times = [500, 1000, 2000, 3000, 4000]
@@ -47,8 +47,8 @@ lif.raster_plot()
 # lif.plot_voltage_hist(times=times)
 # neuron_num = [0, 2, 5, 12, 22]
 # lif.plot_firing_rate(bin_size=20, smoothing=True)
-lif.plot_populations(bins=1000, smoothing=False, sigma=5, hide_refractory=True, cutoff=5)
+lif.plot_populations(bins=1000, smoothing=True, sigma=5, hide_refractory=True, cutoff=20)
 
-print(f'neuron 1 spikes: {lif.rec_spikes[0].shape}')
-print(f'neuron 2 spikes: {lif.rec_spikes[1].shape}')
+# print(f'neuron 1 spikes: {lif.rec_spikes[0].shape}')
+# print(f'neuron 2 spikes: {lif.rec_spikes[1].shape}')
 

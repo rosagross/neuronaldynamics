@@ -14,7 +14,7 @@ from scipy.special import factorial
 from scipy.stats import gamma
 import random
 from tqdm import tqdm
-from Utils import raster, nrmse, time_bin, divide_axis, round_to_1dgrid
+from Utils import *
 from scipy.ndimage import gaussian_filter1d
 import time
 
@@ -178,13 +178,12 @@ class LIF_population():
                             input[:, self.rec_spikes[k][l]: self.rec_spikes[k][l] + self.alpha.shape[0]] += self.alpha
 
                 else:
-                    # reshape weights for alpha kernel
-                    weights_repeat = self.weights.repeat(self.alpha.shape[0]).reshape(
-                        (self.weights.shape[0], self.weights.shape[1], self.alpha.shape[0]))
+                    # reshape alpha to mathc weights
+                    alpha_repeat = self.alpha.repeat(self.n_neurons).reshape(self.alpha.shape[0], self.n_neurons)
                     for k in range(self.n_neurons):
                         for l in range(len(self.rec_spikes[k])):
                             kernel_idxs = self.rec_spikes[k][l], self.rec_spikes[k][l] + self.alpha.shape[0]
-                            input[:, kernel_idxs[0]:kernel_idxs[1]] += weights_repeat[k, :, :] * self.alpha
+                            input[:, kernel_idxs[0]:kernel_idxs[1]] += (self.weights[k]*alpha_repeat).T
 
                 Iin[:, it] = self.Iinj[:, it] + input[:, it] + self.Iext[:, it]
             else:
@@ -282,25 +281,57 @@ class LIF_population():
         i_s = np.zeros((self.n_neurons, ts.shape[0]))
 
         rate_max = np.max(rate(ts))
+        rv_counter = 0
+        # generate large reservoir of random values from gamma distribution
+        gamma_values = gamma_pdf.rvs(int(1e8))
 
+        # for j in tqdm(range(self.n_neurons), f'creating background activity for {self.n_neurons} neurons'):
+        #     # The following should generate 5 cycles of non-zero
+        #     # event epochs between time 0 and time 100
+        #     t = 0.0
+        #     while True:
+        #         # generate Poisson candidate event times using
+        #         # exponentially distributed inter-event delays
+        #         # at the maximal rate
+        #
+        #         if t > self.T:
+        #             break
+        #         t += random.expovariate(rate_max)
+        #         if random.random() <= rate(t) / rate_max:
+        #             # Accept and print this as an actual event if
+        #             # a U(0,1) is below the threshold probability
+        #             rv_counter += 1
+        #             t_grid, idx = round_to_1dgrid(t, ts, idx=True)
+        #             i_s[j, idx] += gamma_values[rv_counter] * i_max
+
+
+        rv_idx = 0
         for j in tqdm(range(self.n_neurons), f'creating background activity for {self.n_neurons} neurons'):
             # The following should generate 5 cycles of non-zero
             # event epochs between time 0 and time 100
+            t_vals = []
             t = 0.0
             while True:
                 # generate Poisson candidate event times using
                 # exponentially distributed inter-event delays
                 # at the maximal rate
+
                 if t > self.T:
                     break
                 t += random.expovariate(rate_max)
                 if random.random() <= rate(t) / rate_max:
                     # Accept and print this as an actual event if
                     # a U(0,1) is below the threshold probability
-                    t_grid, idx = round_to_1dgrid(t, ts, idx=True)
-                    i_s[j, idx] += gamma_pdf.rvs(1) * i_max
+                    t_vals.append(t)
 
-
+            t_grid, idxs = round_to_1dgrid(np.array(t_vals), ts, idx=True)
+            t_length = len(t_vals)
+            rv_idx += t_length
+            gamma_vals = gamma_values[rv_idx:t_length+rv_idx]
+            mapped_sums = np.bincount(idxs, weights=gamma_vals)
+            mapped_sums = mapped_sums[mapped_sums != 0]
+            unique_idxs = np.unique(idxs)
+            i_s[j, unique_idxs] += mapped_sums * i_max
 
             if delay:
                     i_shape = i_s[j].shape[0] + self.alpha.shape[0] - 1
@@ -317,7 +348,7 @@ class LIF_population():
         if save:
             with h5py.File(self.fname + '.hdf5', 'w') as h5file:
                 h5file.create_dataset('Iinj', data=self.Iinj)
-            print(f'save poisson input to {self.fname}.hdf5')
+            print(f'saved poisson input to {self.fname}.hdf5')
 
 
     def read_poisson_spikes_input(self, scale=1):

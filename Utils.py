@@ -1,4 +1,5 @@
 import numpy as np
+import time
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -145,6 +146,18 @@ def round_to_1dgrid(x, grid, idx=False):
     idxs = [find_closest(grid, val) for val in x]
     res = np.array(idxs)
     if idx:
-        return res, int(np.array(idxs))
+        return res, np.array(idxs, dtype=int)
     else:
         return res
+
+def record_time(function):
+    """
+    Function the times a code snippet
+    :param function:
+    :return: time it took
+    """
+
+    start = time.time()
+    exec(function)
+    end = time.time()
+    return end-start
