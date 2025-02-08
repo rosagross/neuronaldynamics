@@ -327,10 +327,14 @@ class LIF_population():
             t_grid, idxs = round_to_1dgrid(np.array(t_vals), ts, idx=True)
             t_length = len(t_vals)
             rv_idx += t_length
-            gamma_vals = gamma_values[rv_idx:t_length+rv_idx]
+            # get all gamma values from range
+            gamma_vals = gamma_values[rv_idx:t_length + rv_idx]
+            # sum entries over grid points with values (gamma_values) as weights
             mapped_sums = np.bincount(idxs, weights=gamma_vals)
+            # get non-zero entries and unique idxs
             mapped_sums = mapped_sums[mapped_sums != 0]
             unique_idxs = np.unique(idxs)
+            # update i values on these indexes with the non-zero entries scaled by imax
             i_s[j, unique_idxs] += mapped_sums * i_max
 
             if delay:
