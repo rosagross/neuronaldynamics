@@ -29,6 +29,7 @@ con = w0*(np.ones((dim, dim)) - np.eye(dim))
 
 con_prob = 0.2
 for i in range(dim):
+    #TODO: maybe replace with random.sample(a.tolist())
     no_connections = np.random.choice(np.where(con[i, :] != 0)[0], int(dim*(1-con_prob)))
     con[i, no_connections] = 0
 # con = w0*np.random.uniform(size=(dim, dim))
