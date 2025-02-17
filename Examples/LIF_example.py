@@ -38,7 +38,7 @@ def default_pars(**kwargs):
   return pars
 
 
-def plot_volt_trace(pars, v, sp):
+def plot_volt_trace(pars, v, sp, input=None):
   """
   Plot trajetory of membrane potential for a single neuron
 
@@ -58,6 +58,8 @@ def plot_volt_trace(pars, v, sp):
     v[sp_num] += 20  # draw nicer spikes
 
   plt.plot(pars['range_t'], v, 'b')
+  if not input is None:
+    plt.plot(pars['range_t'], input, 'r')
   plt.axhline(V_th, 0, 1, color='k', ls='--')
   plt.xlabel('Time (ms)')
   plt.ylabel('V (mV)')
@@ -245,13 +247,30 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2, alpha=None, wei
   rec_spikes = rec_spikes
   return v, rec_spikes, r
 
+def regular_spikes(interval, duration, dt=0.1):
+  """
+  Creates a spike train with regular intervals on a time series.
+
+  Parameters:
+  interval (float): Time between spikes.
+  duration (float): Total duration of the spike train.
+  dt (float): Time step for the time series (default is 0.1 seconds).
+
+  Returns:
+  np.ndarray: Array representing the time series with spikes.
+  """
+  time_series = np.arange(0, duration, dt)
+  spike_times = np.arange(0, duration, interval)
+  spike_train = np.isin(time_series, spike_times).astype(int)
+  return spike_train
+
 
 
 rate = 10
-T = 500
+T = 100
 t_end = 400
 t_start = 0
-dt = 0.1
+dt = 0.01
 t = np.arange(0.0, T, dt)
 
 t_alpha = t[t < 10]
@@ -260,14 +279,19 @@ n_alpha = 9
 alpha = np.exp(-t_alpha/tau_alpha) / (tau_alpha * scipy.special.factorial(n_alpha-1)) * (t_alpha/tau_alpha)**(n_alpha-1)
 alpha = alpha/np.trapz(alpha, dx=dt)
 
-# ts, i_vals = gen_poisson_spikes(T=T, dt=dt, rate=0.03, i_max=2e4)
+# ts, i_vals = gen_poisson_spikes(T=T, dt=dt, rate=0.1, i_max=2e3)
+# i_s = i_vals
 # i_shape = i_vals.shape[0] + alpha.shape[0] - 1
 # i_s = np.zeros(i_shape)
 # idxs = np.where(i_vals > 0)[0]
 # for i_idx, idx in enumerate(idxs):
 #   i_s[idx:idx + alpha.shape[0]] += alpha*i_vals[idx]
 # i_s = i_s[:ts.shape[0]]
-i_s = 220*np.ones(int(T/dt))
+# i_s = 220*np.ones(int(T/dt))
+# i_s[:int(t_start/dt)] = 0
+# i_s[int(t_end/dt):] = 0
+
+i_s = 3.9e2*regular_spikes(interval=0.1, duration=T, dt=dt)
 i_s[:int(t_start/dt)] = 0
 i_s[int(t_end/dt):] = 0
 w0 = 30
@@ -278,34 +302,34 @@ np.fill_diagonal(con, 0)
 # con = np.array([[100, 500], [700, 100]])
 
 # Get parameters
-pars = default_pars(T=500, dt=dt, tau_m=100)
+pars = default_pars(T=T, dt=dt, tau_m=10)
 # Simulate LIF model
-v, sp, r = run_LIF(pars, Iinj=i_s, stop=True, custom_i=False, weights=con, alpha=alpha, n_neurons=dim)
+v, sp, r = run_LIF(pars, Iinj=i_s, stop=False, custom_i=False, weights=con, alpha=alpha, n_neurons=dim)
 
 # Visualize
 plot_volt_trace(pars, v[0], sp[0])
 # plot_volt_trace(pars, v[-1], sp[-1])
-fig = plt.figure(figsize=(8, 8))
-times = [500, 1000, 2000, 3000, 4000]
+# fig = plt.figure(figsize=(8, 8))
+# times = [500, 1000, 2000, 3000, 4000]
 
-for n, time in enumerate(times):
-  ax = fig.add_subplot(len(times), 1, int(n+1))
-  ax.hist(v[:, time], bins=100, density=True, alpha=0.7)
-
-plt.tight_layout()
-ax.set_xlabel('V in mv')
+# for n, time in enumerate(times):
+#   ax = fig.add_subplot(len(times), 1, int(n+1))
+#   ax.hist(v[:, time], bins=100, density=True, alpha=0.7)
+#
+# plt.tight_layout()
+# ax.set_xlabel('V in mv')
 # plt.show()
 
-fig = plt.figure(figsize=(8, 8))
-neuron_num = [0, 2, 5, 12, 22]
+# fig = plt.figure(figsize=(8, 8))
+# neuron_num = [0, 2, 5, 12, 22]
 
-for n, n_neuron in enumerate(neuron_num):
-  ax = fig.add_subplot(len(times), 1, int(n+1))
-  # ax.hist(r[n_neuron, :], bins=100, density=True, alpha=0.7)
-  ax.plot(np.mean(r, axis=0))
-  ax.set_ylabel('r in Hz')
-plt.tight_layout()
-ax.set_xlabel('time in ms')
+# for n, n_neuron in enumerate(neuron_num):
+#   ax = fig.add_subplot(len(times), 1, int(n+1))
+#   # ax.hist(r[n_neuron, :], bins=100, density=True, alpha=0.7)
+#   ax.plot(np.mean(r, axis=0))
+#   ax.set_ylabel('r in Hz')
+# plt.tight_layout()
+# ax.set_xlabel('time in ms')
 # plt.show()
 # plt.subplots_adjust(hspace=0.5)
 
