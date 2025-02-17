@@ -260,16 +260,16 @@ n_alpha = 9
 alpha = np.exp(-t_alpha/tau_alpha) / (tau_alpha * scipy.special.factorial(n_alpha-1)) * (t_alpha/tau_alpha)**(n_alpha-1)
 alpha = alpha/np.trapz(alpha, dx=dt)
 
-ts, i_vals = gen_poisson_spikes(T=T, dt=dt, rate=0.03, i_max=2e4)
-i_shape = i_vals.shape[0] + alpha.shape[0] - 1
-i_s = np.zeros(i_shape)
-idxs = np.where(i_vals > 0)[0]
-for i_idx, idx in enumerate(idxs):
-  i_s[idx:idx + alpha.shape[0]] += alpha*i_vals[idx]
-i_s = i_s[:ts.shape[0]]
-# i_s = 150*np.ones(int(T/dt))
-# i_s[:int(t_start/dt)] = 0
-# i_s[int(t_end/dt):] = 0
+# ts, i_vals = gen_poisson_spikes(T=T, dt=dt, rate=0.03, i_max=2e4)
+# i_shape = i_vals.shape[0] + alpha.shape[0] - 1
+# i_s = np.zeros(i_shape)
+# idxs = np.where(i_vals > 0)[0]
+# for i_idx, idx in enumerate(idxs):
+#   i_s[idx:idx + alpha.shape[0]] += alpha*i_vals[idx]
+# i_s = i_s[:ts.shape[0]]
+i_s = 220*np.ones(int(T/dt))
+i_s[:int(t_start/dt)] = 0
+i_s[int(t_end/dt):] = 0
 w0 = 30
 dim = 1
 # con = w0*(np.ones((dim, dim)) - np.eye(dim))
@@ -278,7 +278,7 @@ np.fill_diagonal(con, 0)
 # con = np.array([[100, 500], [700, 100]])
 
 # Get parameters
-pars = default_pars(T=500, dt=dt)
+pars = default_pars(T=500, dt=dt, tau_m=100)
 # Simulate LIF model
 v, sp, r = run_LIF(pars, Iinj=i_s, stop=True, custom_i=False, weights=con, alpha=alpha, n_neurons=dim)
 
