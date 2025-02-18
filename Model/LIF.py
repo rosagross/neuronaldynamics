@@ -264,9 +264,9 @@ class Neuron_population():
             # ax.set_ylim([self.V_reset * 1.1, self.V_th*1.1])
 
             ax = fig.add_subplot(n_plots, 2, plot_loc_2)
-            ax.plot(t_plot, r_plot * 1000 / self.n_neurons)
+            ax.plot(t_plot, r_plot)
             ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
-            ax.set_ylabel("Mean Firing rate (Hz)")
+            ax.set_ylabel("Firing rate (Hz)")
             ax.set_xlabel("time (ms)")
             ax.grid()
         plt.tight_layout()
@@ -404,7 +404,9 @@ class Conductance_LIF(Neuron_population):
                         v_neuron_postsyn_mat = v_0.repeat(con_bool.shape[0], axis=0).reshape(con_bool.shape[0],  self.n_neurons)
                         inputs = (1 - np.exp(-amp_mat)) * (self.E_e - v_neuron_postsyn_mat)
                         input = np.sum(inputs, axis=0)
-                    input += self.Iinj[:, it]
+                    # update input spikes from poisson conductance changes
+                    v_inputs_ext = (1 - np.exp(-self.Iinj[:, it])) * (self.E_e - self.v[:, it-1])
+                    input += v_inputs_ext
 
             else:
                 Iin = self.Iinj + self.Iext

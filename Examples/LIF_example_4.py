@@ -19,10 +19,10 @@ def input_step_function(t):
     return res
 
 T = 100
-dt = 0.1
+dt = .1
 t = np.arange(0.0, T, dt)
 
-dim = 10000
+dim = 1000
 con = np.zeros((dim, dim))
 n_connection = int(dim/10)
 
@@ -37,7 +37,7 @@ for i in tqdm(range(dim), f'computing random neuron connections for {dim} neuron
 
 neuron_parameters = {'T': T, 'tau_m': 20, 't_ref': 3, 'weights': con, 'n_neurons': dim}
 lif = Conductance_LIF(parameters=neuron_parameters)
-lif.gen_poisson_spikes_input(rate=v0, i_max=1.3e4, delay=False)
+lif.gen_poisson_spikes_input(rate=v0, i_max=1, delay=False)
 # lif.read_poisson_spikes_input(scale=1)
 lif.run()
 
