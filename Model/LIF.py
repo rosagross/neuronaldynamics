@@ -20,22 +20,32 @@ import time
 
 class Neuron_population():
     # general class for Neuron populations
-    # needs an innit
+    # is not used on its own!
+
+    def __init__(self):
+        self.fname = None
+        self.v = None
+        self.V_reset = None
+        self.V_th = None
+        self.t = None
+        self.T = None
+        self.dt = None
+        self.n_neurons = None
+        self.pars = None
+        self.rec_spikes = None
+        self.t_spikes = None
+        self.Iinj = None
+        self.alpha = None
     def plot_volt_trace(self, idx=0):
       """
       Plot trajetory of membrane potential for a single neuron
-
-      Expects:
-      pars   : parameter dictionary
-      v      : volt trajetory
-      sp     : spike train
 
       Returns:
       figure of the membrane potential trajetory for a single neuron
       """
 
-      V_th = self.pars['V_th']
-      dt, range_t = self.pars['dt'], self.t
+      V_th = self.V_th
+      dt, range_t = self.dt, self.t
       if self.rec_spikes[idx].size:
         sp_num = (self.rec_spikes[idx] / dt).astype(int) - 1
         self.v[idx, sp_num] += 20  # draw nicer spikes
@@ -52,7 +62,7 @@ class Neuron_population():
       plt.show()
 
     def gen_poisson_spikes_input(self, i_max=300, rate=1, mu=0.008, coeff_of_var=0.5, t_start=0.0, t_end=None,
-                                 delay=True, save=True):
+                                 delay=True, save=False):
         """
         Generate spike times and currents for a neuron with a time-dependent firing rate using an inhomogeneous Poisson
          process.
@@ -80,7 +90,7 @@ class Neuron_population():
         rate_max = np.max(rate(ts))
         rv_counter = 0
         # generate large reservoir of random values from gamma distribution
-        gamma_values = gamma_pdf.rvs(int(1e8))
+        gamma_values = gamma_pdf.rvs(int(1e3 * rate_max * self.n_neurons))
 
         # for j in tqdm(range(self.n_neurons), f'creating background activity for {self.n_neurons} neurons'):
         #     # The following should generate 5 cycles of non-zero
@@ -266,15 +276,21 @@ class Conductance_LIF(Neuron_population):
 
     def __init__(self, parameters):
 
+        super().__init__()
         # set defaults
-        # neuron parameters
+        self.fname = 'Conductance_LIF'
+        # neuron parameters #
+
         self.V_th = -55.  # spike threshold [mV]
         self.V_reset = -65.  # reset potential [mV]
         self.tau_m = 20.  # membrane time constant [ms]
-        self.g_leak = 10.  # leak conductance [nS]
+        self.g_r = 10.  # rest conductance [nS]
         self.V_init = -65.  # initial potential [mV]
-        self.E_L = -65.  # leak reversal potential [mV]
-        self.t_ref = 3.  # refractory time (ms)
+        self.E_r = -65.  # resting potential [mV]
+        self.t_ref = 3. # refractory time (ms)
+        self.E_e = 0
+        self.E_i = -70
+        self.population_type = ['exc']
 
         # simulation parameters #
         self.T = 400.  # Total duration of simulation [ms]
@@ -282,7 +298,7 @@ class Conductance_LIF(Neuron_population):
         self.weights = None
         self.Iext = None
 
-        # delay and random parameter set-up
+        # delay and random parameter set-up #
         self.convolve = False
         self.tau_alpha = 1 / 3  # parameters from Nykamp 2000 here
         self.n_alpha = 9
@@ -295,11 +311,9 @@ class Conductance_LIF(Neuron_population):
         self.verbose = 0
 
         # update self variables if they are in parameters
-        for key in self.__dict__.keys():
-            if key in parameters:
-                eval(f'self.{key} = {parameters[key]}')
+        self.__dict__.update(parameters)
 
-        self.t = np.linspace(0, self.T, self.dt)
+        self.t = np.arange(0, self.T, self.dt)
         self.time_steps = self.t.shape[0]
 
         # create gamma functions
@@ -312,8 +326,6 @@ class Conductance_LIF(Neuron_population):
         scale_ii = (self.coeff_of_var * self.mu_ii) ** 2 / self.mu_ii
         self.gamma_pdf_ii = gamma(a=self.coeff_of_var ** (-2), loc=0, scale=scale_ii)
     def run(self):
-        if self.verbose > 0:
-            t1 = time.time()
 
         # init global input current
         if self.Iext is not None:
@@ -332,24 +344,25 @@ class Conductance_LIF(Neuron_population):
         t_last_spike = np.zeros(self.n_neurons)
         self.r = np.zeros_like(self.v)
 
-        # Loop over time
+        # init spike recording
         self.rec_spikes = []
+        self.delayed_spikes = []
 
         # create convolution shape if needed
         if self.convolve:
             conv_shape = self.v[0].shape[0] + self.alpha.shape[0] - 1
             input = np.zeros((self.n_neurons, conv_shape))
+        else:
+            self.init_alpha_pdf()
 
         # record spike times
-        # create list of lists with n_neurons as fisrt dimension
+        # create list of lists with n_neurons as first dimension
         for _ in range(self.n_neurons):
             self.rec_spikes.append([])
+            self.delayed_spikes.append([])
 
-        if self.verbose > 0:
-            t2 = time.time()
-            print(f'set-up: {t2 - t1:.4f}s')
 
-        for it in tqdm(range(self.Lt - 1), f'simulating network for {self.Lt - 1} time steps'):
+        for it in tqdm(range(self.time_steps - 1), f'simulating network for {self.time_steps - 1} time steps'):
             for i in range(self.n_neurons):
 
                 # update refractory time
@@ -358,12 +371,14 @@ class Conductance_LIF(Neuron_population):
                     t_ref_counter[i] = t_ref_counter[i] - 1  # reduce running counter of refractory period
 
                 elif self.v[i, it] >= self.V_th:  # if voltage over threshold
+                    self.rec_spikes[i].append(it)  # record spike event at spike time idx
                     if not self.convolve:
-                        delay = self.get_alpha_sample()
-                        discrete_delay = int(delay/self.dt)
-                    else:
-                        discrete_delay = int(0)
-                    self.rec_spikes[i].append(it + discrete_delay)  # record spike event at spike time idx
+                        t_delay = 10
+                        while t_delay > 7.5:  # compute delay in time
+                            t_delay = self.alpha_const * self.alpha_pdf.rvs(1)
+                        delay_spike_idx = int(it + (t_delay/self.dt))  # convert to index and round index to dt grid
+                        self.delayed_spikes[i].append(delay_spike_idx)
+
                     self.t_spikes[i, it] = 1
                     self.r[i, int(t_last_spike[i]):it] = 1000 / (
                             it - t_last_spike[i]) * self.dt  # times 1000 for conversion 1/ms -> Hz
@@ -371,50 +386,57 @@ class Conductance_LIF(Neuron_population):
                     self.v[i, it] = self.V_reset  # reset voltage
                     t_ref_counter[i] = self.t_ref / self.dt  # set refractory time
 
-            if self.verbose > 0:
-                t_conv_1 = time.time()
             if self.n_neurons > 1:
 
-                # alpha kernel version
-                if self.weights == None:
-                    for k in range(self.n_neurons):
-                        for l in range(len(self.rec_spikes[k])):
-                            input[:,
-                            self.rec_spikes[k][l]: self.rec_spikes[k][l] + self.alpha.shape[0]] += self.alpha
+                if self.convolve:
+                    # alpha kernel version
+                    if self.weights == None:
+                        for k in range(self.n_neurons):
+                            for l in range(len(self.rec_spikes[k])):
+                                input[:,
+                                self.rec_spikes[k][l]: self.rec_spikes[k][l] + self.alpha.shape[0]] += self.alpha
 
+                    else:
+                        # reshape alpha to mathc weights
+                        alpha_repeat = self.alpha.repeat(self.n_neurons).reshape(self.alpha.shape[0], self.n_neurons)
+                        for k in range(self.n_neurons):
+                            for l in range(len(self.rec_spikes[k])):
+                                kernel_idxs = self.rec_spikes[k][l], self.rec_spikes[k][l] + self.alpha.shape[0]
+                                input[:, kernel_idxs[0]:kernel_idxs[1]] += (self.weights[k] * alpha_repeat).T
+
+                    Iin[:, it] = self.g_r * (self.Iinj[:, it] + input[:, it] + self.Iext[:, it])
                 else:
-                    # reshape alpha to mathc weights
-                    alpha_repeat = self.alpha.repeat(self.n_neurons).reshape(self.alpha.shape[0], self.n_neurons)
-                    for k in range(self.n_neurons):
-                        for l in range(len(self.rec_spikes[k])):
-                            kernel_idxs = self.rec_spikes[k][l], self.rec_spikes[k][l] + self.alpha.shape[0]
-                            input[:, kernel_idxs[0]:kernel_idxs[1]] += (self.weights[k] * alpha_repeat).T
+                    # new delay version by sampling from alpha distribution
+                    input = np.zeros(self.n_neurons)
+                    # filter which neuron has post-synaptic spike in this time step
+                    spike_output_mask = [it in k for k in self.delayed_spikes]
+                    if True in spike_output_mask:
+                        connections = self.weights[spike_output_mask, :]
+                        active_neurons = np.where(spike_output_mask)[0]
+                        n_active_neurons = active_neurons.shape[0]
+                        con_bool = connections.astype(bool)
+                        active_connections = (np.where(connections != 0)[0], np.where(connections != 0)[1])
+                        n_active_connections = len(connections.nonzero()[0])
+                        amps = self.alpha_const * self.gamma_pdf_ee.rvs(n_active_connections)
+                        amp_mat = np.zeros_like(connections)
+                        amp_mat[active_connections] = amps
+                        v_0 = self.v[:, it-1] #
+                        v_neuron_postsyn_mat = v_0.repeat(con_bool.shape[0], axis=0).reshape(con_bool.shape[0],  self.n_neurons)
+                        inputs = (1 - np.exp(-amp_mat)) * (self.E_e - v_neuron_postsyn_mat)
+                        input = np.sum(inputs, axis=0)
+                    input += self.Iinj[:, it]
 
-                Iin[:, it] = self.Iinj[:, it] + input[:, it] + self.Iext[:, it]
             else:
                 Iin = self.Iinj + self.Iext
 
-            if self.verbose > 0:
-                t_conv_2 = time.time()
-                print(f'convolve: {t_conv_2 - t_conv_1:.4f}s')
-                t_sim_1 = t_conv_2
-            # TODO: update to Appendix C from Nykamp
-            #  global self.convolve statement can be taken to the Poisson Spikes function and switch between it
-            #  and static delay
 
             # Calculate the increment of the membrane potential
-            dv = (-(self.v[:, it] - self.E_L) + Iin[:, it] / self.g_L) * (self.dt / self.tau_m)
+            # input here needs to be in units of voltage
+            dv = (-(self.v[:, it] - self.E_e) + input) * (self.dt / self.tau_m)
 
             # Update the membrane potential
-            # TODO: in this verion there needs to be a list of voltages or all neurons
             self.v[:, it + 1] = self.v[:, it] + dv
-            interspike_intervals = self.t_spikes
-            self.v[:, it + 1] = self.E_e + np.exp(-self.gamma_pdf_ee.rvs(self.n_neurons)) * \
-                                (self.V_reset + (self.v[:, it] - self.V_reset))
 
-            if self.verbose > 0:
-                t_sim_2 = time.time()
-                print(f'simulate: {t_sim_2 - t_sim_1:.4f}s')
 
         for i in range(self.n_neurons):
             # Get spike times in ms
@@ -429,12 +451,20 @@ class Conductance_LIF(Neuron_population):
             h5file.create_dataset('p_types', data=self.population_type)
             h5file.create_dataset('Iinj', data=self.Iinj)
 
-    def get_alpha_sample(self):
+    def init_alpha_pdf(self):
+        t_alpha = self.t[self.t < 10]
+        alpha_func = np.exp(-t_alpha / self.tau_alpha) / (self.tau_alpha * factorial(self.n_alpha - 1)) * \
+                     (t_alpha / self.tau_alpha) ** (self.n_alpha - 1)
+        self.alpha_const = 1/np.trapz(alpha_func, dx=self.dt)
+        self.alpha_pdf = gamma(a=self.n_alpha, scale=self.tau_alpha, loc=0)
+        # later filter them to contain only t<7.5
+
 
 class LIF_population(Neuron_population):
 
     def __init__(self, **kwargs):
         # Set parameters
+        super().__init__()
         self.Iinj = None
         self.default_pars(**kwargs)
         if self.Iinj == None:
