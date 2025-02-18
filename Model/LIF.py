@@ -264,9 +264,9 @@ class Neuron_population():
             # ax.set_ylim([self.V_reset * 1.1, self.V_th*1.1])
 
             ax = fig.add_subplot(n_plots, 2, plot_loc_2)
-            ax.plot(t_plot, r_plot * 1000)
+            ax.plot(t_plot, r_plot * 1000 / self.n_neurons)
             ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
-            ax.set_ylabel("Firing rate (Hz)")
+            ax.set_ylabel("Mean Firing rate (Hz)")
             ax.set_xlabel("time (ms)")
             ax.grid()
         plt.tight_layout()
@@ -325,6 +325,7 @@ class Conductance_LIF(Neuron_population):
         self.gamma_pdf_ie = gamma(a=self.coeff_of_var ** (-2), loc=0, scale=scale_ie)
         scale_ii = (self.coeff_of_var * self.mu_ii) ** 2 / self.mu_ii
         self.gamma_pdf_ii = gamma(a=self.coeff_of_var ** (-2), loc=0, scale=scale_ii)
+
     def run(self):
 
         # init global input current
@@ -363,29 +364,8 @@ class Conductance_LIF(Neuron_population):
 
 
         for it in tqdm(range(self.time_steps - 1), f'simulating network for {self.time_steps - 1} time steps'):
-            for i in range(self.n_neurons):
 
-                # update refractory time
-                if t_ref_counter[i] > 0:  # check if in refractory period
-                    self.v[i, it] = self.V_reset  # set voltage to reset
-                    t_ref_counter[i] = t_ref_counter[i] - 1  # reduce running counter of refractory period
-
-                elif self.v[i, it] >= self.V_th:  # if voltage over threshold
-                    self.rec_spikes[i].append(it)  # record spike event at spike time idx
-                    if not self.convolve:
-                        t_delay = 10
-                        while t_delay > 7.5:  # compute delay in time
-                            t_delay = self.alpha_const * self.alpha_pdf.rvs(1)
-                        delay_spike_idx = int(it + (t_delay/self.dt))  # convert to index and round index to dt grid
-                        self.delayed_spikes[i].append(delay_spike_idx)
-
-                    self.t_spikes[i, it] = 1
-                    self.r[i, int(t_last_spike[i]):it] = 1000 / (
-                            it - t_last_spike[i]) * self.dt  # times 1000 for conversion 1/ms -> Hz
-                    t_last_spike[i] = it
-                    self.v[i, it] = self.V_reset  # reset voltage
-                    t_ref_counter[i] = self.t_ref / self.dt  # set refractory time
-
+            # compute neuron input
             if self.n_neurons > 1:
 
                 if self.convolve:
@@ -429,10 +409,31 @@ class Conductance_LIF(Neuron_population):
             else:
                 Iin = self.Iinj + self.Iext
 
+            for i in range(self.n_neurons):
+                # update refractory time after spikes
+                if t_ref_counter[i] > 0:  # check if in refractory period
+                    self.v[i, it] = self.V_reset  # set voltage to reset
+                    t_ref_counter[i] = t_ref_counter[i] - 1  # reduce running counter of refractory period
+
+                elif self.v[i, it] >= self.V_th:  # if voltage over threshold
+                    self.rec_spikes[i].append(it)  # record spike event at spike time idx
+                    if not self.convolve:
+                        t_delay = 10
+                        while t_delay > 7.5:  # compute delay in time
+                            t_delay = self.alpha_const * self.alpha_pdf.rvs(1)
+                        delay_spike_idx = int(it + (t_delay/self.dt))  # convert to index and round index to dt grid
+                        self.delayed_spikes[i].append(delay_spike_idx)
+
+                    self.t_spikes[i, it] = 1
+                    self.r[i, int(t_last_spike[i]):it] = 1000 / (
+                            it - t_last_spike[i]) * self.dt  # times 1000 for conversion 1/ms -> Hz
+                    t_last_spike[i] = it
+                    self.v[i, it] = self.V_reset  # reset voltage
+                    t_ref_counter[i] = self.t_ref / self.dt  # set refractory time
 
             # Calculate the increment of the membrane potential
             # input here needs to be in units of voltage
-            dv = (-(self.v[:, it] - self.E_e) + input) * (self.dt / self.tau_m)
+            dv = (-(self.v[:, it] - self.E_r) + input) * (self.dt / self.tau_m)
 
             # Update the membrane potential
             self.v[:, it + 1] = self.v[:, it] + dv

@@ -22,22 +22,22 @@ T = 100
 dt = 0.1
 t = np.arange(0.0, T, dt)
 
-dim = 1000
+dim = 10000
 con = np.zeros((dim, dim))
-n_connection = 0#int(dim/10)
+n_connection = int(dim/10)
 
-for i in range(dim):
+for i in tqdm(range(dim), f'computing random neuron connections for {dim} neurons'):
     possible_connections = np.arange(dim)
     # exclude current idx
     possible_connections = possible_connections[possible_connections!=i]
     connections_i = random.sample(possible_connections.tolist(), n_connection)
-    if np.unique(np.array(connections_i)).shape[0] != 100:
+    if np.unique(np.array(connections_i)).shape[0] != n_connection:
         print(f"failed sampling!!!, idx {i}")
     con[i, connections_i] = 1
 
 neuron_parameters = {'T': T, 'tau_m': 20, 't_ref': 3, 'weights': con, 'n_neurons': dim}
 lif = Conductance_LIF(parameters=neuron_parameters)
-lif.gen_poisson_spikes_input(rate=v0, i_max=1e-2, delay=False)
+lif.gen_poisson_spikes_input(rate=v0, i_max=1.3e4, delay=False)
 # lif.read_poisson_spikes_input(scale=1)
 lif.run()
 
@@ -50,7 +50,7 @@ lif.raster_plot()
 # lif.plot_voltage_hist(times=times)
 # neuron_num = [0, 2, 5, 12, 22]
 # lif.plot_firing_rate(bin_size=20, smoothing=True)
-lif.plot_populations(bins=1000, smoothing=True, sigma=5, hide_refractory=True, cutoff=20)
+lif.plot_populations(bins=1000, smoothing=True, sigma=5, hide_refractory=True, cutoff=None)
 
 # print(f'neuron 1 spikes: {lif.rec_spikes[0].shape}')
 # print(f'neuron 2 spikes: {lif.rec_spikes[1].shape}')
