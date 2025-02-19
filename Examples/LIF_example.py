@@ -237,6 +237,9 @@ def run_LIF(pars, Iinj, stop=False, custom_i=False, n_neurons=2, alpha=None, wei
      # Calculate the increment of the membrane potential
       dv = (-(v[i, it] - E_L) + Iin[it] / g_L) * (dt / tau_m)
 
+      if Iin[it] != 0:
+        a=1
+
       # Update the membrane potential
       v[i, it + 1] = v[i, it] + dv
 
@@ -279,8 +282,9 @@ n_alpha = 9
 alpha = np.exp(-t_alpha/tau_alpha) / (tau_alpha * scipy.special.factorial(n_alpha-1)) * (t_alpha/tau_alpha)**(n_alpha-1)
 alpha = alpha/np.trapz(alpha, dx=dt)
 
-# ts, i_vals = gen_poisson_spikes(T=T, dt=dt, rate=0.1, i_max=2e3)
-# i_s = i_vals
+ts, i_vals = gen_poisson_spikes(T=T, dt=dt, rate=0.7, i_max=1)
+i_s = i_vals
+i_s = (1-np.exp(-i_s))*65
 # i_shape = i_vals.shape[0] + alpha.shape[0] - 1
 # i_s = np.zeros(i_shape)
 # idxs = np.where(i_vals > 0)[0]
@@ -291,9 +295,9 @@ alpha = alpha/np.trapz(alpha, dx=dt)
 # i_s[:int(t_start/dt)] = 0
 # i_s[int(t_end/dt):] = 0
 
-i_s = 3.9e2*regular_spikes(interval=0.1, duration=T, dt=dt)
-i_s[:int(t_start/dt)] = 0
-i_s[int(t_end/dt):] = 0
+# i_s = 3.9e2*regular_spikes(interval=0.1, duration=T, dt=dt)
+# i_s[:int(t_start/dt)] = 0
+# i_s[int(t_end/dt):] = 0
 w0 = 30
 dim = 1
 # con = w0*(np.ones((dim, dim)) - np.eye(dim))
@@ -302,9 +306,9 @@ np.fill_diagonal(con, 0)
 # con = np.array([[100, 500], [700, 100]])
 
 # Get parameters
-pars = default_pars(T=T, dt=dt, tau_m=10)
+pars = default_pars(T=T, dt=dt, tau_m=20, E_L=-65, g_L=1, V_init=-65)
 # Simulate LIF model
-v, sp, r = run_LIF(pars, Iinj=i_s, stop=False, custom_i=False, weights=con, alpha=alpha, n_neurons=dim)
+v, sp, r = run_LIF(pars, Iinj=i_s, stop=False, custom_i=True, weights=con, alpha=alpha, n_neurons=dim)
 
 # Visualize
 plot_volt_trace(pars, v[0], sp[0])
