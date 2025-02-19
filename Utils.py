@@ -161,3 +161,16 @@ def record_time(function):
     exec(function)
     end = time.time()
     return end-start
+
+def list_flatten(in_list):
+    """
+    function that flattens a list of lists
+    param:
+    in_list: list
+            input list
+    """
+    return [k for l in in_list for k in l]
+
+
+def flatten_l(xss):
+    return [x for xs in xss for x in xs]

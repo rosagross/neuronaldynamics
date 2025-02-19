@@ -430,11 +430,10 @@ class Conductance_LIF(Neuron_population):
                         con_bool = connections.astype(bool)
                         active_connections = (np.where(connections != 0)[0], np.where(connections != 0)[1])
                         n_active_connections = len(connections.nonzero()[0])
-                        for n in n_active_neurons:
-                            #TODO: make this a good mapping, to get the dependencies of active neuron idxs back
-                            # maybe consider remapping connections again
-                            active_neurons = active_neurons.repeat(n_active_connections)[n*active_connections:(n+1)*active_connections]
-                        amps = self.get_conductance_spikes((active_neurons.repeat(), active_connections[1]), n_active_connections)
+                        connection_shapes = [np.where(active_connections[0]==k)[0].shape[0] for k in list(np.unique(active_connections[0]))]
+                        active_neuron_list = [[k]*connection_shapes[i] for i, k in enumerate(active_neurons)]
+                        active_neurons = list_flatten(active_neuron_list)
+                        amps = self.get_conductance_spikes((active_neurons, active_connections[1]), n_active_connections)
                         # amps = self.gamma_pdf_ee.rvs(n_active_connections)
                         amp_mat = np.zeros_like(connections)
                         amp_mat[active_connections] = amps
@@ -506,11 +505,7 @@ class Conductance_LIF(Neuron_population):
         # map mu_ to population type using types
         for neuron_type in [0, 1, 10, 11]:
 
-            if len(idxs[0]) > 1:
-                a=1
-
             type_mask = np.where(self.con_types[idxs] == neuron_type)[0]
-
 
             # go over neuron type cases mapped in con_types
             if neuron_type == 0:
