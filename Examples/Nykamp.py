@@ -36,7 +36,7 @@ pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 
-T = 200 # 200
+T = 100 # 200
 dt = 0.1 # 0.1
 dv = 0.01
 

@@ -171,6 +171,21 @@ def list_flatten(in_list):
     """
     return [k for l in in_list for k in l]
 
+def get_combintations(array1, array2):
+    """
+    Function that computes all 2 element combintations of two 1D arrays
+    :param array1: np.ndarray
+                input array 1
+    :param array2: np.ndarray
+                input array 2
+    :return: grid_combinations: np.ndarray
+                output array of 2 element combinations
+    """
+    # Reshape the arrays to be 2D and compatible for broadcasting
+    array1_reshaped = array1[:, np.newaxis]
+    array2_reshaped = array2[np.newaxis, :]
 
-def flatten_l(xss):
-    return [x for xs in xss for x in xs]
+    # Broadcast arrays and create a grid of combinations
+    grid_combinations = np.array(np.meshgrid(array1, array2)).T.reshape(-1, 2)
+    return grid_combinations[0]
+
