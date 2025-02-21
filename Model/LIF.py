@@ -188,8 +188,10 @@ class Neuron_population():
 
         if population != None:
             self.Iinj[subset_idx] += i_s
+            self.spike_type = population
         else:
             self.Iinj += i_s
+            self.spike_type = 0
 
         if save:
             with h5py.File(self.fname + '.hdf5', 'w') as h5file:
@@ -271,6 +273,8 @@ class Neuron_population():
         if smoothing:
             r_plot = gaussian_filter1d(r_plot, sigma=sigma)
 
+        # bins = max(bins, t_plot.shape[0])
+
         fig = plt.figure(figsize=(10, 4.25*n_plots))
         for i_plot, plot_idx in enumerate(plot_idxs):
 
@@ -279,6 +283,7 @@ class Neuron_population():
                 V_reset = self.V_reset[v_idxs][0]
             else:
                 V_reset = self.V_reset
+            n_neurons = v[i_plot].shape[0]
 
             plot_loc_1 = int(2 * i_plot + 1)
             plot_loc_2 = int(2 * i_plot + 2)
@@ -288,10 +293,9 @@ class Neuron_population():
             if hide_refractory:
                 # take out all values of v[:, k] where v = V_reset
                 v_hist = np.array([np.histogram(v[i_plot][np.where(v[i_plot][:, k] != V_reset), k],
-                                                bins=v_mesh)[0] for k in range(v.shape[1])])
+                                                bins=v_mesh)[0] for k in range(v[i_plot].shape[1])])
             else:
-                v_hist = np.array([np.histogram(v[i_plot][:, k], bins=v_mesh)[0] for k in range(v.shape[1])])
-
+                v_hist = np.array([np.histogram(v[i_plot][:, k], bins=v_mesh)[0] for k in range(v[i_plot].shape[1])])
 
             if cutoff == None:
                 cutoff = v_hist.max()
@@ -307,7 +311,7 @@ class Neuron_population():
             # ax.set_ylim([self.V_reset * 1.1, self.V_th*1.1])
 
             ax = fig.add_subplot(n_plots, 2, plot_loc_2)
-            ax.plot(t_plot, r_plot[i_plot]*1000/self.n_neurons)
+            ax.plot(t_plot, r_plot[i_plot]*10*(1000/n_neurons))
             ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
             ax.set_ylabel("Firing rate (Hz)")
             ax.set_xlabel("time (ms)")
@@ -333,6 +337,7 @@ class Conductance_LIF(Neuron_population):
         self.t_ref = 3. # refractory time (ms)
         self.E_e = 0
         self.E_i = -70
+        self.E_e_i = self.E_e
         self.population_type = ['exc']
         self.n_populations = len(self.population_type)
         self.population_weights = np.zeros((self.n_populations, self.n_populations))
@@ -354,6 +359,7 @@ class Conductance_LIF(Neuron_population):
         self.mu_ie = 0.02
         self.mu_ii = 0.66
         self.n_neurons = 1
+        self.spike_type = 0
         self.verbose = 0
 
         # update self variables if they are in parameters
@@ -364,6 +370,14 @@ class Conductance_LIF(Neuron_population):
         if not 'type_mask' in parameters:
             self.type_mask = np.zeros(self.n_neurons)
         self.n_populations = len(self.population_type)
+
+        if not 'E_e_i' in parameters:
+            self.E_e_i = np.zeros(self.n_populations)
+            for i in range(self.n_populations):
+                if self.population_type[i] == 'exc':
+                    self.E_e_i[i] = self.E_e
+                else:
+                    self.E_e_i[i] = self.E_i
 
         # create gamma functions
         if self.n_populations > 1:
@@ -386,14 +400,11 @@ class Conductance_LIF(Neuron_population):
                     self.con_types[i, j] = np.array([self.type_mask[i], self.type_mask[j]])
 
             # map parameters E_r, tau, V_th, V_reset, tau_m, V_init, E_e_i to arrays
-            for key in ['E_r', 'V_th', 'V_reset', 'tau_m', 't_ref', 'V_init', 'E_e_i']:
+            for key in ['E_r', 'V_th', 'V_reset', 'tau_m', 't_ref', 'V_init']:
                 if type(self.__dict__[key]) != np.ndarray:
                     self.__dict__[key] = np.array(self.__dict__[key]).repeat(self.n_populations)
                 self.__dict__[key] = self.__dict__[key][self.type_mask]
-        elif self.population_type[0] == 'exc':
-            self.E_e_i = self.E_e
-        elif self.population_type[0] == 'inh':
-            self.E_e_i = self.E_i
+
 
     def run(self):
 
@@ -468,19 +479,26 @@ class Conductance_LIF(Neuron_population):
                         n_active_connections = len(connections.nonzero()[0])
                         connection_shapes = [np.where(active_connections[0]==k)[0].shape[0] for k in list(np.unique(active_connections[0]))]
                         active_neuron_list = [[k]*connection_shapes[l] for l, k in enumerate(active_neurons)]
-                        active_neurons = list_flatten(active_neuron_list)
-                        amps = self.get_conductance_spikes((active_neurons, active_connections[1]), n_active_connections)
+                        active_neurons_r = list_flatten(active_neuron_list)
+                        amps = self.get_conductance_spikes((active_neurons_r, active_connections[1]), n_active_connections)
                         # amps = self.gamma_pdf_ee.rvs(n_active_connections)
                         amp_mat = np.zeros_like(connections)
                         amp_mat[active_connections] = amps
-                        v_0 = self.v[:, it-1] #
+                        v_0 = self.v[:, it-1]
                         v_neuron_postsyn_mat = v_0.repeat(con_bool.shape[0], axis=0).reshape(con_bool.shape[0],  self.n_neurons)
-                        # TODO: Problem lies here, self.E_e_i needs to be drawn from self.E_e_i
-                        #  according to presynaptic neuron not post-
-                        inputs = (1 - np.exp(-amp_mat)) * (self.E_e_i - v_neuron_postsyn_mat)
+                        if self.n_populations > 1:
+                            E_e_i_presyn = np.zeros_like(connections)
+                            pre_syn_types = self.con_types[active_neurons_r, active_connections[1]][:, 0]
+                            E_e_i_presyn_active = self.E_e_i[pre_syn_types]
+                            E_e_i_presyn[active_connections] = E_e_i_presyn_active
+                        else:
+                            E_e_i_presyn = self.E_e_i[int(self.type_mask[0])]
+                        if E_e_i_presyn[E_e_i_presyn<0].shape[0] > 0:
+                            a=1
+                        inputs = (1 - np.exp(-amp_mat)) * (E_e_i_presyn - v_neuron_postsyn_mat)
                         input = np.sum(inputs, axis=0)
                     # update input spikes from poisson conductance changes
-                    v_inputs_ext = (1 - np.exp(-self.Iinj[:, it])) * (self.E_e_i - self.v[:, it-1])
+                    v_inputs_ext = (1 - np.exp(-self.Iinj[:, it])) * (self.E_e_i[self.spike_type] - self.v[:, it-1])
                     input += v_inputs_ext  # * 1/(1/self.tau_m)
                     input = input * 1/(1/self.tau_m)
 
@@ -559,20 +577,12 @@ class Conductance_LIF(Neuron_population):
 
     def get_conductance_spikes(self, idxs, n):
         spikes = np.zeros(n)
-
         if type(self.gamma_pdf) == np.ndarray:
             connections_types = np.unique(self.con_types[idxs], axis=0)
             # map gamma_pdf to population type using connections_types
             for neuron_type in connections_types:
-                pre_syn = neuron_type[0]
-                pre_syn_type = self.population_type[pre_syn]
-                if pre_syn_type == 'inh':
-                    k = -1
-                else:
-                    k = 1
-
                 type_mask_i = np.where(np.all(self.con_types[idxs] == neuron_type, axis=-1))[0]
-                spikes[type_mask_i] = k*self.gamma_pdf[neuron_type[0], neuron_type[1]].rvs(type_mask_i.shape[0])
+                spikes[type_mask_i] = self.gamma_pdf[neuron_type[0], neuron_type[1]].rvs(type_mask_i.shape[0])
         else:
             spikes = self.gamma_pdf.rvs(n)
 

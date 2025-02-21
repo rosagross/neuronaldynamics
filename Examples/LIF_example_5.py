@@ -7,6 +7,7 @@ from tqdm import tqdm
 from Model.LIF import Conductance_LIF
 matplotlib.use('TkAgg')
 
+# set-up time and input model
 def v0(t):
     v0_bar = 700  # 700 spikes / second / 1000 to convert to ms
     f = 10
@@ -16,38 +17,36 @@ T = 100
 dt = .1
 t = np.arange(0.0, T, dt)
 
-dim = 2000
-con = np.zeros((dim, dim))
-w_bar = 190  # int(dim/10)
+# set up model
+dim = 1000
+n_neurons = 2*dim
+con = np.zeros((n_neurons, n_neurons))
+w_bar = 300
 population_types = ['exc', 'inh']
-neuron_types = np.concatenate((np.zeros(1000), np.ones(1000)))
+neuron_types = np.concatenate((np.zeros(dim), np.ones(dim)))
 population_connections = w_bar * np.array([[0.5, 1], [1, 1]])
 coeff_of_var = 0.5 * np.ones((2, 2))
-mu = np.array([[0.008, 0.027], [0.020, 0.066]])
-
+mu = np.array([[0.008, 0.027], [0.020, 0.066]]).T
 neuron_parameters = {'T': T, 'tau_m': np.array([20, 10]), 't_ref': np.array([3, 1]),
                      'E_e_i': np.array([0, -70]), ''
-                     'n_neurons': dim, 'population_type': population_types,
+                     'n_neurons': n_neurons, 'population_type': population_types,
                      'population_weights': population_connections, 'mu': mu, 'coeff_of_var': coeff_of_var,
                      'type_mask': neuron_types}
+
+# transfer build LIF network and input time series
 lif = Conductance_LIF(parameters=neuron_parameters)
 lif.compute_connections()
 lif.gen_poisson_spikes_input(rate=v0, i_max=1, delay=False, input_type='ee', population=0)
-# lif.gen_poisson_spikes_input(rate=v0, i_max=1, delay=False, input_type='ie')
-# lif.read_poisson_spikes_input(scale=1)
+
+# run simulation
 lif.run()
 
-# Visualize
-lif.plot_volt_trace(idx=3)
-# lif.plot_volt_trace(idx=53)
+# visualize
+# lif.plot_volt_trace(idx=3, population_idx=1)
+# lif.plot_volt_trace(idx=5, population_idx=1)
+# lif.plot_volt_trace(idx=13, population_idx=1)
+# lif.plot_volt_trace(idx=63, population_idx=1)
 lif.raster_plot()
-# # times = [500, 1000, 2000, 3000, 4000]
-# times = [100, 200, 300, 400, 500]
-# lif.plot_voltage_hist(times=times)
-# neuron_num = [0, 2, 5, 12, 22]
-# lif.plot_firing_rate(bin_size=20, smoothing=True)
-lif.plot_populations(bins=1000, smoothing=True, sigma=12, hide_refractory=True, cutoff=None)
+lif.plot_populations(bins=1000, smoothing=True, sigma=1, hide_refractory=True, cutoff=None)
 
-# print(f'neuron 1 spikes: {lif.rec_spikes[0].shape}')
-# print(f'neuron 2 spikes: {lif.rec_spikes[1].shape}')
 
