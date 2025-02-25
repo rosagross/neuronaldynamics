@@ -311,7 +311,7 @@ class Neuron_population():
             # ax.set_ylim([self.V_reset * 1.1, self.V_th*1.1])
 
             ax = fig.add_subplot(n_plots, 2, plot_loc_2)
-            ax.plot(t_plot, r_plot[i_plot]*10*(1000/n_neurons))
+            ax.plot(t_plot, r_plot[i_plot]*(1/self.dt)*(1000/n_neurons))
             ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
             ax.set_ylabel("Firing rate (Hz)")
             ax.set_xlabel("time (ms)")

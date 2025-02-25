@@ -14,14 +14,14 @@ def v0(t):
     return (v0_bar/1000) * (1 + np.sin(2*np.pi*f/1000*t))
 
 T = 100
-dt = .1
+dt = 1.0
 t = np.arange(0.0, T, dt)
 
 # set up model
-dim = 1000
+dim = 10000
 n_neurons = 2*dim
 con = np.zeros((n_neurons, n_neurons))
-w_bar = 300
+w_bar = 3000
 population_types = ['exc', 'inh']
 neuron_types = np.concatenate((np.zeros(dim), np.ones(dim)))
 population_connections = w_bar * np.array([[0.5, 1], [1, 1]])
@@ -47,6 +47,6 @@ lif.run()
 # lif.plot_volt_trace(idx=13, population_idx=1)
 # lif.plot_volt_trace(idx=63, population_idx=1)
 lif.raster_plot()
-lif.plot_populations(bins=1000, smoothing=True, sigma=1, hide_refractory=True, cutoff=None)
+lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None)
 
 
