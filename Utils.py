@@ -3,6 +3,8 @@ import time
 import h5py
 import matplotlib
 import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter1d
+
 
 def get_stability_2D(eigvals):
     """function to test the stability of a 2D system by evaluating common cases of its eigenvalues """
@@ -191,7 +193,7 @@ def get_combintations(array1, array2):
     return grid_combinations[0]
 
 
-def compare_solution(sol_1, sol_2, x=None):
+def compare_solution(sol_1, sol_2, x=None, save_fname=None):
     """
     Function that plots a 2D solution against a reference solution and their nrmse
     :param sol_1: np.ndarray
@@ -212,10 +214,17 @@ def compare_solution(sol_1, sol_2, x=None):
     ax1.plot(x, sol_2)
     ax2 = fig.add_subplot(1, 2, 2)
     ax2.plot(x, diff)
-    ax2.set_title(f"error: {error:.4f}")
-    plt.show()
+    ax2.set_title(f"Difference | nrmse: {error:.4f}")
+    ax1.set_label(['Nykamp', 'LIF'])
+    ax1.set_xlabel('t in ms')
+    ax2.set_xlabel('t in ms')
+    ax1.set_title('Firing rates in Hz')
+    if save_fname==None:
+        plt.show()
+    else:
+        plt.savefig(save_fname)
 
-def compare_firing_rate(fname1, fname2, idx=0):
+def compare_firing_rate(fname1, fname2, idx=0, n_neurons=1000, dt=0.1, smooth = True, save_fname=None):
 
     with h5py.File(fname1 + '.hdf5', 'r') as h5file:
         r1 = np.array(h5file['r'])
@@ -223,8 +232,10 @@ def compare_firing_rate(fname1, fname2, idx=0):
     with h5py.File(fname2 + '.hdf5', 'r') as h5file:
         r2 = np.array(h5file['r'])
 
-    r_compare_1 = r1[idx]*100
-    r_compare_2 = r2[idx]
-    compare_solution(r_compare_1, r_compare_2, x=t)
+    r_compare_2 = r2[idx]*(1/dt)*(1000/n_neurons)
+    r_compare_1 = r1[idx] * 1000
+    if smooth:
+        r_compare_2 = gaussian_filter1d(r_compare_2, sigma=10)
+    compare_solution(r_compare_1, r_compare_2, x=t, save_fname=save_fname)
 
 
