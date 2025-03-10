@@ -37,6 +37,7 @@ class Neuron_population():
         self.t_spikes = None
         self.Iinj = None
         self.alpha = None
+        self.smooth_r = None
     def plot_volt_trace(self, idx=0, population_idx=0):
       """
       Plot trajetory of membrane potential for a single neuron
@@ -254,7 +255,8 @@ class Neuron_population():
         ax.set_xlabel('V in mv')
         plt.show()
 
-    def plot_populations(self, plot_idxs=None, bins=100, cutoff=None, smoothing=False, sigma=2, hide_refractory=True):
+    def plot_populations(self, plot_idxs=None, bins=100, cutoff=None, smoothing=False, sigma=2, hide_refractory=True,
+                         size=1):
 
         with h5py.File(self.fname + '.hdf5', 'r') as h5file:
 
@@ -272,10 +274,11 @@ class Neuron_population():
 
         if smoothing:
             r_plot = gaussian_filter1d(r_plot, sigma=sigma)
+        self.smooth_r = r_plot
 
         # bins = max(bins, t_plot.shape[0])
 
-        fig = plt.figure(figsize=(10, 4.25*n_plots))
+        fig = plt.figure(figsize=(10*size, 4.25*n_plots*size))
         for i_plot, plot_idx in enumerate(plot_idxs):
 
             if self.n_populations > 1:
@@ -398,6 +401,8 @@ class Conductance_LIF(Neuron_population):
             for i in tqdm(range(self.n_neurons), f'defining connection types for {self.n_neurons} neurons'):
                 for j in range(self.n_neurons):
                     self.con_types[i, j] = np.array([self.type_mask[i], self.type_mask[j]])
+
+
 
             # map parameters E_r, tau, V_th, V_reset, tau_m, V_init, E_e_i to arrays
             for key in ['E_r', 'V_th', 'V_reset', 'tau_m', 't_ref', 'V_init']:
@@ -595,16 +600,16 @@ class Conductance_LIF(Neuron_population):
 
         for i, neuron_type_i in enumerate(unique_neuron_types):
             idxs_neuron_type_i = np.where([self.type_mask == neuron_type_i])[1]
+            n_neuron_type_i = idxs_neuron_type_i.shape[0]
             for j, neuron_type_j in enumerate(unique_neuron_types):
                 idxs_neuron_type_j = np.where([self.type_mask == neuron_type_j])[1]
-                n_neuron_type_j = idxs_neuron_type_j.shape[0]
 
                 # computes connections from neuron_type_i to neuron_type_j
-                for k in range(n_neuron_type_j):
+                for k in range(n_neuron_type_i):
                     n_connection = int(self.population_weights[i, j])
                     possible_connections = idxs_neuron_type_j
                     # exclude current idx
-                    possible_connections = possible_connections[possible_connections != idxs_neuron_type_j[k]]
+                    possible_connections = possible_connections[possible_connections != idxs_neuron_type_i[k]]
                     connections_k = random.sample(possible_connections.tolist(), n_connection)
                     self.weights[idxs_neuron_type_i[k], connections_k] = 1
 

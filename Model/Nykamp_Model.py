@@ -815,6 +815,7 @@ class Nykamp_Model_1():
 
         # loop version of code
         self.get_diffusion_coeffs()
+        self.r = None
 
         if verbose > 0:
             t1_coeff = time.time()
@@ -874,6 +875,7 @@ class Nykamp_Model_1():
                     c2ee_v = self.c_v[j, 1, 0]
                     c2ei_v = self.c_v[j, 1, 1]
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
+                    #  check if this is correct
                     f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
                                             + np.sum(v_in[inh_idxs, j, i]) * c1ei_v)
                     f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest) / self.tau_mem[0] +
@@ -884,23 +886,12 @@ class Nykamp_Model_1():
 
                     if i == 0 and verbose > 0:
                         time0_A_exc = time.time()
-                    # LHS matrix (t+dt)
-                    # A_exc = np.diag(1 + 2 * f2_exc - f0_exc) + np.diagflat((-f2_exc - f1_exc)[:-1], 1) + np.diagflat(
-                    #     (f1_exc - f2_exc)[1:], -1)
-                    # A_exc[0, 1] = -2 * f1_exc[1]
-                    # A_exc[-1, -2] = 2 * f1_exc[-2]
 
                     A_exc = self.get_A(f0_exc, f1_exc, f2_exc)
 
                     if i == 0 and verbose > 0:
                         time0_B_exc = time.time()
                         time1_A_exc = time.time()
-
-                    # RHS matrix (t)
-                    # B_exc = np.diag(1 - 2 * f2_exc + f0_exc) + np.diagflat((f2_exc + f1_exc)[:-1], 1) + np.diagflat(
-                    #     (f2_exc - f1_exc)[1:], -1)
-                    # B_exc[0, 1] = 2 * f1_exc[1]
-                    # B_exc[-1, -2] = -2 * f1_exc[-2]
 
                     B_exc = self.get_B(f0_exc, f1_exc, f2_exc)
 
@@ -960,22 +951,12 @@ class Nykamp_Model_1():
                     if i == 0 and verbose > 0:
                         time0_A_inh = time.time()
 
-                    # LHS matrix (t+dt)
-                    # A_inh = np.diag(1 + 2 * f2_inh - f0_inh) + np.diagflat((-f2_inh - f1_inh)[:-1], 1) + np.diagflat(
-                    #     (f1_inh - f2_inh)[1:], -1)
-                    # A_inh[0, 1] = -2 * f1_inh[1]
-                    # A_inh[-1, -2] = 2 * f1_inh[-2]
                     A_inh = self.get_A(f0_inh, f1_inh, f2_inh)
 
                     if i == 0 and verbose > 0:
                         time0_B_inh = time.time()
                         time1_A_inh = time.time()
 
-                    # RHS matrix (t)
-                    # B_inh = np.diag(1 - 2 * f2_inh + f0_inh) + np.diagflat((f2_inh + f1_inh)[:-1], 1) + np.diagflat(
-                    #     (f2_inh - f1_inh)[1:], -1)
-                    # B_inh[0, 1] = 2 * f1_inh[1]
-                    # B_inh[-1, -2] = -2 * f1_inh[-2]
                     B_inh = self.get_B(f0_inh, f1_inh, f2_inh)
 
                     if i == 0 and verbose > 0:
@@ -1029,6 +1010,7 @@ class Nykamp_Model_1():
                     print(f'time for rho_inh: {time_rho_inh:.3f}s')
 
         rho_plot = np.zeros_like(rho)
+        self.r = r
         for k in range(self.n_populations):
             rho_plot[k, :] = rho[k, :]
             rho_plot[k, v_reset_idx, :] = rho[k, v_reset_idx, :] + rho_delta[k, :]
@@ -1082,7 +1064,7 @@ class Nykamp_Model_1():
                 diagonals=[main, lower, upper],
                 offsets=[0, -1, 1], shape=(n_v, n_v),
                 format='csr')
-            B_ = B.todense()
+            # B_ = B.todense()
         return B
 
     def mat_convolve(self, x, kernel):
@@ -1116,7 +1098,6 @@ class Nykamp_Model_1():
 
     def get_diffusion_coeffs(self):
 
-        # TODO: make these matrix operations
         v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
         n_v = v.shape[0]
 

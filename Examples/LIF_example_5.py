@@ -18,10 +18,10 @@ dt = 1.0
 t = np.arange(0.0, T, dt)
 
 # set up model
-dim = 10000
+dim = 1000
 n_neurons = 2*dim
 con = np.zeros((n_neurons, n_neurons))
-w_bar = 3000
+w_bar = 300
 population_types = ['exc', 'inh']
 neuron_types = np.concatenate((np.zeros(dim), np.ones(dim)))
 population_connections = w_bar * np.array([[0.5, 1], [1, 1]])

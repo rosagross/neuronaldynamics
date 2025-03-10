@@ -80,12 +80,13 @@ parameters_1['var_coeff_gamma'] = 0.5*np.ones((3, 2))
 parameters_1['population_type'] = ['exc', 'inh', 'exc']
 parameters_1['input_function_idx'] = [0, 0]
 nyk_1 = Nykamp_Model_1(parameters=parameters_1, name='nykamp_test_3D')
-# nyk_1.simulate(T=T, dt=dt, dv=dv)
+nyk_1.simulate(T=T, dt=dt, dv=dv)
 
 # plot results
 nyk.plot('nykamp_test_2D', heat_map=True)
 nyk.clean()
-# plot('nykamp_test_3D', heat_map=True)
+nyk_1.plot('nykamp_test_3D', heat_map=True)
+nyk_1.clean()
 
 
 

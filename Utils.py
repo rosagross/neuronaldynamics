@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import h5py
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -173,7 +174,7 @@ def list_flatten(in_list):
 
 def get_combintations(array1, array2):
     """
-    Function that computes all 2 element combintations of two 1D arrays
+    Function that computes all 2 element combinations of two 1D arrays
     :param array1: np.ndarray
                 input array 1
     :param array2: np.ndarray
@@ -188,4 +189,42 @@ def get_combintations(array1, array2):
     # Broadcast arrays and create a grid of combinations
     grid_combinations = np.array(np.meshgrid(array1, array2)).T.reshape(-1, 2)
     return grid_combinations[0]
+
+
+def compare_solution(sol_1, sol_2, x=None):
+    """
+    Function that plots a 2D solution against a reference solution and their nrmse
+    :param sol_1: np.ndarray
+        Solution 1 (reference)
+    :param sol_2: np.ndarray
+        Solution 2 (test)
+    :param x: np.ndarray
+        x values (optional) default: None
+    """
+
+    if not type(x) == np.ndarray:
+        x = np.arange(sol_1.shape[0])
+    error = nrmse(sol_1, sol_2)
+    diff = np.abs(sol_1 - sol_2)
+    fig = plt.figure(figsize=(10, 4.25))
+    ax1 = fig.add_subplot(1, 2, 1)
+    ax1.plot(x, sol_1)
+    ax1.plot(x, sol_2)
+    ax2 = fig.add_subplot(1, 2, 2)
+    ax2.plot(x, diff)
+    ax2.set_title(f"error: {error:.4f}")
+    plt.show()
+
+def compare_firing_rate(fname1, fname2, idx=0):
+
+    with h5py.File(fname1 + '.hdf5', 'r') as h5file:
+        r1 = np.array(h5file['r'])
+        t = np.array(h5file['t'])
+    with h5py.File(fname2 + '.hdf5', 'r') as h5file:
+        r2 = np.array(h5file['r'])
+
+    r_compare_1 = r1[idx]*100
+    r_compare_2 = r2[idx]
+    compare_solution(r_compare_1, r_compare_2, x=t)
+
 
