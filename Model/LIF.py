@@ -334,7 +334,7 @@ class Conductance_LIF(Neuron_population):
         self.V_th = -55.  # spike threshold [mV]
         self.V_reset = -67.  # reset potential [mV]
         self.tau_m = 20.  # membrane time constant [ms]
-        self.g_r = 10.  # rest conductance [nS]
+        self.g_r = 10.  # rest conductance [mS]
         self.V_init = -65.  # initial potential [mV]
         self.E_r = -65.  # resting potential [mV]
         self.t_ref = 3. # refractory time (ms)

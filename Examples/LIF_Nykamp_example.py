@@ -19,6 +19,8 @@ def v0(t):
     f = 10
     return (v0_bar/1000) * (1 + np.sin(2*np.pi*f/1000*t))
 
+compare_firing_rate('nykamp_test_2D', 'Conductance_LIF')
+
 T = 100
 dt = 0.1
 t = np.arange(0.0, T, dt)
@@ -27,11 +29,10 @@ t = np.arange(0.0, T, dt)
 dim = 1000
 n_neurons = 3*dim
 con = np.zeros((n_neurons, n_neurons))
-w_bar = 610
+w_bar = 300
 population_types = ['exc', 'inh', 'exc']
 neuron_types = np.concatenate((np.zeros(dim), np.ones(dim), int(2)*np.ones(dim)))
-c_array = np.array([[1/2, 1, 1], [1, 1, 1], [1, 1, 1]])
-population_connections = w_bar * c_array
+population_connections = w_bar * np.array([[1/2, 1, 1], [1, 1, 1], [1, 1, 1]])
 coeff_of_var = 0.5 * np.ones((3, 3))
 # set mu values for all populations, the exc populations keep the same mu values
 mu = np.zeros((3, 3))
@@ -77,7 +78,7 @@ parameters_nykamp['n_alpha'] = 9
 parameters_nykamp['input_function'] = v0
 parameters_nykamp['input_function_type'] = 'custom'
 parameters_nykamp['input_function_idx'] = [0, 0]
-parameters_nykamp['connectivity_matrix'] = w0 * c_array
+parameters_nykamp['connectivity_matrix'] = w0*np.array([[1/2, 1, 1], [1, 1, 1], [1, 1, 1]])
 parameters_nykamp['tau_mem'] = np.array([20, 10, 20])
 parameters_nykamp['tau_ref'] = np.array([3, 1, 3])
 parameters_nykamp['mu_gamma'] = np.array([[0.008, 0.027], [0.020, 0.066], [0.008, 0.027]])
@@ -89,34 +90,9 @@ dv = 0.01
 nyk = Nykamp_Model_1(parameters=parameters_nykamp, name='nykamp_test_3D')
 nyk.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
 
-# saving shenanigans #
 
-tag = np.random.randint(0, 100, size=5)
-tag = str(tag).replace('[', '')
-tag = tag.replace(']', '')
-tag = tag.replace(' ', '')
-save_name = 'nyk_vs_lif_' + tag
-compare_firing_rate('nykamp_test_3D', 'Conductance_LIF', smooth=False, idx=0, save_fname=save_name)
-tag = np.random.randint(0, 100, size=5)
-tag = str(tag).replace('[', '')
-tag = tag.replace(']', '')
-tag = tag.replace(' ', '')
-save_name = 'nyk_vs_lif_' + tag
-compare_firing_rate('nykamp_test_3D', 'Conductance_LIF', smooth=False, idx=1, save_fname=save_name)
-tag = np.random.randint(0, 100, size=5)
-tag = str(tag).replace('[', '')
-tag = tag.replace(']', '')
-tag = tag.replace(' ', '')
-save_name = 'nyk_vs_lif_' + tag
-compare_firing_rate('nykamp_test_3D', 'Conductance_LIF', smooth=True, idx=0, save_fname=save_name)
-tag = np.random.randint(0, 100, size=5)
-tag = str(tag).replace('[', '')
-tag = tag.replace(']', '')
-tag = tag.replace(' ', '')
-save_name = 'nyk_vs_lif_' + tag
-compare_firing_rate('nykamp_test_3D', 'Conductance_LIF', smooth=True, idx=1, save_fname=save_name)
-
-
-
+r_lif = lif.smooth_r[0]
+r_nykamp = nyk.r[0]
+compare_firing_rate('nykamp_test_3D', 'Conductance_LIF')
 
 

@@ -784,6 +784,14 @@ class Nykamp_Model_1():
 
         self.n_populations = len(self.population_type)
 
+        # input voltage
+        if 'voltage_idx' in parameters:
+            self.voltage_idx = parameters['voltage_idx']
+        else:
+            self.voltage_idx = None
+        if 'input_voltage' in parameters:
+            self.input_voltage = parameters['input_voltage']
+
 
     def simulate(self, dv=None, dt=None, T=None, dv_fine=None, sparse_mat=True, verbose=0):
 
@@ -843,11 +851,17 @@ class Nykamp_Model_1():
             rho[i, -1, 0] = 0
 
         # Determine population dynamics (diffusion approximation)
-        for i, t_ in enumerate(tqdm(self.t[:-1])):
+        for i, t_ in enumerate(tqdm(self.t[:-1],f"simulating {self.population_type} neuron populations for"
+                                                  f" {self.t[:-1].shape[0]} time steps")):
 
             # if i > 0:
             #     r_conv = self.mat_convolve(r[:(i + 1), :], self.alpha)[:, :, -len(self.alpha)] * self.dt
             # v_in[:, :, i] = self.connectivity_matrix * r_conv + self.in2D
+
+            if self.voltage_idx is not None:
+                # map shift to dv
+                v_shift = int(self.input_voltage[i] / self.dv)
+                rho[self.voltage_idx, :, i] = np.roll(rho[self.voltage_idx, :, i], v_shift)
 
             for j, type_j in enumerate(self.population_type):
 
@@ -856,9 +870,6 @@ class Nykamp_Model_1():
                 if i > 0:
                     r_conv[j] = np.convolve(r[j, :(i + 1)], self.alpha)[-len(self.alpha)] * self.dt
                 v_in[:, j, i] = self.connectivity_matrix[:, j] * r_conv + self.input[:, j, i]
-                # viiin = np.array([[v_in_ee[i], v_in_ei[i]], [v_in_ie[i], v_in_ii[i]]])
-
-
 
                 # coefficients for finite difference matrices
                 # c1, c2 are over all v steps and i is a time step
