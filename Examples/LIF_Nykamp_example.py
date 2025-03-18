@@ -19,8 +19,6 @@ def v0(t):
     f = 10
     return (v0_bar/1000) * (1 + np.sin(2*np.pi*f/1000*t))
 
-compare_firing_rate('nykamp_test_2D', 'Conductance_LIF')
-
 T = 100
 dt = 0.1
 t = np.arange(0.0, T, dt)

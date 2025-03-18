@@ -28,16 +28,16 @@ dim = 1000
 con = np.zeros((dim, dim))
 n_connection = 220  # int(dim/10)
 
-# for i in tqdm(range(dim), f'computing random neuron connections for {dim} neurons'):
-#     possible_connections = np.arange(dim)
-#     # exclude current idx
-#     possible_connections = possible_connections[possible_connections!=i]
-#     connections_i = random.sample(possible_connections.tolist(), n_connection)
-#     if np.unique(np.array(connections_i)).shape[0] != n_connection:
-#         print(f"failed sampling!!!, idx {i}")
-#     con[i, connections_i] = 1
-#
-#
+for i in tqdm(range(dim), f'computing random neuron connections for {dim} neurons'):
+    possible_connections = np.arange(dim)
+    # exclude current idx
+    possible_connections = possible_connections[possible_connections!=i]
+    connections_i = random.sample(possible_connections.tolist(), n_connection)
+    if np.unique(np.array(connections_i)).shape[0] != n_connection:
+        print(f"failed sampling!!!, idx {i}")
+    con[i, connections_i] = 1
+
+
 def i_ext(t):
     f = 10
     i_ext_0 = 1e-2  # 200µA / 10 mS  =  20mV input
@@ -46,15 +46,15 @@ def i_ext(t):
 i_ext_vals = i_ext(t)
 i_ext_vals = i_ext_vals.repeat(dim).reshape(dim, t.shape[0]).T
 #
-# neuron_parameters = {'T': T, 'tau_m': 20, 't_ref': 3, 'weights': con, 'n_neurons': dim, 'Iinj': i_ext_vals}
-# lif = Conductance_LIF(parameters=neuron_parameters)
+neuron_parameters = {'T': T, 'tau_m': 20, 't_ref': 3, 'weights': con, 'n_neurons': dim, 'Iinj': i_ext_vals}
+lif = Conductance_LIF(parameters=neuron_parameters)
 #
 # lif.run()
 #
 # # visualize
 # lif.plot_volt_trace(idx=3, population_idx=2)
 # lif.raster_plot()
-# lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None, size=0.7)
+lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None, size=0.7)
 
 ########################################################################################################################
 # Nykamp model #
@@ -80,7 +80,7 @@ pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 
-pars_1D['voltage_idx'] = 0
+pars_1D['voltage_idx'] = None
 pars_1D['input_voltage'] = i_ext(t) * dim / 10  # 10 is the g_rest here
 
 T = 100 # 200
