@@ -4,6 +4,8 @@ import matplotlib
 import scipy
 import random
 from tqdm import tqdm
+from Model.Nykamp_Model import Nykamp_Model_1
+from Utils import compare_firing_rate
 from Model.LIF import Conductance_LIF
 matplotlib.use('TkAgg')
 
@@ -14,7 +16,7 @@ def v0(t):
     return (v0_bar/1000) * (1 + np.sin(2*np.pi*f/1000*t))
 
 T = 100
-dt = 1.0
+dt = 0.1
 t = np.arange(0.0, T, dt)
 
 # set up model
@@ -24,7 +26,8 @@ con = np.zeros((n_neurons, n_neurons))
 w_bar = 300
 population_types = ['exc', 'inh']
 neuron_types = np.concatenate((np.zeros(dim), np.ones(dim)))
-population_connections = w_bar * np.array([[0.5, 1], [1, 1]])
+c_array = np.array([[2.0, 1], [1, 1]])
+population_connections = w_bar * c_array
 coeff_of_var = 0.5 * np.ones((2, 2))
 mu = np.array([[0.008, 0.027], [0.020, 0.066]]).T
 neuron_parameters = {'T': T, 'tau_m': np.array([20, 10]), 't_ref': np.array([3, 1]),
@@ -49,4 +52,28 @@ lif.run()
 lif.raster_plot()
 lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None)
 
+parameters = {}
+w0 = 30
+parameters['connectivity_matrix'] = w0*c_array
+parameters['u_rest'] = -65
+parameters['u_thr'] = -55
+parameters['u_exc'] = 0
+parameters['u_inh'] = -70
+parameters['tau_mem'] = np.array([20, 10])
+parameters['tau_ref'] = np.array([3, 1])
+parameters['mu_gamma'] = np.array([[0.008, 0.027], [0.020, 0.066]])
+parameters['var_coeff_gamma'] = 0.5*np.ones((2, 2))
+parameters['tau_alpha'] = 1/3
+parameters['n_alpha'] = 9
+parameters['input_function'] = v0
+parameters['input_function_type'] = 'custom'
+parameters['input_function_idx'] = [0, 0]
+parameters['population_type'] = ['exc', 'inh']
+dv = 0.01
 
+nyk = Nykamp_Model_1(parameters=parameters, name='nykamp_test_2D')
+nyk.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
+nyk.plot('nykamp_test_2D', heat_map=True)
+
+compare_firing_rate('nykamp_test_2D', 'Conductance_LIF', smooth=True, idx=0)
+compare_firing_rate('nykamp_test_2D', 'Conductance_LIF', smooth=True, idx=1)

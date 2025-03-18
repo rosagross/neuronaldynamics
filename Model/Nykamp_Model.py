@@ -316,7 +316,7 @@ class Nykamp_Model():
             rho[i, -1, 0] = 0
 
         # Determine population dynamics (diffusion approximation)
-        for i, t_ in enumerate(tqdm(self.t[:-1])):
+        for i, t_ in enumerate(tqdm(self.t[:-1], f'simulating Nykamp model for {self.t[:-1].shape[0]} time steps')):
 
             # if i > 0:
             #     r_conv = self.mat_convolve(r[:(i + 1), :], self.alpha)[:, :, -len(self.alpha)] * self.dt
@@ -329,8 +329,9 @@ class Nykamp_Model():
                 if i > 0:
                     r_conv[j] = np.convolve(r[j, :(i + 1)], self.alpha)[-len(self.alpha)] * self.dt
                 v_in[:, j, i] = self.connectivity_matrix[:, j] * r_conv + self.input[:, j, i]
-                # viiin = np.array([[v_in_ee[i], v_in_ei[i]], [v_in_ie[i], v_in_ii[i]]])
 
+                # v_in is the incoming FIRING RATE!
+                # it is not a voltage so consider renaming it nu_in
 
 
                 # coefficients for finite difference matrices
@@ -929,6 +930,7 @@ class Nykamp_Model_1():
                         rho[j, :, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho[j, :, i]))
                     else:
                         rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_exc, B_exc.dot(rho[j, :, i]))
+
                     rho[j, :, i + 1] += self.dt * g_exc
                     rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
                             -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
