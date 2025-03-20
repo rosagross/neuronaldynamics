@@ -785,13 +785,14 @@ class Nykamp_Model_1():
 
         self.n_populations = len(self.population_type)
 
-        # input voltage
-        if 'voltage_idx' in parameters:
-            self.voltage_idx = parameters['voltage_idx']
+        # input current
+        if 'input_type' in parameters:
+            self.input_type = parameters['input_type']
         else:
-            self.voltage_idx = None
-        if 'input_voltage' in parameters:
-            self.input_voltage = parameters['input_voltage']
+            self.input_type = 'rate'
+        if 'c_mem' in parameters:
+            self.c_mem = parameters['c_mem']
+
 
 
     def simulate(self, dv=None, dt=None, T=None, dv_fine=None, sparse_mat=True, verbose=0):
@@ -813,8 +814,12 @@ class Nykamp_Model_1():
         self.v = np.arange(self.u_inh, self.u_thr + dv, dv)
 
         self.input = np.zeros([self.n_populations, self.n_populations, self.t.shape[0]])
-        # set up input_function over time
-        self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
+        self.i_ext = np.zeros([self.n_populations, self.t.shape[0]])
+        if self.input_type == 'rate':
+            # set up input_function for rate over time
+            self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
+        elif self.input_type == 'current':
+            self.i_ext[self.input_function_idx] = self.input_function(t=self.t)
 
         # calculate alpha kernel
         self.get_alpha_kernel()
@@ -859,10 +864,10 @@ class Nykamp_Model_1():
             #     r_conv = self.mat_convolve(r[:(i + 1), :], self.alpha)[:, :, -len(self.alpha)] * self.dt
             # v_in[:, :, i] = self.connectivity_matrix * r_conv + self.in2D
 
-            if self.voltage_idx is not None:
-                # map shift to dv
-                v_shift = int(self.input_voltage[i] / self.dv)
-                rho[self.voltage_idx, :, i] = np.roll(rho[self.voltage_idx, :, i], v_shift)
+            # if self.voltage_idx is not None:
+            #     # map shift to dv
+            #     v_shift = int(self.input_voltage[i] / self.dv)
+            #     rho[self.voltage_idx, :, i] = np.roll(rho[self.voltage_idx, :, i], v_shift)
 
             for j, type_j in enumerate(self.population_type):
 
@@ -891,6 +896,7 @@ class Nykamp_Model_1():
                     f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
                                             + np.sum(v_in[inh_idxs, j, i]) * c1ei_v)
                     f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest) / self.tau_mem[0] +
+                                                        self.i_ext[j, i] * self.c_mem[j] +
                                                         np.sum(v_in[exc_idxs, j, i]) * (-c1ee + c2ee_v) +
                                                         np.sum(v_in[inh_idxs, j, i]) * (c1ei + c2ei_v))
                     f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
@@ -956,7 +962,8 @@ class Nykamp_Model_1():
                     f0_inh = self.dt / 2 * (1 / self.tau_mem[1] - np.sum(v_in[exc_idxs, j, i]) * c1ie_v +
                                             np.sum(v_in[inh_idxs, j, i]) * c1ii_v)
                     f1_inh = self.dt / (4 * self.dv) * (
-                            (self.v - self.u_rest) / self.tau_mem[1] + np.sum(v_in[exc_idxs, j, i]) * (-c1ie + c2ie_v) +
+                            (self.v - self.u_rest) / self.tau_mem[1] + self.i_ext[j, i] * self.c_mem[j] +
+                            np.sum(v_in[exc_idxs, j, i]) * (-c1ie + c2ie_v) +
                             np.sum(v_in[inh_idxs, j, i]) * (c1ii + c2ii_v))
                     f2_inh = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ie +
                                                              np.sum(v_in[inh_idxs, j, i]) * c2ii)

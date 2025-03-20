@@ -43,6 +43,12 @@ def i_ext(t):
     i_ext_0 = 1e-2  # 200µA / 10 mS  =  20mV input
     return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*t))
 
+def i_ext_population(t):
+    f = 10
+    i_ext_0 = 1e-2 * dim
+    return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*t))
+
+
 i_ext_vals = i_ext(t)
 i_ext_vals = i_ext_vals.repeat(dim).reshape(dim, t.shape[0]).T
 #
@@ -54,7 +60,7 @@ lif = Conductance_LIF(parameters=neuron_parameters)
 # # visualize
 # lif.plot_volt_trace(idx=3, population_idx=2)
 # lif.raster_plot()
-lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None, size=0.7)
+# lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None, size=0.7)
 
 ########################################################################################################################
 # Nykamp model #
@@ -75,13 +81,13 @@ pars_1D['mu_gamma'] = np.array([[0.008, 0.027]])
 pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
 pars_1D['tau_alpha'] = 1/3
 pars_1D['n_alpha'] = 9
-pars_1D['input_function'] = no_in
+pars_1D['input_function'] = i_ext_population
 pars_1D['input_function_type'] = 'custom'
-pars_1D['input_function_idx'] = [0, 0]
+pars_1D['input_function_idx'] = 0
 pars_1D['population_type'] = ['exc']
 
-pars_1D['voltage_idx'] = None
-pars_1D['input_voltage'] = i_ext(t) * dim / 10  # 10 is the g_rest here
+pars_1D['input_type'] = 'current'
+pars_1D['c_mem'] = [0.2]  # 0.2F capacitance
 
 T = 100 # 200
 dt = 0.1 # 0.1
