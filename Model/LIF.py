@@ -143,7 +143,7 @@ class Neuron_population():
         rv_idx = 0
         for j in tqdm(range(n_spike_neurons), f'creating background activity for {n_spike_neurons} neurons'):
             # The following should generate 5 cycles of non-zero
-            # event epochs between time 0 and time 100
+            # event epochs between time 0 and time self.T
             t_vals = []
             t = 0.0
             while True:
@@ -182,6 +182,9 @@ class Neuron_population():
 
         i_s[:, int(t_start / self.dt)] = 0
         i_s[:, int(t_end / self.dt):] = 0
+
+        # move the values around
+        i_s = np.roll(i_s, -60)
 
         if conductance_spikes:
             # transform to average conductance spike, to test

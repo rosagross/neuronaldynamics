@@ -792,6 +792,8 @@ class Nykamp_Model_1():
             self.input_type = 'rate'
         if 'c_mem' in parameters:
             self.c_mem = parameters['c_mem']
+        else:
+            self.c_mem = [1]*self.n_populations
 
 
 
@@ -896,7 +898,7 @@ class Nykamp_Model_1():
                     f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
                                             + np.sum(v_in[inh_idxs, j, i]) * c1ei_v)
                     f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest) / self.tau_mem[0] +
-                                                        self.i_ext[j, i] * self.c_mem[j] +
+                                                        (self.i_ext[j, i] / self.c_mem[j]) +
                                                         np.sum(v_in[exc_idxs, j, i]) * (-c1ee + c2ee_v) +
                                                         np.sum(v_in[inh_idxs, j, i]) * (c1ei + c2ei_v))
                     f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
@@ -922,10 +924,12 @@ class Nykamp_Model_1():
                                                np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1])
 
                     # calculate firing rate
-                    r[j, i] = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
+                    r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
                                                                self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
                                                                            self.u_exc - self.u_rest)) *
                                                                rho_delta[j, i])
+                    r_ext = (1 / self.c_mem[j]) * self.i_ext[j, i]
+                    r[j, i] = r_j # + r_ext
                     if r[j, i] < 0:
                         r[j, i] = 0
                     if not r[j, i] < 0 and not r[j, i] >0 and not r[j, i] == 0:
@@ -962,7 +966,7 @@ class Nykamp_Model_1():
                     f0_inh = self.dt / 2 * (1 / self.tau_mem[1] - np.sum(v_in[exc_idxs, j, i]) * c1ie_v +
                                             np.sum(v_in[inh_idxs, j, i]) * c1ii_v)
                     f1_inh = self.dt / (4 * self.dv) * (
-                            (self.v - self.u_rest) / self.tau_mem[1] + self.i_ext[j, i] * self.c_mem[j] +
+                            (self.v - self.u_rest) / self.tau_mem[1] + (self.i_ext[j, i] / self.c_mem[j]) +
                             np.sum(v_in[exc_idxs, j, i]) * (-c1ie + c2ie_v) +
                             np.sum(v_in[inh_idxs, j, i]) * (c1ii + c2ii_v))
                     f2_inh = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ie +
@@ -988,10 +992,12 @@ class Nykamp_Model_1():
                                                np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1])
 
                     # calculate firing rate
-                    r[j, i] = np.sum(v_in[exc_idxs, j, i]) * (c2ie[-1] * rho[j, -2, i] / self.dv +
+                    r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ie[-1] * rho[j, -2, i] / self.dv +
                                                               self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
                                                                           self.u_exc - self.u_rest)) *
                                                               rho_delta[j, i])
+                    r_ext = (1/self.c_mem[j])*self.i_ext[j, i]
+                    r[j, i] = r_j # + r_ext
                     if r[j, i] < 0:
                         # print(f"WARNING: r_inh < 0 ! (r_inh = {r_inh[i]}) ... Setting r_inh to 0")
                         r[j, i] = 0

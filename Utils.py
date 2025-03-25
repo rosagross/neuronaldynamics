@@ -193,7 +193,7 @@ def get_combintations(array1, array2):
     return grid_combinations[0]
 
 
-def compare_solution(sol_1, sol_2, x=None, save_fname=None):
+def compare_solution(sol_1, sol_2, x=None, save_fname=None, titles = ['plot1', 'Plot2']):
     """
     Function that plots a 2D solution against a reference solution and their nrmse
     :param sol_1: np.ndarray
@@ -219,6 +219,7 @@ def compare_solution(sol_1, sol_2, x=None, save_fname=None):
     ax1.set_xlabel('t in ms')
     ax2.set_xlabel('t in ms')
     ax1.set_title('Firing rates in Hz')
+    ax1.legend(titles)
     if save_fname==None:
         plt.show()
     else:
@@ -236,6 +237,6 @@ def compare_firing_rate(fname1, fname2, idx=0, n_neurons=1000, dt=0.1, smooth = 
     r_compare_1 = r1[idx] * 1000
     if smooth:
         r_compare_2 = gaussian_filter1d(r_compare_2, sigma=10)
-    compare_solution(r_compare_1, r_compare_2, x=t, save_fname=save_fname)
+    compare_solution(r_compare_1, r_compare_2, x=t, save_fname=save_fname, titles=[fname1, fname2])
 
 

@@ -30,7 +30,7 @@ con = np.zeros((n_neurons, n_neurons))
 w_bar = 300
 population_types = ['exc', 'inh', 'exc']
 neuron_types = np.concatenate((np.zeros(dim), np.ones(dim), int(2)*np.ones(dim)))
-population_connections = w_bar * np.array([[1/2, 1, 1], [1, 1, 1], [1, 1, 1]])
+population_connections = w_bar * np.array([[1/2, 1, 1.5], [1, 1, 1], [1, 1, 1]])
 coeff_of_var = 0.5 * np.ones((3, 3))
 # set mu values for all populations, the exc populations keep the same mu values
 mu = np.zeros((3, 3))
@@ -88,9 +88,8 @@ dv = 0.01
 nyk = Nykamp_Model_1(parameters=parameters_nykamp, name='nykamp_test_3D')
 nyk.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
 
-
-r_lif = lif.smooth_r[0]
-r_nykamp = nyk.r[0]
-compare_firing_rate('nykamp_test_3D', 'Conductance_LIF')
+compare_firing_rate('nykamp_test_3D', 'Conductance_LIF', idx=0)
+compare_firing_rate('nykamp_test_3D', 'Conductance_LIF', idx=1)
+compare_firing_rate('nykamp_test_3D', 'Conductance_LIF', idx=2)
 
 
