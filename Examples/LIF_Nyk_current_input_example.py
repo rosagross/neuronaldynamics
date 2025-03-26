@@ -19,7 +19,7 @@ def v0(t):
     f = 10
     return (v0_bar/1000) * (1 + np.sin(2*np.pi*f/1000*t))
 
-T = 100
+T = 350
 dt = 0.1
 t = np.arange(0.0, T, dt)
 
@@ -40,24 +40,47 @@ for i in tqdm(range(dim), f'computing random neuron connections for {dim} neuron
 
 def i_ext(t):
     f = 10
-    i_ext_0 = 1e-2  # 200µA / 10 mS  =  20mV input
+    i_ext_0 = 2.7e-2  # 200µA / 10 mS  =  20mV input
     return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*t))
 
 def i_ext_population(t):
     f = 10
-    i_ext_0 = 1e-2 * dim
-    return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*t))
+    i_ext_0 = 2.7e-2 * dim * (1/lif.g_r) * 1.5
+    x0 = i_ext_0 / dim * lif.g_r * 100
+    t0 = np.exp(-(x0 - 3)) + 2
+    return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*(t-t0)))
 
+def step(t):
+    t1 = 20
+    t2 = 90
+    i_0 = 1e-2
+    res = np.zeros_like(t)
+    res[t > t1] = i_0
+    res[t > t2] = 0
+    return res
+
+
+
+def step_population(t):
+    t1 = 20
+    t2 = 90
+    i_0 = 1e-2 * dim * (1/lif.g_r) * 1.5
+    x0 = i_0 / dim * lif.g_r * 100
+    t0 = np.exp(-(x0 - 3)) + 2
+    res = np.zeros_like(t)
+    res[t-t0 > t1] = i_0
+    res[t-t0 > t2] = 0
 
 i_ext_vals = i_ext(t)
-i_ext_vals = i_ext_vals.repeat(dim).reshape(dim, t.shape[0]).T
-#
+# i_ext_vals = step(t)
+i_ext_vals = i_ext_vals.repeat(dim).reshape(t.shape[0], dim).T
+
 neuron_parameters = {'T': T, 'tau_m': 20, 't_ref': 3, 'weights': con, 'n_neurons': dim, 'Iinj': i_ext_vals}
 lif = Conductance_LIF(parameters=neuron_parameters)
-#
-# lif.run()
-#
-# # visualize
+
+lif.run()
+
+# visualize
 # lif.plot_volt_trace(idx=3, population_idx=2)
 # lif.raster_plot()
 # lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None, size=0.7)
@@ -81,22 +104,22 @@ pars_1D['mu_gamma'] = np.array([[0.008, 0.027]])
 pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
 pars_1D['tau_alpha'] = 1/3
 pars_1D['n_alpha'] = 9
+# pars_1D['input_function'] = step_population
 pars_1D['input_function'] = i_ext_population
 pars_1D['input_function_type'] = 'custom'
-pars_1D['input_function_idx'] = 0
+pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 
-pars_1D['input_type'] = 'current'
+# pars_1D['input_type'] = 'current'
 pars_1D['c_mem'] = [0.2]  # 0.2F capacitance
 
-T = 100 # 200
 dt = 0.1 # 0.1
 dv = 0.01
 
-nyk1D = Nykamp_Model_1(parameters=pars_1D, name='nykamp_test_1D')
+nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp')
 nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
-nyk1D.plot(heat_map=True)
+# nyk1D.plot(heat_map=True)
 #
-# compare_firing_rate('nykamp_test_1D', 'Conductance_LIF')
+compare_firing_rate('Nykamp', 'Conductance_LIF')
 
 
