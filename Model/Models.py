@@ -6,6 +6,7 @@ from scipy.integrate import odeint
 from Utils import get_stability_2D, nrmse
 import matplotlib.pyplot as plt
 import matplotlib
+matplotlib.use('TkAgg')
 
 class General2DSystem():
     """ A class to investigate general 2D systems in terms of their dynamics """
@@ -20,6 +21,7 @@ class General2DSystem():
         self.solver = 'odeint'
         self.time_vals = None
         self.nullclines=[]
+        self.equilibria=[]
 
         if t != None:
             self.t = t
@@ -54,7 +56,7 @@ class General2DSystem():
         if usetex:
             plt.rcParams['text.usetex'] = True
 
-        matplotlib.use('TkAgg')
+
 
 
     def system(self, u, t):
@@ -117,6 +119,7 @@ class General2DSystem():
                    plot_nullclines=True, get_equilibiria=True):
 
         # TODO: extend to 1D system making a slope field plot of solutions
+        # TODO: function is experimental, with the nulclines and often doesn't work
 
         if x_label == None:
             x_label = self.variables[0]
@@ -157,8 +160,14 @@ class General2DSystem():
                     exec(f"{pname} = self.parameters['{pname}']")
                 nullcline_dict = self.parameters.copy()
                 nullcline_dict[f'{self.variables[0]}'] = xs
-                x_nullcline_values = eval(f'{self.nullclines[0]}', nullcline_dict)
-                y_nullcline_values = eval(f'{self.nullclines[1]}', nullcline_dict)
+                if not self.variables[0] in self.nullclines[0]:
+                    x_nullcline_values = eval(f'{self.nullclines[0]}') * np.ones_like(xs)
+                else:
+                    x_nullcline_values = eval(f'{self.nullclines[0]}', nullcline_dict)
+                if not self.variables[0] in self.nullclines[0]:
+                    y_nullcline_values = eval(f'{self.nullclines[1]}') * np.ones_like(xs)
+                else:
+                    y_nullcline_values = eval(f'{self.nullclines[1]}', nullcline_dict)
 
                 # avoid dimensionality error if nullcline is constant
                 # if y nullcline is constant plot a vline at x=constant
@@ -362,6 +371,122 @@ class General2DSystem():
 
         self.parameters[parameter] = p_vals
 
+    def phase_portrait(self, x_range=[0, 1], y_range=[0, 1], x_steps=0.05, y_steps=0.05, color='black', ax=None):
+        """Plots phase portrait given a dynamical system
+
+        Given a dynamical system of the form dXdt=f(X,t,...), plot the phase portrait of the system.
+
+        Parameters
+        ----------
+
+        x_range : array
+            The range of the first variable
+
+        y_range : array
+            The range of the second variable
+
+        diffeq : function
+            The function dXdt = f(X,t,...)
+
+        params:
+            System parameters to be passed to diffeq
+
+        ax : pyplot plotting axes
+            Optional existing axis to pass to function
+
+        Returns
+        -------
+        out : ax
+            plotting axis with formatted quiver plot
+        """
+        if (ax is None):
+            fig, ax = plt.subplots(figsize=(12, 8))
+
+        x_vals = np.arange(x_range[0], x_range[1], x_steps)
+        y_vals = np.arange(y_range[0], y_range[1], y_steps)
+
+        XS, YS = np.meshgrid(x_vals, y_vals)
+        t = 0  # start time
+        u, w = np.zeros(XS.shape), np.zeros(YS.shape)
+        NI, NJ = XS.shape
+
+        for i in range(NI):
+            for j in range(NJ):
+                xcoord = XS[i, j]
+                ycoord = YS[i, j]
+                f = self.system(np.array([xcoord, ycoord]), t=t)
+                u[i, j] = f[0]
+                w[i, j] = f[1]
+
+        r = np.sqrt(u ** 2 + w ** 2)
+        r = np.where(r == 0, 1, r)
+
+        quiver = ax.quiver(XS, YS, u / r, w / r,
+                      color=color)
+
+        if len(self.equilibria) > 0:
+            for i in range(len(self.equilibria)):
+                if self.equilibria[i][1] == 'unstable':
+                    plt.scatter(self.equilibria[i][0][0], self.equilibria[i][0][1], s=50, facecolors='none',
+                                edgecolors='k', zorder=10)
+                elif self.equilibria[i][1] == 'stable':
+                    plt.scatter(self.equilibria[i][0][0], self.equilibria[i][0][1], s=50, c='k', zorder=10)
+        plt.grid()
+        plt.show()
+
+    def get_equilibria(self, x_range=[0, 1], y_range=[0, 1], x_steps=0.5, y_steps=0.5, conv_args={}):
+
+        precision = min(x_steps, y_steps)
+        precision_str = str(f'{precision:e}')
+        if precision_str[-3] == '-':
+            round_val = int(precision_str[:-3]) + 1
+        else:
+            round_val = 1
+
+        x_vals = np.arange(x_range[0], x_range[1], x_steps)
+        y_vals = np.arange(y_range[0], y_range[1], y_steps)
+        n_x = x_vals.shape[0]
+        n_y = y_vals.shape[0]
+        u_conv = np.zeros((n_x*n_y, 2))
+        u_div = np.zeros((n_x*n_y, 2))
+        for i, x_i in enumerate(x_vals):
+            for j, y_j in enumerate(y_vals):
+                idx = n_x*i + j
+                u_conv[idx] = self.euler_convergence(u0=[x_i, y_j], t_direction=1, **conv_args)
+                u_div[idx] = self.euler_convergence(u0=[x_i, y_j], t_direction=-1, **conv_args)
+        unique_convs = np.unique(u_conv.round(round_val), axis=0)
+        unique_convs = unique_convs[unique_convs[:, 0] > x_range[0]]
+        unique_convs = unique_convs[unique_convs[:, 0] < x_range[1]]
+        unique_convs = unique_convs[unique_convs[:, 1] > y_range[0]]
+        unique_convs = unique_convs[unique_convs[:, 1] < y_range[1]]
+        unique_divs = np.unique(u_div.round(round_val), axis=0)
+        unique_divs = unique_divs[unique_divs[:, 0] > x_range[0]]
+        unique_divs = unique_divs[unique_divs[:, 0] < x_range[1]]
+        unique_divs = unique_divs[unique_divs[:, 1] > y_range[0]]
+        unique_divs = unique_divs[unique_divs[:, 1] < y_range[1]]
+
+        for k in range(unique_convs.shape[0]):
+            self.equilibria.append([unique_convs[k], 'stable'])
+        for k in range(unique_divs.shape[0]):
+            self.equilibria.append([unique_divs[k], 'unstable'])
+
+
+    def euler_convergence(self, u0, h=0.1, tol=1e-2, max_iter=1e3, t_direction=1, div_tol=1e5):
+        u = np.zeros((int(max_iter+1), 2))
+        u[0] = u0
+        dt = h*t_direction
+        for i in range(int(max_iter)):
+            u[i+1] = u[i] + dt * self.system(t=i*dt, u=u[i])
+            err = nrmse(u[i+1], u[i])
+            if err < tol:
+                break
+            if np.abs(np.sum(u[i])) > div_tol:
+                break
+            if i+1 == max_iter:
+                print(f'Euler convergence test did not converge after {i+1} iteration')
+        return u[i]
+
+
 class General1DSystem(General2DSystem):
 
     def __init__(self, **kwargs):
@@ -386,60 +511,6 @@ class General1DSystem(General2DSystem):
             self.time_vals = t
 
 
-def phase_portrait(v1, v2, diffeq,
-                   *params,
-                   color='black',
-                   ax=None):
-    """Plots phase portrait given a dynamical system
-
-    Given a dynamical system of the form dXdt=f(X,t,...), plot the phase portrait of the system.
-
-    Parameters
-    ----------
-
-    v1 : array
-        The range of the first variable
-
-    v2 : array
-        The range of the second variable
-
-    diffeq : function
-        The function dXdt = f(X,t,...)
-
-    params:
-        System parameters to be passed to diffeq
-
-    ax : pyplot plotting axes
-        Optional existing axis to pass to function
-
-    Returns
-    -------
-    out : ax
-        plotting axis with formatted quiver plot
-    """
-    if (ax is None):
-        fig, ax = plt.subplots(figsize=(12, 8))  # Troy edit to make plot bigger
-
-    V1, V2 = np.meshgrid(v1, v2)  # create rectangular grid with points
-    t = 0  # start time
-    u, w = np.zeros(V1.shape), np.zeros(V2.shape)  # initiate values for quiver arrows
-    NI, NJ = V1.shape
-
-    for i in range(NI):
-        for j in range(NJ):
-            xcoord = V1[i, j]
-            ycoord = V2[i, j]
-            vprime = diffeq([xcoord, ycoord], t, *params)
-            u[i, j] = vprime[0]
-            w[i, j] = vprime[1]
-
-    r = np.sqrt(u**2 + w**2)
-    r = np.where(r == 0, 1, r)
-
-    Q = ax.quiver(V1, V2, u / r, w / r,  # TROY EDIT using ax instead of plt to fix last code cell output
-                  color=color)
-
-    return ax
 
 
 def slope_field(t, x, diffeq, units='xy', angles='xy', scale=None, color='black', ax=None, **args):

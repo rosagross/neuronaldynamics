@@ -42,7 +42,7 @@ def nrmse(reference, x):
     square = np.square(diff)
     mse = square.mean()
     rmse = np.sqrt(mse)
-    nrmse = rmse / (np.max(x) - np.min(x))
+    nrmse = rmse / (np.max(x) - np.min(x) + 1e-12)
     return nrmse
 
 
