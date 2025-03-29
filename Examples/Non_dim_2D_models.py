@@ -4,6 +4,9 @@ import numpy as np
 #TODO: turn this into a jupyter Notebook
 #TODO: apply range of step currents to test usual behaviour
 
+class1 = Test()
+class1.test_function('test1')
+
 system = General2DSystem()
 x0 = np.array([1., 0.2])
 t = np.arange(0, 10, 0.01)
