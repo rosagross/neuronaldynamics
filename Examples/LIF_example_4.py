@@ -20,7 +20,7 @@ def input_step_function(t):
     res[(t>10) & (t<80)] = amp
     return res
 
-T = 100
+T = 300
 dt = .1
 t = np.arange(0.0, T, dt)
 

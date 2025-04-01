@@ -15,7 +15,7 @@ def v0(t):
     f = 10
     return (v0_bar/1000) * (1 + np.sin(2*np.pi*f/1000*t))
 
-T = 100
+T = 300
 dt = 0.1
 t = np.arange(0.0, T, dt)
 
@@ -49,8 +49,8 @@ lif.run()
 # lif.plot_volt_trace(idx=5, population_idx=1)
 # lif.plot_volt_trace(idx=13, population_idx=1)
 # lif.plot_volt_trace(idx=63, population_idx=1)
-lif.raster_plot()
-lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None)
+# lif.raster_plot()
+# lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None)
 
 parameters = {}
 w0 = 30
@@ -73,7 +73,7 @@ dv = 0.01
 
 nyk = Nykamp_Model_1(parameters=parameters, name='nykamp_test_2D')
 nyk.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
-nyk.plot('nykamp_test_2D', heat_map=True)
+# nyk.plot('nykamp_test_2D', heat_map=True)
 
 compare_firing_rate('nykamp_test_2D', 'Conductance_LIF', smooth=True, idx=0)
 compare_firing_rate('nykamp_test_2D', 'Conductance_LIF', smooth=True, idx=1)

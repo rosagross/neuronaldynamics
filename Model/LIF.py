@@ -184,7 +184,7 @@ class Neuron_population():
         i_s[:, int(t_end / self.dt):] = 0
 
         # move the values around
-        i_s = np.roll(i_s, -60)
+        i_s = np.roll(i_s, -45)
 
         if conductance_spikes:
             # transform to average conductance spike, to test
