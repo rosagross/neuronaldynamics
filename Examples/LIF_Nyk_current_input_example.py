@@ -19,7 +19,7 @@ def v0(t):
     f = 10
     return (v0_bar/1000) * (1 + np.sin(2*np.pi*f/1000*t))
 
-T = 350
+T = 100
 dt = 0.1
 t = np.arange(0.0, T, dt)
 
@@ -40,7 +40,12 @@ for i in tqdm(range(dim), f'computing random neuron connections for {dim} neuron
 
 def i_ext(t):
     f = 10
-    i_ext_0 = 2.7e-2  # 200µA / 10 mS  =  20mV input
+    i_ext_0 = 0.7e-2  # 200µA / 10 mS  =  20mV input
+    return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*t))
+
+def i_ext_1(t):
+    f = 10
+    i_ext_0 = 0.7e0 # 200µA / 10mS  =  20mV input
     return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*t))
 
 def i_ext_population(t):
@@ -49,6 +54,7 @@ def i_ext_population(t):
     x0 = i_ext_0 / dim * lif.g_r * 100
     t0 = np.exp(-(x0 - 3)) + 2
     return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*(t-t0)))
+
 
 def step(t):
     t1 = 20
@@ -70,6 +76,7 @@ def step_population(t):
     res = np.zeros_like(t)
     res[t-t0 > t1] = i_0
     res[t-t0 > t2] = 0
+    return res
 
 i_ext_vals = i_ext(t)
 # i_ext_vals = step(t)
@@ -105,20 +112,21 @@ pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
 pars_1D['tau_alpha'] = 1/3
 pars_1D['n_alpha'] = 9
 # pars_1D['input_function'] = step_population
-pars_1D['input_function'] = i_ext_population
+pars_1D['input_function'] = i_ext_1
 pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 
-# pars_1D['input_type'] = 'current'
-pars_1D['c_mem'] = [0.2]  # 0.2F capacitance
+g_leak = lif.g_r
+pars_1D['input_type'] = 'current'
+pars_1D['g_leak'] = [g_leak]  # leakage conductance
 
 dt = 0.1 # 0.1
 dv = 0.01
 
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp')
 nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
-# nyk1D.plot(heat_map=True)
+nyk1D.plot(heat_map=True)
 #
 compare_firing_rate('Nykamp', 'Conductance_LIF')
 
