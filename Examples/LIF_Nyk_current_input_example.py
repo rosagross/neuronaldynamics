@@ -45,7 +45,7 @@ def i_ext(t):
 
 def i_ext_1(t):
     f = 10
-    i_ext_0 = 0.7e0 # 200µA / 10mS  =  20mV input
+    i_ext_0 = 0.7e1 # 200µA / 10mS  =  20mV input
     return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*t))
 
 def i_ext_population(t):
@@ -90,7 +90,7 @@ lif.run()
 # visualize
 # lif.plot_volt_trace(idx=3, population_idx=2)
 # lif.raster_plot()
-# lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None, size=0.7)
+lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None, size=0.7)
 
 ########################################################################################################################
 # Nykamp model #

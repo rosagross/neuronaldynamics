@@ -898,13 +898,12 @@ class Nykamp_Model_1():
                     f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
                                             + np.sum(v_in[inh_idxs, j, i]) * c1ei_v)
                     f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest) / self.tau_mem[0] +
-                                                        # - (self.i_ext[j, i] / self.g_leak[j]) +
+                                                        - (self.i_ext[j, i] / self.g_leak[j]) +
                                                         np.sum(v_in[exc_idxs, j, i]) * (-c1ee + c2ee_v) +
                                                         np.sum(v_in[inh_idxs, j, i]) * (c1ei + c2ei_v))
                     f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
-                                                             np.sum(v_in[inh_idxs, j, i]) * c2ei -
-                                                             ((self.i_ext[j, i]/self.g_leak)**2 +
-                                                             (self.i_ext[j, i]/self.g_leak) * self.v))
+                                                             np.sum(v_in[inh_idxs, j, i]) * c2ei +
+                                                             + 0.5 * self.i_ext[j, i]**2/self.g_leak[j]**2)
 
                     if i == 0 and verbose > 0:
                         time0_A_exc = time.time()
@@ -932,8 +931,7 @@ class Nykamp_Model_1():
                                                                self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
                                                                            self.u_exc - self.u_rest)) *
                                                                rho_delta[j, i])
-                    r_ext = ((self.i_ext[j, i]/self.g_leak)**2 + (self.i_ext[j, i]/self.g_leak) * self.u_thr) *\
-                            rho[j, -2, i] / self.dv
+                    r_ext = - (self.i_ext[j, i]/self.g_leak[j])**2 * rho[j, -2, i] / self.dv
 
                     r[j, i] = r_j + r_ext
 
