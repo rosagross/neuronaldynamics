@@ -852,6 +852,11 @@ class Nykamp_Model_1():
         exc_idxs = [i for i, type in enumerate(self.population_type) if type == 'exc']
         inh_idxs = [i for i, type in enumerate(self.population_type) if type == 'inh']
 
+        self.c1eext = np.zeros_like(self.v)
+        self.c2eext = np.zeros_like(self.v)
+        self.c1eext_v = np.zeros_like(self.v)
+        self.c2eext_v = np.zeros_like(self.v)
+
         for i in range(len(self.population_type)):
             # initialize arrays
             rho[i, :, 0] = scipy.stats.norm.pdf(self.v, self.u_rest, 1)
@@ -871,6 +876,7 @@ class Nykamp_Model_1():
             #     v_shift = int(self.input_voltage[i] / self.dv)
             #     rho[self.voltage_idx, :, i] = np.roll(rho[self.voltage_idx, :, i], v_shift)
 
+
             for j, type_j in enumerate(self.population_type):
 
                 # as of now r_conv has only one dimension, same as r
@@ -881,7 +887,7 @@ class Nykamp_Model_1():
 
                 # coefficients for finite difference matrices
                 # c1, c2 are over all v steps and i is a time step
-                # here the values need to be probably split between excitatory and inhibitory types
+                # here the values are split between excitatory and inhibitory types
                 if type_j == 'exc':
                     # excitatory population
                     # ================================================================================================================
@@ -893,17 +899,31 @@ class Nykamp_Model_1():
                     c1ei_v = self.c_v[j, 0, 1]
                     c2ee_v = self.c_v[j, 1, 0]
                     c2ei_v = self.c_v[j, 1, 1]
+
+                    if self.input_type == 'current':
+                        v_ext = self.i_ext[j, i] / self.g_leak[j]
+                        mask1 = np.where(self.v < v_ext + self.u_inh)[0]
+                        mask2 = np.where(self.v > v_ext + self.u_inh)[0]
+
+                        self.c1eext[mask1] = self.v[mask1] - self.u_inh
+                        self.c1eext[mask2] = v_ext
+                        self.c1eext_v[mask1] = 1
+                        self.c1eext_v[mask2] = 0
+                        self.c2eext[mask1] = -0.5 * (self.v[mask1] - self.u_inh) ** 2
+                        self.c2eext[mask2] = v_ext ** 2
+                        self.c2eext_v[mask1] = (self.u_inh - self.v[mask1])
+                        self.c2eext_v[mask2] = 0
+
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
                     #  check if this is correct
                     f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
-                                            + np.sum(v_in[inh_idxs, j, i]) * c1ei_v)
+                                            + np.sum(v_in[inh_idxs, j, i]) * c1ei_v - self.c1eext_v)
                     f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest) / self.tau_mem[0] +
-                                                        - (self.i_ext[j, i] / self.g_leak[j]) +
+                                                        - self.c1eext + self.c2eext_v +  # new external inputs
                                                         np.sum(v_in[exc_idxs, j, i]) * (-c1ee + c2ee_v) +
                                                         np.sum(v_in[inh_idxs, j, i]) * (c1ei + c2ei_v))
                     f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
-                                                             np.sum(v_in[inh_idxs, j, i]) * c2ei +
-                                                             + 0.5 * self.i_ext[j, i]**2/self.g_leak[j]**2)
+                                                             np.sum(v_in[inh_idxs, j, i]) * c2ei + self.c2eext)
 
                     if i == 0 and verbose > 0:
                         time0_A_exc = time.time()
@@ -931,7 +951,7 @@ class Nykamp_Model_1():
                                                                self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
                                                                            self.u_exc - self.u_rest)) *
                                                                rho_delta[j, i])
-                    r_ext = - (self.i_ext[j, i]/self.g_leak[j])**2 * rho[j, -2, i] / self.dv
+                    r_ext = - self.c2eext[-1] * rho[j, -2, i] / self.dv
 
                     r[j, i] = r_j + r_ext
 

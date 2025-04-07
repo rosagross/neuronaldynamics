@@ -493,7 +493,7 @@ class Conductance_LIF(Neuron_population):
                         amp_mat = np.zeros_like(connections)
                         amp_mat[active_connections] = amps
                         v_0 = self.v[:, it-1]
-                        v_neuron_postsyn_mat = v_0.repeat(con_bool.shape[0], axis=0).reshape(con_bool.shape[0],  self.n_neurons)
+                        v_neuron_postsyn_mat = v_0.repeat(con_bool.shape[0], axis=0).reshape(con_bool.shape[0], self.n_neurons)
                         if self.n_populations > 1:
                             E_e_i_presyn = np.zeros_like(connections)
                             pre_syn_types = self.con_types[active_neurons_r, active_connections[1]][:, 0]
@@ -506,8 +506,8 @@ class Conductance_LIF(Neuron_population):
                         inputs = (1 - np.exp(-amp_mat)) * (E_e_i_presyn - v_neuron_postsyn_mat)
                         input = np.sum(inputs, axis=0)
                     # update input spikes from poisson conductance changes
-                    v_inputs_ext = (1 - np.exp(-self.Iinj[:, it])) * (self.E_e_i[self.spike_type] - self.v[:, it-1])
-                    input += v_inputs_ext  # * 1/(1/self.tau_m)
+                    # v_inputs_ext = (1 - np.exp(-self.Iinj[:, it])) * (self.E_e_i[self.spike_type] - self.v[:, it-1])
+                    # input += v_inputs_ext  # * 1/(1/self.tau_m)
                     input = input * 1/(1/self.tau_m)
 
             else:
@@ -545,7 +545,7 @@ class Conductance_LIF(Neuron_population):
 
             # Calculate the increment of the membrane potential
             # input here needs to be in units of voltage
-            dv = (-(self.v[:, it] - self.E_r) + input) * (self.dt / self.tau_m)
+            dv = (-(self.v[:, it] - self.E_r) + input + self.Iinj[:, it]/self.g_r) * (self.dt / self.tau_m)
 
             # Update the membrane potential
             self.v[:, it + 1] = self.v[:, it] + dv
