@@ -909,9 +909,10 @@ class Nykamp_Model_1():
                         self.c1eext[mask2] = v_ext
                         self.c1eext_v[mask1] = 1
                         self.c1eext_v[mask2] = 0
-                        self.c2eext[mask1] = -0.5 * (self.v[mask1] - self.u_inh) ** 2
+
+                        self.c2eext[mask1] = 0.5 * (self.v[mask1] - self.u_inh) ** 2
                         self.c2eext[mask2] = v_ext ** 2
-                        self.c2eext_v[mask1] = (self.u_inh - self.v[mask1])
+                        self.c2eext_v[mask1] = (self.v[mask1] - self.u_inh)
                         self.c2eext_v[mask2] = 0
 
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
@@ -945,18 +946,13 @@ class Nykamp_Model_1():
                                                np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1])
 
                     # calculate firing rate
-                    if i == 333:
-                        a=1
                     r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
                                                                self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
                                                                            self.u_exc - self.u_rest)) *
                                                                rho_delta[j, i])
-                    r_ext = - self.c2eext[-1] * rho[j, -2, i] / self.dv
+                    r_ext = + self.c2eext[-1] * rho[j, -2, i] / self.dv
 
                     r[j, i] = r_j + r_ext
-
-                    if i == 170:
-                        a=1
 
                     if r[j, i] > 1e3:
                         a=1
