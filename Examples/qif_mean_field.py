@@ -73,10 +73,11 @@ def main():
 
 
     # time axis
+    # for time in s add factor 1e-3
     factor = 1e-3
-    t = np.linspace(0, 99.81, 500)
-    dt = np.diff(t)[0] * factor
-    T = t[-1] * factor + dt
+    t = factor * np.linspace(0, 99.81, 500)
+    dt = np.diff(t)[0]
+    T = t[-1] + dt
 
     # scaling factor for current (gpc was done in normalized current space)
     i_scale = 10  # 5.148136e-09

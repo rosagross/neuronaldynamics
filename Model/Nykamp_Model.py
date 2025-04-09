@@ -817,8 +817,11 @@ class Nykamp_Model_1():
 
         self.input = np.zeros([self.n_populations, self.n_populations, self.t.shape[0]])
         self.i_ext = np.zeros([self.n_populations, self.t.shape[0]])
+        # set up input_function for rate over time or current over time
+        if not callable(self.input_function) and type(self.input_function) == np.ndarray:
+            input_function_copy = self.input_function
+            self.input_function = lambda t: input_function_copy
         if self.input_type == 'rate':
-            # set up input_function for rate over time
             self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
         elif self.input_type == 'current':
             self.i_ext[self.input_function_idx] = self.input_function(t=self.t)
@@ -914,6 +917,11 @@ class Nykamp_Model_1():
                         self.c2eext[mask2] = v_ext ** 2
                         self.c2eext_v[mask1] = (self.v[mask1] - self.u_inh)
                         self.c2eext_v[mask2] = 0
+
+                        self.c1eext = 1*self.c1eext
+                        self.c1eext_v = 1*self.c1eext_v
+                        self.c2eext = 0.2*self.c2eext
+                        self.c2eext_v = 0.2*self.c2eext_v
 
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
                     #  check if this is correct
