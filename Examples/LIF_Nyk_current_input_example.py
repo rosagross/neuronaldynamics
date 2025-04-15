@@ -42,12 +42,12 @@ for i in tqdm(range(dim), f'computing random neuron connections for {dim} neuron
 
 def i_ext(t):
     f = 10
-    i_ext_0 = 0.7e2  # 200µA / 10 mS  =  20mV input
+    i_ext_0 = 0.7e-2  # 200µA / 10 mS  =  20mV input
     return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*t))
 
 def i_ext_1(t):
     f = 10
-    i_ext_0 = 0.7*5e0 # 200µA / 10mS  =  20mV input
+    i_ext_0 = 0.7e1 # 200µA / 10mS  =  20mV input
     return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*(t)))
 
 def i_ext_population(t):
@@ -173,7 +173,9 @@ plt.show()
 
 
 # set a scalable conductance in mS?
-g_r_l5pt = 5e-5
+g_r_l5pt = 7e-5
+# 7e-5 mS approximate so 1e6 factor for current works for µA
+# voltage should then be in mV
 ext_curr_vals = ext_current.repeat(dim).reshape(t.shape[0], dim).T
 
 con = np.zeros((dim, dim))

@@ -31,13 +31,14 @@ class Neuron_population():
         self.T = None
         self.dt = None
         self.n_neurons = None
-        self.n_populations = None
+        self.n_populations = 1
         self.pars = None
         self.rec_spikes = None
         self.t_spikes = None
         self.Iinj = None
         self.alpha = None
         self.smooth_r = None
+        self.g_r = 1
     def plot_volt_trace(self, idx=0, population_idx=0):
       """
       Plot trajetory of membrane potential for a single neuron
@@ -196,6 +197,10 @@ class Neuron_population():
         else:
             self.Iinj += i_s
             self.spike_type = 0
+
+        # this computes V actually, so self.Iinj should be V * g_r
+        self.Vinj = self.Iinj
+        self.Iinj = self.g_r * self.Iinj
 
         if save:
             with h5py.File(self.fname + '.hdf5', 'w') as h5file:
@@ -373,6 +378,8 @@ class Conductance_LIF(Neuron_population):
 
         self.t = np.arange(0, self.T, self.dt)
         self.time_steps = self.t.shape[0]
+        if self.Iinj != None:
+            self.Vinj = self.g_r * self.Iinj
         if not 'type_mask' in parameters:
             self.type_mask = np.zeros(self.n_neurons)
         self.n_populations = len(self.population_type)
@@ -471,7 +478,7 @@ class Conductance_LIF(Neuron_population):
                             for l in range(len(self.rec_spikes[k])):
                                 kernel_idxs = self.rec_spikes[k][l], self.rec_spikes[k][l] + self.alpha.shape[0]
                                 input[:, kernel_idxs[0]:kernel_idxs[1]] += (self.weights[k] * alpha_repeat).T
-                    Iin[:, it] = self.g_r * (self.Iinj[:, it] + input[:, it] + self.Iext[:, it])
+                    Iin[:, it] = self.g_r * (self.Iinj[:, it] + input[:, it] + self.Iext[:, it]) # ??? times g_r ???
 
                 else:
                     # new delay version by sampling from alpha distribution
@@ -501,13 +508,11 @@ class Conductance_LIF(Neuron_population):
                             E_e_i_presyn[active_connections] = E_e_i_presyn_active
                         else:
                             E_e_i_presyn = self.E_e_i[int(self.type_mask[0])]
-                        if E_e_i_presyn[E_e_i_presyn<0].shape[0] > 0:
-                            a=1
                         inputs = (1 - np.exp(-amp_mat)) * (E_e_i_presyn - v_neuron_postsyn_mat)
                         input = np.sum(inputs, axis=0)
                     # update input spikes from poisson conductance changes
-                    # v_inputs_ext = (1 - np.exp(-self.Iinj[:, it])) * (self.E_e_i[self.spike_type] - self.v[:, it-1])
-                    # input += v_inputs_ext  # * 1/(1/self.tau_m)
+                    v_inputs_ext = (1 - np.exp(-self.Vinj[:, it])) * (self.E_e_i[self.spike_type] - self.v[:, it-1])
+                    input += v_inputs_ext  # * 1/(1/self.tau_m)
                     input = input * 1/(1/self.tau_m)
 
             else:
@@ -545,7 +550,7 @@ class Conductance_LIF(Neuron_population):
 
             # Calculate the increment of the membrane potential
             # input here needs to be in units of voltage
-            dv = (-(self.v[:, it] - self.E_r) + input + self.Iinj[:, it]/self.g_r) * (self.dt / self.tau_m)
+            dv = (-(self.v[:, it] - self.E_r) + input) * (self.dt / self.tau_m)
 
             # Update the membrane potential
             self.v[:, it + 1] = self.v[:, it] + dv

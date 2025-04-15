@@ -2,7 +2,7 @@ import time
 import scipy
 import numpy as np
 import matplotlib.pyplot as plt
-
+import yaml
 import scipy
 from tqdm import tqdm
 from scipy.stats import gamma
@@ -795,6 +795,8 @@ class Nykamp_Model_1():
         else:
             self.g_leak = [1]*self.n_populations
 
+        self.parameters = parameters
+
 
 
     def simulate(self, dv=None, dt=None, T=None, dv_fine=None, sparse_mat=True, verbose=0):
@@ -1323,5 +1325,13 @@ class Nykamp_Model_1():
         plt.tight_layout()
         plt.show()
 
+    def save_log(self, full_out=False):
+        if full_out:
+            log_dict = self.__dict__.copy()
+        else:
+            log_dict = self.parameters
+        print(f'saved log to: {self.name}_log.yaml')
+        with open(f'{self.name}_log.yaml', 'w') as file:
+            yaml.dump(log_dict, file)
     def clean(self):
         os.remove(self.name + '.hdf5')
