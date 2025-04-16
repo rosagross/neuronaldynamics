@@ -42,12 +42,12 @@ for i in tqdm(range(dim), f'computing random neuron connections for {dim} neuron
 
 def i_ext(t):
     f = 10
-    i_ext_0 = 0.7e-2  # 200µA / 10 mS  =  20mV input
+    i_ext_0 = 0.7e-1  # 200µA / 10 mS  =  20mV input
     return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*t))
 
 def i_ext_1(t):
     f = 10
-    i_ext_0 = 0.7e1 # 200µA / 10mS  =  20mV input
+    i_ext_0 = 0.7e1 * 0.5 # 200µA / 10mS  =  20mV input
     return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*(t)))
 
 def i_ext_population(t):
@@ -179,7 +179,7 @@ g_r_l5pt = 7e-5
 ext_curr_vals = ext_current.repeat(dim).reshape(t.shape[0], dim).T
 
 con = np.zeros((dim, dim))
-n_connection = 200  # int(dim/10)
+n_connection = 220  # int(dim/10)
 
 for i in tqdm(range(dim), f'computing random neuron connections for {dim} neurons'):
     possible_connections = np.arange(dim)
@@ -199,7 +199,7 @@ lif.run()
 lif.raster_plot()
 lif.plot_populations(bins=1000, smoothing=True, sigma=10, hide_refractory=True, cutoff=None, size=1)
 
-pars_1D['input_function'] = ext_current * 5e-2 # scaling down by 20
+pars_1D['input_function'] = ext_current * 5e2 # scaling down by 20
 pars_1D['g_leak'] = [g_r_l5pt]
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp')
 nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)

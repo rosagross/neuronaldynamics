@@ -378,8 +378,8 @@ class Conductance_LIF(Neuron_population):
 
         self.t = np.arange(0, self.T, self.dt)
         self.time_steps = self.t.shape[0]
-        if self.Iinj != None:
-            self.Vinj = self.g_r * self.Iinj
+        if type(self.Iinj) is np.ndarray:
+            self.Vinj = self.Iinj / self.g_r
         if not 'type_mask' in parameters:
             self.type_mask = np.zeros(self.n_neurons)
         self.n_populations = len(self.population_type)
@@ -621,7 +621,19 @@ class Conductance_LIF(Neuron_population):
                     connections_k = random.sample(possible_connections.tolist(), n_connection)
                     self.weights[idxs_neuron_type_i[k], connections_k] = 1
 
+    def get_coeff_of_var(self, time_frame=None):
+        isi = np.zeros((self.n_neurons, self.t.shape[0]))
+        isi = np.diff(self.rec_spikes, axis=1)
 
+        isi_mean = np.mean(isi, axis=0)
+        isi_std = np.std(isi, axis=0)
+        coeff_of_var = isi_mean / isi_std
+        if time_frame != None:
+            if len(time_frame) == 1:
+                coeff_of_var = coeff_of_var[time_frame]
+            else:
+                coeff_of_var = coeff_of_var[time_frame[0], time_frame[1]]
+        return coeff_of_var
 
 
 class LIF_population(Neuron_population):
