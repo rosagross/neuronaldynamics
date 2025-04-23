@@ -31,7 +31,7 @@ def sigmoid(x, x0, r, amp):
     return y
 
 
-def DI_wave(t, intensity, t0=5, dt=1.4, width=0.25):
+def DI_wave_test_function(t, intensity, t0=5, dt=1.4, width=0.25):
     """
     Determines cortical DI waves from TMS
 
@@ -92,9 +92,9 @@ def DI_wave(t, intensity, t0=5, dt=1.4, width=0.25):
 t = np.linspace(0, 20, 1000)
 
 # DI waves for different intensities
-y1 = DI_wave(t, intensity=1, t0=5, dt=1.4, width=0.25)
-y2 = DI_wave(t, intensity=1.5, t0=5, dt=1.4, width=0.25)
-y3 = DI_wave(t, intensity=2, t0=5, dt=1.4, width=0.25)
+y1 = DI_wave_test_function(t, intensity=1, t0=5, dt=1.4, width=0.25)
+y2 = DI_wave_test_function(t, intensity=1.5, t0=5, dt=1.4, width=0.25)
+y3 = DI_wave_test_function(t, intensity=2, t0=5, dt=1.4, width=0.25)
 
 
 # normalize DI waves (we do not have quantitative information from the papers)

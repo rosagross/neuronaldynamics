@@ -737,8 +737,8 @@ class Nykamp_Model_1():
     def __init__(self, parameters, name='Nykamp'):
 
         self.connectivity_matrix = np.ones([2, 2])
-        self.tau_alpha = 1/3
-        self.n_alpha = 9
+        self.delay_kernel_type = 'alpha'
+        self.delay_kernel_parameters = {'n_alpha': 9, 'tau_alpha': 1/3}
 
         self.dt = 0.1
         self.dv = 0.01
@@ -782,6 +782,10 @@ class Nykamp_Model_1():
             self.input_function_idx = parameters['input_function_idx']
         if 'population_type' in parameters:
             self.population_type = parameters['population_type']
+        if 'delay_kernel_type' in parameters:
+            self.delay_kernel_type = parameters['delay_kernel_type']
+        if 'delay_kernel_parameters' in parameters:
+            self.delay_kernel_parameters = parameters['delay_kernel_parameters']
 
         self.n_populations = len(self.population_type)
 
@@ -793,13 +797,20 @@ class Nykamp_Model_1():
         if 'g_leak' in parameters:
             self.g_leak = parameters['g_leak']
         else:
-            self.g_leak = [1]*self.n_populations
+            self.g_leak = [1e-5]*self.n_populations
 
         self.parameters = parameters
 
+        # set up arrays for simluation
+        self.t = np.arange(0, self.T, self.dt)
+        self.v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
 
+        # calculate alpha kernel
+        self.get_delay_kernel()
 
-    def simulate(self, dv=None, dt=None, T=None, dv_fine=None, sparse_mat=True, verbose=0):
+    def simulate(self, T=None, dt=None, dv=None, dv_fine=None, sparse_mat=True, verbose=0):
+
+        #TODO: this version is becoming deprecated and needs to be moved to the init
 
         if dv is not None:
             self.dv = dv
@@ -812,10 +823,11 @@ class Nykamp_Model_1():
         else:
             self.dv_fine = dv_fine
 
-        self.sparse_mat = sparse_mat
+        self.t = np.arange(0, self.T, self.dt)
+        self.v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
+        self.get_delay_kernel()
 
-        self.t = np.arange(0, T, dt)
-        self.v = np.arange(self.u_inh, self.u_thr + dv, dv)
+        self.sparse_mat = sparse_mat
 
         self.input = np.zeros([self.n_populations, self.n_populations, self.t.shape[0]])
         self.i_ext = np.zeros([self.n_populations, self.t.shape[0]])
@@ -827,9 +839,6 @@ class Nykamp_Model_1():
             self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
         elif self.input_type == 'current':
             self.i_ext[self.input_function_idx] = self.input_function(t=self.t)
-
-        # calculate alpha kernel
-        self.get_alpha_kernel()
 
         if verbose > 0:
             t0_coeff = time.time()
@@ -887,7 +896,7 @@ class Nykamp_Model_1():
                 # as of now r_conv has only one dimension, same as r
                 # each entry is convoluted by its representing kernel
                 if i > 0:
-                    r_conv[j] = np.convolve(r[j, :(i + 1)], self.alpha)[-len(self.alpha)] * self.dt
+                    r_conv[j] = np.convolve(r[j, :(i + 1)], self.delay_kernel)[-len(self.delay_kernel)] * self.dt
                 v_in[:, j, i] = self.connectivity_matrix[:, j] * r_conv + self.input[:, j, i]
 
                 # coefficients for finite difference matrices
@@ -1268,13 +1277,42 @@ class Nykamp_Model_1():
             else:
                 raise NotImplementedError('population types must be "exc" or "inh"!')
 
-    def get_alpha_kernel(self):
-        self.t_alpha = self.t[self.t < 10]
-        self.alpha = np.exp(-self.t_alpha/self.tau_alpha) / (self.tau_alpha * scipy.special.factorial(self.n_alpha-1)) *\
-                (self.t_alpha/self.tau_alpha)**(self.n_alpha-1)
-        self.alpha = self.alpha/np.trapz(self.alpha, dx=self.dt)
+    def get_delay_kernel(self):
+        if self. delay_kernel_type == 'alpha':
+            t_alpha = self.t[self.t < 10]
+            n_alpha = self.delay_kernel_parameters['n_alpha']
+            tau_alpha = self.delay_kernel_parameters['tau_alpha']
+            self.delay_kernel = np.exp(-t_alpha/tau_alpha) / (tau_alpha * scipy.special.factorial(n_alpha-1)) *\
+                    (t_alpha/tau_alpha)**(n_alpha-1)
+            self.delay_kernel = self.delay_kernel/np.trapz(self.delay_kernel, dx=self.dt)
+            self.delay_kernel_time = t_alpha
+        elif self. delay_kernel_type == ('bi-exp' or 'bi-exponential'):
+            """
+            The bi-exponential kernel is taken from Rusu et al. 2014 [1] where the values for tau_1, tau_2 and g_peak
+            are given in a table for AMPA, NMDA, GABA_a and GABA_b synapses in M1. tau_cond is specified as 1ms in the 
+            text. In the context of this function the values for an AMPA synapse are:
+            (tau_1, tau_2, g_peak, tau_cond) = (0.2, 1.7, 1e-4, 1)
+            [1] Rusu, C. V., Murakami, M., Ziemann, U., & Triesch, J. (2014). A model of TMS-induced I-waves in motor
+             cortex. Brain Stimulation, 7(3), 401-414. 
+            """
+            t_kernel = self.t[self.t < 10]
+            tau_1 = self.delay_kernel_parameters['tau_1']
+            tau_2 = self.delay_kernel_parameters['tau_2']
+            tau_cond = self.delay_kernel_parameters['tau_cond']
+            g_peak = self.delay_kernel_parameters['g_peak']
+            self.delay_kernel = g_peak * (np.exp(-(t_kernel - tau_cond)/tau_1) - np.exp(-(t_kernel - tau_cond)/tau_2))
+            self.delay_kernel = self.delay_kernel / np.trapz(self.delay_kernel, dx=self.dt)
+            self.delay_kernel_time = t_kernel
 
-    def plot(self, fname=None, heat_map=False, plot_idxs=None):
+    def plot_delay_kernel(self):
+        # find time window
+        plt.plot(self.delay_kernel_time, self.delay_kernel)
+        plt.grid()
+        plt.xlabel('t (ms)')
+        plt.ylabel(f'{self.delay_kernel_type} delay kernel')
+        plt.show()
+
+    def plot(self, fname=None, heat_map=False, plot_idxs=None, savefig=False):
 
         if fname == None:
             fname = self.name
@@ -1323,7 +1361,10 @@ class Nykamp_Model_1():
             ax.set_xlabel("time (ms)")
             ax.grid()
         plt.tight_layout()
-        plt.show()
+        if savefig:
+            plt.savefig(self.name + '_plot.png')
+        else:
+            plt.show()
 
     def save_log(self, full_out=False):
         if full_out:
