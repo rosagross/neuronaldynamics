@@ -22,7 +22,8 @@ T = t[-1] + dt
 i_scale = 5.148136e-9
 
 # read gpc session
-fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+# fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 session = pygpc.read_session(fname=fn_session)
 
 with h5py.File(os.path.splitext(fn_session)[0] + ".hdf5", "r") as f:
@@ -50,30 +51,37 @@ current[300:] = 0
 # convert to µA from A
 ext_current = current * 1e6
 # plot current
-plt.plot(t, current)
-plt.xlabel('time in ms')
-plt.ylabel('Iext in A')
-plt.show()
+# plt.plot(t, current)
+# plt.xlabel('time in ms')
+# plt.ylabel('Iext in A')
+# plt.show()
 
 y = DI_wave_test_function(t, intensity=1.5, t0=1, dt=1.5, width=0.3)
-plt.plot(t, y)
-plt.xlabel('time in ms')
-plt.ylabel('firing rate test function')
-plt.grid()
-plt.show()
+# plt.plot(t, y)
+# plt.xlabel('time in ms')
+# plt.ylabel('firing rate test function')
+# plt.grid()
+# plt.show()
 
 # set a scalable conductance in mS?
 g_r_l5pt = 7e-5
 
 dv = 0.1
 
+#TODO: 1) There is a weird switch to the model be varying the ref time (may be related to runaway solutions)
+#      2) Check how feedback less synchronisation may happen, signal may be too short for current params to allow it
+#      3) Interpolate time to actually see delay kernel (also make it possible to see the input function in the plot)
+#      4) Implement different PDFs for the drift & diffusion coeffs (i.e. lognormal, normal, beta) find out if the
+#      moments of them play a role or their entire shape
+
 pars_1D = {}
-pars_1D['connectivity_matrix'] = np.array([[20]])
+pars_1D['connectivity_matrix'] = np.array([[15]])
 pars_1D['u_rest'] = -70
 pars_1D['u_thr'] = -55
 pars_1D['u_exc'] = 0
 pars_1D['u_inh'] = -75
 pars_1D['tau_mem'] = np.array([20])
+# pars_1D['tau_ref'] = np.array([2.2])
 pars_1D['tau_ref'] = np.array([2.2])
 pars_1D['mu_gamma'] = np.array([[0.008, 0.027]])
 pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
@@ -88,21 +96,21 @@ pars_1D['input_function'] = ext_current # * 0.33 # scaling down by 3
 pars_1D['g_leak'] = [g_r_l5pt]
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp')
 
-nyk1D.plot_delay_kernel()
+# nyk1D.plot_delay_kernel()
 
 nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
 nyk1D.plot(heat_map=True)
 nyk1D.save_log()
 nyk1D.clean()
 
-nykamp_rate = nyk1D.r[0]
-diff = nrmse(y, nykamp_rate)
-plt.plot(t, nykamp_rate)
-plt.plot(t, y)
-plt.grid()
-plt.xlabel('t in ms')
-plt.legend(['nykamp', 'D-I-wave test function'])
-plt.title(f'nrmse: {diff:.4f}')
-plt.show()
+# nykamp_rate = nyk1D.r[0]
+# diff = nrmse(y, nykamp_rate)
+# plt.plot(t, nykamp_rate)
+# plt.plot(t, y)
+# plt.grid()
+# plt.xlabel('t in ms')
+# plt.legend(['nykamp', 'D-I-wave test function'])
+# plt.title(f'nrmse: {diff:.4f}')
+# plt.show()
 
 
