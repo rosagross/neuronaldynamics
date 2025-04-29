@@ -40,6 +40,7 @@ pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 pars_1D['input_type'] = 'current'
+pars_1D['tqdm_disable'] = True
 
 # scaling factor for current (gpc was done in normalized current space)
 i_scale = 5.148136e-9
@@ -84,7 +85,8 @@ def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, g_r_l5pt, i
     nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp_' + idx)
 
     nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
-    nyk1D.plot(savefig=True)
+    nyk1D.plot(savefig=True, heat_map=True)
+    nyk1D.clean()
     return nyk1D.r[0]
 
 lower_bound = np.array([100, 0.2, 1e-5])
@@ -114,6 +116,7 @@ for i in tqdm(range(max_iter)):
     min_error_idx = np.nanargmin(error)
     errors.append(min_error)
     param_list.append(param_values[:, min_error_idx])
+    print(param_values[:, min_error_idx])
     if min_error < eps:
         print(f'error: {min_error}')
         break
@@ -124,7 +127,7 @@ for i in tqdm(range(max_iter)):
         lower_bound[j] = max(lower_bound[j], p_new[j] - 0.5 * delta[j])
         upper_bound[j] = min(upper_bound[j], p_new[j] + 0.5 * delta[j])
 
-
+plt.close()
 nykamp_rate = x
 diff = nrmse(y, nykamp_rate)
 plt.plot(t, nykamp_rate)

@@ -7,9 +7,8 @@ import pygpc
 import os
 import h5py
 from tqdm import tqdm
-from Model.LIF import Conductance_LIF
 from Model.Nykamp_Model import Nykamp_Model_1
-from Utils import compare_firing_rate, DI_wave_test_function, nrmse
+from Utils import DI_wave_test_function, nrmse
 matplotlib.use('TkAgg')
 
 # time in ms
@@ -22,8 +21,8 @@ T = t[-1] + dt
 i_scale = 5.148136e-9
 
 # read gpc session
-# fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+# fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 session = pygpc.read_session(fname=fn_session)
 
 with h5py.File(os.path.splitext(fn_session)[0] + ".hdf5", "r") as f:
@@ -50,14 +49,22 @@ current[300:] = 0
 
 # convert to µA from A
 ext_current = current * 1e6
-# plot current
-# plt.plot(t, current)
+
+# interpolate current on custom time grid
+T_new = 30
+dt_new = 0.005
+t_new = np.arange(0, T_new, dt_new)
+ext_current = np.interp(t_new, t, ext_current)
+
+
+# # plot current
+# plt.plot(t_new, ext_current)
 # plt.xlabel('time in ms')
 # plt.ylabel('Iext in A')
 # plt.show()
 
-y = DI_wave_test_function(t, intensity=1.5, t0=1, dt=1.5, width=0.3)
-# plt.plot(t, y)
+y = DI_wave_test_function(t_new, intensity=1.5, t0=1, dt=1.5, width=0.3)
+# plt.plot(t_new, y)
 # plt.xlabel('time in ms')
 # plt.ylabel('firing rate test function')
 # plt.grid()
@@ -75,42 +82,42 @@ dv = 0.1
 #      moments of them play a role or their entire shape
 
 pars_1D = {}
-pars_1D['connectivity_matrix'] = np.array([[15]])
+pars_1D['connectivity_matrix'] = np.array([[0]])
 pars_1D['u_rest'] = -70
 pars_1D['u_thr'] = -55
 pars_1D['u_exc'] = 0
 pars_1D['u_inh'] = -75
 pars_1D['tau_mem'] = np.array([20])
 # pars_1D['tau_ref'] = np.array([2.2])
-pars_1D['tau_ref'] = np.array([2.2])
+pars_1D['tau_ref'] = np.array([1.1])
 pars_1D['mu_gamma'] = np.array([[0.008, 0.027]])
 pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
-# pars_1D['delay_kernel_parameters'] = {'tau_alpha': 1/3, 'n_alpha': 9}
-pars_1D['delay_kernel_type'] = 'bi-exp'
-pars_1D['delay_kernel_parameters'] = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
+pars_1D['delay_kernel_parameters'] = {'tau_alpha': 1/3, 'n_alpha': 9}
+# pars_1D['delay_kernel_type'] = 'bi-exp'
+# pars_1D['delay_kernel_parameters'] = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
 pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 pars_1D['input_type'] = 'current'
-pars_1D['input_function'] = ext_current # * 0.33 # scaling down by 3
+pars_1D['input_function'] = ext_current *0.4 # * 0.33 # scaling down by 3
 pars_1D['g_leak'] = [g_r_l5pt]
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp')
 
 # nyk1D.plot_delay_kernel()
 
-nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
-nyk1D.plot(heat_map=True)
+nyk1D.simulate(T=T_new, dt=dt_new, dv=dv, verbose=0, sparse_mat=True)
+nyk1D.plot(heat_map=True, plot_input=True)
 nyk1D.save_log()
 nyk1D.clean()
 
-# nykamp_rate = nyk1D.r[0]
-# diff = nrmse(y, nykamp_rate)
-# plt.plot(t, nykamp_rate)
-# plt.plot(t, y)
-# plt.grid()
-# plt.xlabel('t in ms')
-# plt.legend(['nykamp', 'D-I-wave test function'])
-# plt.title(f'nrmse: {diff:.4f}')
-# plt.show()
+nykamp_rate = nyk1D.r[0]
+diff = nrmse(y, nykamp_rate)
+plt.plot(t_new, nykamp_rate)
+plt.plot(t_new, y)
+plt.grid()
+plt.xlabel('t in ms')
+plt.legend(['nykamp', 'D-I-wave test function'])
+plt.title(f'nrmse: {diff:.4f}')
+plt.show()
 
 

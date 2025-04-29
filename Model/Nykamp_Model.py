@@ -743,6 +743,7 @@ class Nykamp_Model_1():
         self.dt = 0.1
         self.dv = 0.01
         self.T = 100
+        self.tqdm_disable = False
 
         if name is None:
             self.name = 'Nykamp_example'
@@ -786,6 +787,8 @@ class Nykamp_Model_1():
             self.delay_kernel_type = parameters['delay_kernel_type']
         if 'delay_kernel_parameters' in parameters:
             self.delay_kernel_parameters = parameters['delay_kernel_parameters']
+        if 'tqdm_disable' in parameters:
+            self.tqdm_disable = parameters['tqdm_disable']
 
         self.n_populations = len(self.population_type)
 
@@ -854,7 +857,7 @@ class Nykamp_Model_1():
         # first init all arrays
         v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
         self.v_reset_idx = v_reset_idx
-        ref_delta_idxs = np.array([int(self.tau_ref[k] / self.dt) for k in range(self.n_populations)])
+        ref_delta_idxs = np.array([int(np.round(self.tau_ref[k] / self.dt)) for k in range(self.n_populations)])
         max_ref_delta_indx = np.max(ref_delta_idxs)
         rho = np.zeros((self.n_populations, len(self.v), len(self.t)))
         rho_delta = np.zeros((self.n_populations, len(self.t)))
@@ -871,6 +874,9 @@ class Nykamp_Model_1():
         self.c1eext_v = np.zeros_like(self.v)
         self.c2eext_v = np.zeros_like(self.v)
 
+        ################################################################################################################
+        # INITIAL CONDITIONS
+        ################################################################################################################
         for i in range(len(self.population_type)):
             # initialize arrays
             rho[i, :, 0] = scipy.stats.norm.pdf(self.v, self.u_rest, 1)
@@ -878,8 +884,8 @@ class Nykamp_Model_1():
             rho[i, -1, 0] = 0
 
         # Determine population dynamics (diffusion approximation)
-        for i, t_ in enumerate(tqdm(self.t[:-1],f"simulating {self.population_type} neuron populations for"
-                                                  f" {self.t[:-1].shape[0]} time steps")):
+        for i, t_ in enumerate(tqdm(self.t[:-1], f"simulating {self.population_type} neuron populations for"
+                                                 f" {self.t[:-1].shape[0]} time steps", disable=self.tqdm_disable)):
 
             # if i > 0:
             #     r_conv = self.mat_convolve(r[:(i + 1), :], self.alpha)[:, :, -len(self.alpha)] * self.dt
@@ -904,7 +910,7 @@ class Nykamp_Model_1():
                 # here the values are split between excitatory and inhibitory types
                 if type_j == 'exc':
                     # excitatory population
-                    # ================================================================================================================
+                    # ==================================================================================================
                     c1ee = self.c[j, 0, 0]
                     c1ei = self.c[j, 0, 1]
                     c2ee = self.c[j, 1, 0]
@@ -973,18 +979,37 @@ class Nykamp_Model_1():
 
                     r[j, i] = r_j + r_ext
 
-                    if r[j, i] > 1e3:
+                    if r_j < 0:
                         a=1
-                    if r[j, i] < 0:
-                        r[j, i] = 0
-                    if not r[j, i] < 0 and not r[j, i] >0 and not r[j, i] == 0:
-                        a=1
+
+                    if i == 1:
+                        b=2
+
                     r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
+
+
+                    # test some stability criteria for the matrices
+                    # A = np.array(A_exc.todense())
+                    # B = np.array(B_exc.todense())
+                    # b = np.array(B_exc.dot(rho[j, :, i]))
+                    #
+
+                    # kappa = np.linalg.cond(B)
+                    #
+                    # #C_exc = np.linalg.inv(A_exc) @ B_exc
+                    # n_s = int(self.v.shape[0])
+                    # u, s, v = scipy.sparse.linalg.svds(B_exc)
+                    # u, s, v = np..linalg.svd(B_exc)
+                    # min svd = np.min(s)
+                    # B_exc = u.dot(s).dot(v.T)
 
                     if not self.sparse_mat:
                         rho[j, :, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho[j, :, i]))
+                        # rho[j, :, i + 1] = scipy.linalg.solve_banded((1, 1), A_exc, np.matmul(B_exc, rho[j, :, i]))
                     else:
-                        rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_exc, B_exc.dot(rho[j, :, i]))
+                        # rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_exc, B_exc.dot(rho[j, :, i]))
+                        rho[j, :, i + 1] = scipy.sparse.linalg.lsmr(A_exc, B_exc.dot(rho[j, :, i]),
+                                                                    damp=0.2, maxiter=100)[0]
 
                     rho[j, :, i + 1] += self.dt * g_exc
                     rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
@@ -996,7 +1021,7 @@ class Nykamp_Model_1():
 
                 else:
                     # inhibitory population
-                    # ================================================================================================================
+                    # ==================================================================================================
 
                     c1ie = self.c[j, 0, 0]
                     c1ii = self.c[j, 0, 1]
@@ -1093,6 +1118,10 @@ class Nykamp_Model_1():
             h5file.create_dataset('t', data=self.t)
             h5file.create_dataset('v', data=self.v)
             h5file.create_dataset('r', data=r)
+            if self.input_type == 'current':
+                h5file.create_dataset('in', data=self.i_ext)
+            else:
+                h5file.create_dataset('in', data=self.input)
             h5file.create_dataset('rho_plot', data=rho_plot)
             h5file.create_dataset('p_types', data=self.population_type)
 
@@ -1110,6 +1139,8 @@ class Nykamp_Model_1():
             # Insert boundary conditions
             lower[-1] = 2 * f1[-2]
             upper[0] = -2 * f1[1]
+            # lower[0] = 0
+            # upper[-1] = 0
 
             A = scipy.sparse.diags(
                 diagonals=[main, lower, upper],
@@ -1132,6 +1163,8 @@ class Nykamp_Model_1():
             # Insert boundary conditions
             upper[0] = 2 * f1[1]
             lower[-1] = -2 * f1[-2]
+            # lower[0] = 0
+            # upper[-1] = 0
 
             B = scipy.sparse.diags(
                 diagonals=[main, lower, upper],
@@ -1303,6 +1336,8 @@ class Nykamp_Model_1():
             self.delay_kernel = g_peak * (np.exp(-(t_kernel - tau_cond)/tau_1) - np.exp(-(t_kernel - tau_cond)/tau_2))
             self.delay_kernel = self.delay_kernel / np.trapz(self.delay_kernel, dx=self.dt)
             self.delay_kernel_time = t_kernel
+        else:
+            raise NotImplementedError('Specified delay kernel is not implemented!, please choose from "alpha", "bi-exp"')
 
     def plot_delay_kernel(self):
         # find time window
@@ -1312,7 +1347,7 @@ class Nykamp_Model_1():
         plt.ylabel(f'{self.delay_kernel_type} delay kernel')
         plt.show()
 
-    def plot(self, fname=None, heat_map=False, plot_idxs=None, savefig=False):
+    def plot(self, fname=None, heat_map=False, plot_idxs=None, savefig=False, plot_input=False):
 
         if fname == None:
             fname = self.name
@@ -1325,6 +1360,10 @@ class Nykamp_Model_1():
             rho_plot = np.array(h5file['rho_plot'])
             p_types_raw = h5file['p_types']
             p_types = p_types_raw.asstr()[:]
+
+        if plot_input:
+            with h5py.File(fname + '.hdf5', 'r') as h5file:
+                i_in = np.array(h5file['in'])
 
         if plot_idxs is None:
             n_plots = len(p_types)
@@ -1359,6 +1398,12 @@ class Nykamp_Model_1():
             ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
             ax.set_ylabel("Firing rate (Hz)")
             ax.set_xlabel("time (ms)")
+            if plot_input:
+                rate_height = np.max(r_plot[plot_idx] * 1000)
+                i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
+                ax.plot(t_plot, i_in_plot)
+                ax.legend(['rate', 'input'])
+
             ax.grid()
         plt.tight_layout()
         if savefig:
