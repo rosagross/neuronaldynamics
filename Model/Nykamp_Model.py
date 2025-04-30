@@ -813,7 +813,7 @@ class Nykamp_Model_1():
 
     def simulate(self, T=None, dt=None, dv=None, dv_fine=None, sparse_mat=True, verbose=0):
 
-        #TODO: this version is becoming deprecated and needs to be moved to the init
+        #TODO: this version of passing args is becoming deprecated and needs to be moved to the init
 
         if dv is not None:
             self.dv = dv
@@ -920,6 +920,10 @@ class Nykamp_Model_1():
                     c2ee_v = self.c_v[j, 1, 0]
                     c2ei_v = self.c_v[j, 1, 1]
 
+                    g_eext = 0
+                    F_ext_delta = 0
+                    v_in_i_ext = 0
+
                     if self.input_type == 'current':
                         v_ext = self.i_ext[j, i] / self.g_leak[j]
                         mask1 = np.where(self.v < v_ext + self.u_inh)[0]
@@ -940,7 +944,17 @@ class Nykamp_Model_1():
                         self.c2eext = 0.2*self.c2eext
                         self.c2eext_v = 0.2*self.c2eext_v
 
-                    # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
+                        # all new delay component terms
+                        # apply dirac delta at v = self.u_rest + v_ext
+                        g_eext = np.zeros_like(self.v)
+                        dirac_index = np.where(self.v > self.u_rest + v_ext)[0]
+                        g_eext[dirac_index] = -rho_delta[j, i]
+
+                        F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_rest, 0.5)
+
+                        v_in_i_ext = 1
+
+                        # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
                     #  check if this is correct
                     f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
                                             + np.sum(v_in[inh_idxs, j, i]) * c1ei_v - self.c1eext_v)
@@ -967,20 +981,23 @@ class Nykamp_Model_1():
                         time0_rho_exc = time.time()
 
                     # contribution to drho/dt from rho_delta at u_res
+
                     g_exc = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
-                                               np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1])
+                                               np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1]) + v_in_i_ext * g_eext
+
 
                     # calculate firing rate
                     r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
                                                                self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
                                                                            self.u_exc - self.u_rest)) *
                                                                rho_delta[j, i])
-                    r_ext = + self.c2eext[-1] * rho[j, -2, i] / self.dv
+                    r_ext = + self.c2eext[-1] * rho[j, -2, i] / self.dv + F_ext_delta * rho_delta[j, i]
+
 
                     r[j, i] = r_j + r_ext
 
-                    if r_j < 0:
-                        a=1
+                    if r[j, i] < 0:
+                        r[j, i] = 0
 
                     if i == 1:
                         b=2
@@ -1007,13 +1024,13 @@ class Nykamp_Model_1():
                         rho[j, :, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho[j, :, i]))
                         # rho[j, :, i + 1] = scipy.linalg.solve_banded((1, 1), A_exc, np.matmul(B_exc, rho[j, :, i]))
                     else:
-                        # rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_exc, B_exc.dot(rho[j, :, i]))
-                        rho[j, :, i + 1] = scipy.sparse.linalg.lsmr(A_exc, B_exc.dot(rho[j, :, i]),
-                                                                    damp=0.2, maxiter=100)[0]
+                        rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_exc, B_exc.dot(rho[j, :, i]))
+                        # rho[j, :, i + 1] = scipy.sparse.linalg.lsmr(A_exc, B_exc.dot(rho[j, :, i]),
+                        #                                             damp=0.2, maxiter=100)[0]
 
                     rho[j, :, i + 1] += self.dt * g_exc
                     rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
-                            -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
+                            -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
                             rho_delta[j, i] + r_delayed[j, i])
 
                     if i == 0 and verbose > 0:
@@ -1067,7 +1084,7 @@ class Nykamp_Model_1():
                                                               self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
                                                                           self.u_exc - self.u_rest)) *
                                                               rho_delta[j, i])
-                    r_ext = 0 # c1ie[-1]*(1/self.g_leak[j])*self.i_ext[j, i] * rho[j, -2, i] / self.dv
+                    r_ext = 0 #c1ie[-1]*(1/self.g_leak[j])*self.i_ext[j, i] * rho[j, -2, i] / self.dv
 
                     r[j, i] = r_j + r_ext
                     if r[j, i] < 0:
@@ -1347,7 +1364,7 @@ class Nykamp_Model_1():
         plt.ylabel(f'{self.delay_kernel_type} delay kernel')
         plt.show()
 
-    def plot(self, fname=None, heat_map=False, plot_idxs=None, savefig=False, plot_input=False):
+    def plot(self, fname=None, heat_map=False, plot_idxs=None, savefig=False, plot_input=False, z_limit=None):
 
         if fname == None:
             fname = self.name
@@ -1378,7 +1395,9 @@ class Nykamp_Model_1():
             if heat_map:
                 ax = fig.add_subplot(n_plots, 2, plot_loc_1)
                 X, Y = np.meshgrid(t_plot, v)
-                z_min, z_max = 0, np.abs(rho_plot[plot_idx]).max()
+                if z_limit is None:
+                    z_limit = np.abs(rho_plot[plot_idx]).max()
+                z_min, z_max = 0, z_limit
                 c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='viridis', vmin=z_min, vmax=z_max)
                 fig.colorbar(c, ax=ax)
 

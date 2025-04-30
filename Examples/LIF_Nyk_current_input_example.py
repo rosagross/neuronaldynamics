@@ -40,12 +40,12 @@ for i in tqdm(range(dim), f'computing random neuron connections for {dim} neuron
 
 def i_ext(t):
     f = 10
-    i_ext_0 = 2.7e-2  # 200µA / 10 mS  =  20mV input
+    i_ext_0 = 1e-1  # 200µA / 10 mS  =  20mV input
     return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*t))
 
 def i_ext_population(t):
     f = 10
-    i_ext_0 = 2.7e-2 * dim * (1/lif.g_r) * 1.5
+    i_ext_0 = 1e-1 * dim * (1/lif.g_r) * 0.15  # maybe only a difference of factor 1/10?
     x0 = i_ext_0 / dim * lif.g_r * 100
     t0 = np.exp(-(x0 - 3)) + 2
     return i_ext_0 * (1 + np.sin(2*np.pi*f/1000*(t-t0)))
@@ -118,7 +118,7 @@ dv = 0.01
 
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp')
 nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
-nyk1D.plot(heat_map=True)
+nyk1D.plot(heat_map=True, z_limit=0.2)
 #
 compare_firing_rate('Nykamp', 'Conductance_LIF')
 

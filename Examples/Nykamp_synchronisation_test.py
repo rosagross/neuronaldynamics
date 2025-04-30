@@ -1,14 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from Model.Nykamp_Model import Nykamp_Model, Nykamp_Model_1
+from Model.Nykamp_Model import Nykamp_Model_1
 matplotlib.use('TkAgg')
 
 
 
 # init parameters
 def step(t, t0=0, t1=80):
-    res = 100*np.ones_like(t)
+    res = 1e2*np.ones_like(t)
     res[t < t0] = 0
     res[t > t1] = 0
     return res
@@ -29,15 +29,16 @@ pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
 pars_1D['tau_alpha'] = 1/3
 pars_1D['n_alpha'] = 9
 pars_1D['input_function'] = step
+# pars_1D['input_type'] = 'current'
 pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 
-T = 100 # 200
+T = 100  # 200
 dt = 0.1 # 0.1
 dv = 0.01
 
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='nykamp_test_1D')
 nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
-nyk1D.plot(heat_map=True, plot_input=True)
+nyk1D.plot(heat_map=True, plot_input=True, z_limit=0.3)
 nyk1D.clean()

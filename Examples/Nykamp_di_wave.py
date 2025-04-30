@@ -76,13 +76,11 @@ g_r_l5pt = 7e-5
 dv = 0.1
 
 #TODO: 1) There is a weird switch to the model be varying the ref time (may be related to runaway solutions)
-#      2) Check how feedback less synchronisation may happen, signal may be too short for current params to allow it
-#      3) Interpolate time to actually see delay kernel (also make it possible to see the input function in the plot)
-#      4) Implement different PDFs for the drift & diffusion coeffs (i.e. lognormal, normal, beta) find out if the
+#      2) Implement different PDFs for the drift & diffusion coeffs (i.e. lognormal, normal, beta) find out if the
 #      moments of them play a role or their entire shape
 
 pars_1D = {}
-pars_1D['connectivity_matrix'] = np.array([[0]])
+pars_1D['connectivity_matrix'] = np.array([[15]])
 pars_1D['u_rest'] = -70
 pars_1D['u_thr'] = -55
 pars_1D['u_exc'] = 0
@@ -92,9 +90,9 @@ pars_1D['tau_mem'] = np.array([20])
 pars_1D['tau_ref'] = np.array([1.1])
 pars_1D['mu_gamma'] = np.array([[0.008, 0.027]])
 pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
-pars_1D['delay_kernel_parameters'] = {'tau_alpha': 1/3, 'n_alpha': 9}
-# pars_1D['delay_kernel_type'] = 'bi-exp'
-# pars_1D['delay_kernel_parameters'] = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
+# pars_1D['delay_kernel_parameters'] = {'tau_alpha': 1/3, 'n_alpha': 9}
+pars_1D['delay_kernel_type'] = 'bi-exp'
+pars_1D['delay_kernel_parameters'] = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
 pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
@@ -103,7 +101,7 @@ pars_1D['input_function'] = ext_current *0.4 # * 0.33 # scaling down by 3
 pars_1D['g_leak'] = [g_r_l5pt]
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp')
 
-# nyk1D.plot_delay_kernel()
+nyk1D.plot_delay_kernel()
 
 nyk1D.simulate(T=T_new, dt=dt_new, dv=dv, verbose=0, sparse_mat=True)
 nyk1D.plot(heat_map=True, plot_input=True)

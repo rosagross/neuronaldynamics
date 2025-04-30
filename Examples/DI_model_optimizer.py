@@ -95,6 +95,7 @@ upper_bound = np.array([400, 0.8, 1e-4])
 i = 0
 min_error = 1.
 max_iter = 10
+noise_term = 0.02
 n_param = lower_bound.shape[0]
 eps = 0.01
 errors = []
@@ -120,12 +121,16 @@ for i in tqdm(range(max_iter)):
     if min_error < eps:
         print(f'error: {min_error}')
         break
-    # get new bounds for next iteration
-    p_new = param_values[:, min_error_idx]
-    delta = upper_bound - lower_bound
-    for j in range(n_param):
-        lower_bound[j] = max(lower_bound[j], p_new[j] - 0.5 * delta[j])
-        upper_bound[j] = min(upper_bound[j], p_new[j] + 0.5 * delta[j])
+
+    if min_error < np.min(np.array(errors)) - noise_term:
+        # contract region in parameter space if error was smaller
+
+        # get new bounds for next iteration
+        p_new = param_values[:, min_error_idx]
+        delta = upper_bound - lower_bound
+        for j in range(n_param):
+            lower_bound[j] = max(lower_bound[j], p_new[j] - 0.5 * delta[j])
+            upper_bound[j] = min(upper_bound[j], p_new[j] + 0.5 * delta[j])
 
 plt.close()
 nykamp_rate = x
