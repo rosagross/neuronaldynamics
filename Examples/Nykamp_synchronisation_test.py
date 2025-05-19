@@ -23,7 +23,7 @@ pars_1D['u_thr'] = -55
 pars_1D['u_exc'] = 0
 pars_1D['u_inh'] = -70
 pars_1D['tau_mem'] = np.array([20])
-pars_1D['tau_ref'] = np.array([3])
+pars_1D['tau_ref'] = np.array([0.6])
 pars_1D['mu_gamma'] = np.array([[0.008, 0.027]])
 pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
 pars_1D['tau_alpha'] = 1/3
@@ -35,8 +35,8 @@ pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 
 T = 100  # 200
-dt = 0.1 # 0.1
-dv = 0.01
+dt = 0.03 # 0.1
+dv = 0.1
 
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='nykamp_test_1D')
 nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)

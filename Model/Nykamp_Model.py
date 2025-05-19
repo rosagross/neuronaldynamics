@@ -811,6 +811,10 @@ class Nykamp_Model_1():
         # calculate alpha kernel
         self.get_delay_kernel()
 
+        # initialize breaking variable for numerical unstable solutions
+        self.break_outer = False
+
+
     def simulate(self, T=None, dt=None, dv=None, dv_fine=None, sparse_mat=True, verbose=0):
 
         #TODO: this version of passing args is becoming deprecated and needs to be moved to the init
@@ -896,6 +900,8 @@ class Nykamp_Model_1():
             #     v_shift = int(self.input_voltage[i] / self.dv)
             #     rho[self.voltage_idx, :, i] = np.roll(rho[self.voltage_idx, :, i], v_shift)
 
+            if self.break_outer:
+                break
 
             for j, type_j in enumerate(self.population_type):
 
@@ -999,8 +1005,22 @@ class Nykamp_Model_1():
                     if r[j, i] < 0:
                         r[j, i] = 0
 
-                    if i == 1:
-                        b=2
+                    if r[j, i] > 1e6:
+                        if sparse_mat:
+                            A = np.array(A_exc.todense())
+                            B = np.array(B_exc.todense())
+                            kappa_A = np.linalg.cond(A)
+                            kappa_B = np.linalg.cond(B)
+                        else:
+                            kappa_A = np.linalg.cond(A_exc)
+                            kappa_B = np.linalg.cond(B_exc)
+
+                        dt_proposal = self.dt/kappa_A*50  # may use 75 for border to insatbility
+
+                        print(f'Exiting simulation: rate of {r[j, i]} detected \n Condition number for A and B are: '
+                              f'{kappa_A}, {kappa_B} \n Try dt<= {dt_proposal}')
+                        self.break_outer = True
+                        break
 
                     r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
 

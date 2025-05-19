@@ -31,10 +31,10 @@ with h5py.File(os.path.splitext(fn_session)[0] + ".hdf5", "r") as f:
 # create grid object to transform from real to normalized coordinates [-1, 1]
 theta = 0               # angle of e-field [0, 180]°
 gradient = 0            # relative gradient of e-field [-20, 20] %/mm
-intensity = 250         # intensity of e-field [100, 400] V/m
+intensity = 229         # intensity of e-field [100, 400] V/m
 fraction_nmda = 0.5     # fraction of nmda synapses [0.25, 0.75]
 fraction_gaba_a = 0.95  # fraction of gaba_a synapses [0.9, 1.0]
-fraction_ex = 0.6      # fraction of exc/ihn synapses [0.2, 0.8]
+fraction_ex = 0.294      # fraction of exc/ihn synapses [0.2, 0.8]
 
 coords = np.array([[theta, gradient, intensity, fraction_nmda, fraction_gaba_a, fraction_ex]])
 
@@ -71,7 +71,9 @@ y = DI_wave_test_function(t_new, intensity=1.5, t0=1, dt=1.5, width=0.3)
 # plt.show()
 
 # set a scalable conductance in mS?
-g_r_l5pt = 7e-5
+# g_r_l5pt = 7e-5
+g_r_l5pt = 8.41e-5
+
 
 dv = 0.1
 
@@ -101,7 +103,7 @@ pars_1D['input_function'] = ext_current *0.4 # * 0.33 # scaling down by 3
 pars_1D['g_leak'] = [g_r_l5pt]
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp')
 
-nyk1D.plot_delay_kernel()
+# nyk1D.plot_delay_kernel()
 
 nyk1D.simulate(T=T_new, dt=dt_new, dv=dv, verbose=0, sparse_mat=True)
 nyk1D.plot(heat_map=True, plot_input=True)
