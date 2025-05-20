@@ -5,8 +5,7 @@ import matplotlib.pyplot as plt
 import yaml
 import scipy
 from tqdm import tqdm
-from scipy.stats import gamma
-from scipy.stats import norm
+from scipy.stats import gamma, norm, lognorm
 import os
 import h5py
 import matplotlib
@@ -633,23 +632,31 @@ class Nykamp_Model():
                 c2ei = np.zeros(len(v))
 
                 # conductance jump distributions
-                # input synapse parameters into gamma distribution
+                # input synapse parameters into the distribution of conductance jumps
                 gamma_ee = gamma(a=self.var_coeff_gamma[k, 0] ** (-2), loc=0,
                                  scale=self.var_coeff_gamma[k, 0]**2*self.mu_gamma[k, 0])
                 gamma_ei = gamma(a=self.var_coeff_gamma[k, 1] ** (-2),
                                  loc=0, scale=self.var_coeff_gamma[k, 1]**2*self.mu_gamma[k, 1])
 
+                if self.synapse_pdf_type == 'gamma':
+                    synapse_pdf_ee = gamma(a=self.synapse_pdf_params[0, k, 0] ** (-2), loc=0,
+                                     scale=self.synapse_pdf_params[0, k, 0] ** 2 * self.synapse_pdf_params[1, k, 0])
+                    synapse_pdf_ei = gamma(a=self.synapse_pdf_params[0, k, 1] ** (-2),
+                                     loc=0, scale=self.synapse_pdf_params[0, k, 1] ** 2 * self.synapse_pdf_params[1, k, 1])
+
+
+
                 for i, v_ in enumerate(v):
 
                     vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
-                    int_c1ee = gamma_ee.sf((v_ - vpe) / (self.u_exc - vpe))
+                    int_c1ee = synapse_pdf_ee.sf((v_ - vpe) / (self.u_exc - vpe))
                     int_c2ee = int_c1ee * (v_ - vpe)
                     c1ee[i] = np.trapz(x=vpe, y=int_c1ee)
                     c2ee[i] = np.trapz(x=vpe, y=int_c2ee)
 
                     if i > 0:
                         vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
-                        int_c1ei = gamma_ei.sf((v_ - vpi) / (self.u_inh - vpi))
+                        int_c1ei = synapse_pdf_ei.sf((v_ - vpi) / (self.u_inh - vpi))
                         int_c2ei = int_c1ei * (vpi - v_)
                         c1ei[i] = np.trapz(x=vpi, y=int_c1ei)
                         c2ei[i] = np.trapz(x=vpi, y=int_c2ei)
@@ -663,10 +670,10 @@ class Nykamp_Model():
                 c2ee_v = np.gradient(c2ee, self.v)
                 c2ei_v = np.gradient(c2ei, self.v)
                 self.c_v[k] = np.array([[[c1ee_v, c1ei_v], [c2ee_v, c2ei_v]]])
-                self.gamma_funcs.append(gamma_ee)
-                Fee_v = np.gradient(gamma_ee.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
+                self.synapse_pdf_funcs.append(synapse_pdf_ee)
+                Fee_v = np.gradient(synapse_pdf_ee.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
                         * np.heaviside(self.v - self.u_rest, 0.5)
-                Fei_v = np.gradient(gamma_ei.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
+                Fei_v = np.gradient(synapse_pdf_ei.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
                         * np.heaviside(self.u_rest - self.v, 0.5)
 
                 self.dFdv[k] = np.array([Fee_v, Fei_v])
@@ -682,22 +689,22 @@ class Nykamp_Model():
                 c2ii = np.zeros(len(v))
 
                 # conductance jump distributions
-                gamma_ie = gamma(a=self.var_coeff_gamma[k, 0] ** (-2), loc=0,
+                synapse_pdf_ie = gamma(a=self.var_coeff_gamma[k, 0] ** (-2), loc=0,
                                  scale=self.var_coeff_gamma[k, 0] ** 2 * self.mu_gamma[k, 0])
-                gamma_ii = gamma(a=self.var_coeff_gamma[k, 1] ** (-2),
+                synapse_pdf_ii = gamma(a=self.var_coeff_gamma[k, 1] ** (-2),
                                  loc=0, scale=self.var_coeff_gamma[k, 1] ** 2 * self.mu_gamma[k, 1])
 
                 for i, v_ in enumerate(v):
 
                     vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
-                    int_c1ie = gamma_ie.sf((v_ - vpe) / (self.u_exc - vpe))
+                    int_c1ie = synapse_pdf_ie.sf((v_ - vpe) / (self.u_exc - vpe))
                     int_c2ie = int_c1ie * (v_ - vpe)
                     c1ie[i] = np.trapz(x=vpe, y=int_c1ie)
                     c2ie[i] = np.trapz(x=vpe, y=int_c2ie)
 
                     if i > 0:
                         vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
-                        int_c1ii = gamma_ii.sf((v_ - vpi) / (self.u_inh - vpi))
+                        int_c1ii = synapse_pdf_ii.sf((v_ - vpi) / (self.u_inh - vpi))
                         int_c2ii = int_c1ii * (vpi - v_)
                         c1ii[i] = np.trapz(x=vpi, y=int_c1ii)
                         c2ii[i] = np.trapz(x=vpi, y=int_c2ii)
@@ -711,10 +718,10 @@ class Nykamp_Model():
                 c2ie_v = np.gradient(c2ie, self.v)
                 c2ii_v = np.gradient(c2ii, self.v)
                 self.c_v[k] = np.array([[[c1ie_v, c1ii_v], [c2ie_v, c2ii_v]]])
-                self.gamma_funcs.append(gamma_ie)
-                Fie_v = np.gradient(gamma_ie.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
+                self.synapse_pdf_funcs.append(synapse_pdf_ie)
+                Fie_v = np.gradient(synapse_pdf_ie.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
                                    * np.heaviside(self.v - self.u_rest, 0.5)
-                Fii_v = np.gradient(gamma_ii.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
+                Fii_v = np.gradient(synapse_pdf_ii.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
                                    * np.heaviside(self.u_rest - self.v, 0.5)
                 self.dFdv[k] = np.array([Fie_v, Fii_v])
 
@@ -734,9 +741,9 @@ class Nykamp_Model_1():
     populations
     """
 
-    def __init__(self, parameters=None, name=None):
+    def __init__(self, parameters={}, name=None):
 
-        self.connectivity_matrix = np.ones([2, 2])
+        self.connectivity_matrix = np.ones((1, 1))
         self.delay_kernel_type = 'alpha'
         self.delay_kernel_parameters = {'n_alpha': 9, 'tau_alpha': 1/3}
         self.name = 'Nykamp_example'
@@ -745,8 +752,8 @@ class Nykamp_Model_1():
         self.u_thr = -55
         self.u_exc = 0
         self.u_inh = -75
-        self.tau_mem = 20
-        self.tau_ref = 1
+        self.tau_mem = [20]
+        self.tau_ref = [1]
         self.mu_gamma = np.array([[0.008, 0.027]])
         self.var_coeff_gamma = 0.5*np.ones((1, 2))
         self.dt = 0.1
@@ -757,13 +764,14 @@ class Nykamp_Model_1():
         self.input_function = np.zeros((int(self.T/self.dt)))
         self.input_function_idx = [0, 0]
         self.population_type = ['exc']
+        self.synapse_pdf_type = 'gamma'
         self.verbose = 0
+        self.implemented_pdf_types = ['gamma', 'normal', 'log-normal']
 
         # input current
         self.input_type = 'rate'
 
-        if parameters is not None:
-            self.__dict__.update(parameters)
+        self.__dict__.update(parameters)
 
         self.parameters = parameters
 
@@ -784,6 +792,8 @@ class Nykamp_Model_1():
             self.g_leak = [1e-5]*self.n_populations
             self.g_leak = self.c_mem/self.tau_mem * 1e-3  # (conversion to mS from µS)
 
+        if self.synapse_pdf_type == 'gamma':
+            self.synapse_pdf_params = np.array([self.var_coeff_gamma, self.mu_gamma])
         # set up arrays for simluation
         self.t = np.arange(0, self.T, self.dt)
         self.v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
@@ -799,7 +809,6 @@ class Nykamp_Model_1():
 
         self.t = np.arange(0, self.T, self.dt)
         self.v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
-        self.get_delay_kernel()
 
         self.input = np.zeros([self.n_populations, self.n_populations, self.t.shape[0]])
         self.i_ext = np.zeros([self.n_populations, self.t.shape[0]])
@@ -947,7 +956,7 @@ class Nykamp_Model_1():
 
                     # calculate firing rate
                     r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
-                                                               self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
+                                                               self.synapse_pdf_funcs[j].sf((self.u_thr - self.u_rest) / (
                                                                            self.u_exc - self.u_rest)) *
                                                                rho_delta[j, i])
                     r_ext = + self.c2eext[-1] * rho[j, -2, i] / self.dv + F_ext_delta * rho_delta[j, i]
@@ -1039,7 +1048,7 @@ class Nykamp_Model_1():
 
                     # calculate firing rate
                     r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ie[-1] * rho[j, -2, i] / self.dv +
-                                                              self.gamma_funcs[j].sf((self.u_thr - self.u_rest) / (
+                                                              self.synapse_pdf_funcs[j].sf((self.u_thr - self.u_rest) / (
                                                                           self.u_exc - self.u_rest)) *
                                                               rho_delta[j, i])
                     r_ext = 0 #c1ie[-1]*(1/self.g_leak[j])*self.i_ext[j, i] * rho[j, -2, i] / self.dv
@@ -1164,7 +1173,7 @@ class Nykamp_Model_1():
         self.c_v = np.zeros_like(self.c)
         self.dFdv = np.zeros([self.n_populations, 2, n_v])
 
-        self.gamma_funcs = []
+        self.synapse_pdf_funcs = []
         for k in range(self.n_populations):
             if self.population_type[k] == 'exc':
 
@@ -1175,23 +1184,33 @@ class Nykamp_Model_1():
                 c2ei = np.zeros(len(v))
 
                 # conductance jump distributions
-                # input synapse parameters into gamma distribution
-                gamma_ee = gamma(a=self.var_coeff_gamma[k, 0] ** (-2), loc=0,
-                                 scale=self.var_coeff_gamma[k, 0]**2*self.mu_gamma[k, 0])
-                gamma_ei = gamma(a=self.var_coeff_gamma[k, 1] ** (-2),
-                                 loc=0, scale=self.var_coeff_gamma[k, 1]**2*self.mu_gamma[k, 1])
+                # input synapse parameters into synapse depdendent voltage jump distribution
+
+                if self.synapse_pdf_type == 'gamma':
+                    synapse_pdf_ee = gamma(a=self.synapse_pdf_params[0, k, 0] ** (-2), loc=0,
+                                     scale=self.synapse_pdf_params[0, k, 0]**2*self.synapse_pdf_params[1, k, 0])
+                    synapse_pdf_ei = gamma(a=self.synapse_pdf_params[0, k, 1] ** (-2),
+                                     loc=0, scale=self.synapse_pdf_params[0, k, 1]**2*self.synapse_pdf_params[1, k, 1])
+                elif self.synapse_pdf_type == 'normal':
+                    synapse_pdf_ee = norm(loc=self.synapse_pdf_params[0, k, 0], scale=self.synapse_pdf_params[1, k, 0])
+                    synapse_pdf_ei = norm(loc=self.synapse_pdf_params[0, k, 1], scale=self.synapse_pdf_params[1, k, 1])
+                elif self.synapse_pdf_type == 'log-normal':
+                    synapse_pdf_ee = lognorm(scale=self.synapse_pdf_params[0, k, 0], s=self.synapse_pdf_params[1, k, 0])
+                    synapse_pdf_ei = lognorm(scale=self.synapse_pdf_params[0, k, 1], s=self.synapse_pdf_params[1, k, 1])
+                else:
+                    raise NotImplementedError(f'Please choose from implemented pdf types: {self.implemented_pdf_types}!')
 
                 for i, v_ in enumerate(v):
 
                     vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
-                    int_c1ee = gamma_ee.sf((v_ - vpe) / (self.u_exc - vpe))
+                    int_c1ee = synapse_pdf_ee.sf((v_ - vpe) / (self.u_exc - vpe))
                     int_c2ee = int_c1ee * (v_ - vpe)
                     c1ee[i] = np.trapz(x=vpe, y=int_c1ee)
                     c2ee[i] = np.trapz(x=vpe, y=int_c2ee)
 
                     if i > 0:
                         vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
-                        int_c1ei = gamma_ei.sf((v_ - vpi) / (self.u_inh - vpi))
+                        int_c1ei = synapse_pdf_ei.sf((v_ - vpi) / (self.u_inh - vpi))
                         int_c2ei = int_c1ei * (vpi - v_)
                         c1ei[i] = np.trapz(x=vpi, y=int_c1ei)
                         c2ei[i] = np.trapz(x=vpi, y=int_c2ei)
@@ -1205,10 +1224,10 @@ class Nykamp_Model_1():
                 c2ee_v = np.gradient(c2ee, self.v)
                 c2ei_v = np.gradient(c2ei, self.v)
                 self.c_v[k] = np.array([[[c1ee_v, c1ei_v], [c2ee_v, c2ei_v]]])
-                self.gamma_funcs.append(gamma_ee)
-                Fee_v = np.gradient(gamma_ee.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
+                self.synapse_pdf_funcs.append(synapse_pdf_ee)
+                Fee_v = np.gradient(synapse_pdf_ee.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
                         * np.heaviside(self.v - self.u_rest, 0.5)
-                Fei_v = np.gradient(gamma_ei.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
+                Fei_v = np.gradient(synapse_pdf_ei.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
                         * np.heaviside(self.u_rest - self.v, 0.5)
 
                 self.dFdv[k] = np.array([Fee_v, Fei_v])
@@ -1224,22 +1243,34 @@ class Nykamp_Model_1():
                 c2ii = np.zeros(len(v))
 
                 # conductance jump distributions
-                gamma_ie = gamma(a=self.var_coeff_gamma[k, 0] ** (-2), loc=0,
-                                 scale=self.var_coeff_gamma[k, 0] ** 2 * self.mu_gamma[k, 0])
-                gamma_ii = gamma(a=self.var_coeff_gamma[k, 1] ** (-2),
-                                 loc=0, scale=self.var_coeff_gamma[k, 1] ** 2 * self.mu_gamma[k, 1])
+                if self.synapse_pdf_type == 'gamma':
+                    synapse_pdf_ie = gamma(a=self.synapse_pdf_params[0, k, 0] ** (-2), loc=0,
+                                           scale=self.synapse_pdf_params[0, k, 0] ** 2 * self.synapse_pdf_params[
+                                               1, k, 0])
+                    synapse_pdf_ii = gamma(a=self.synapse_pdf_params[0, k, 1] ** (-2),
+                                           loc=0, scale=self.synapse_pdf_params[0, k, 1] ** 2 * self.synapse_pdf_params[
+                            1, k, 1])
+                elif self.synapse_pdf_type == 'normal':
+                    synapse_pdf_ie = norm(loc=self.synapse_pdf_params[0, k, 0], scale=self.synapse_pdf_params[1, k, 0])
+                    synapse_pdf_ii = norm(loc=self.synapse_pdf_params[0, k, 1], scale=self.synapse_pdf_params[1, k, 1])
+                elif self.synapse_pdf_type == 'log-normal':
+                    synapse_pdf_ie = lognorm(scale=self.synapse_pdf_params[0, k, 0], s=self.synapse_pdf_params[1, k, 0])
+                    synapse_pdf_ii = lognorm(scale=self.synapse_pdf_params[0, k, 1], s=self.synapse_pdf_params[1, k, 1])
+                else:
+                    raise NotImplementedError(
+                        f'Please choose from implemented pdf types: {self.implemented_pdf_types}!')
 
                 for i, v_ in enumerate(v):
 
                     vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
-                    int_c1ie = gamma_ie.sf((v_ - vpe) / (self.u_exc - vpe))
+                    int_c1ie = synapse_pdf_ie.sf((v_ - vpe) / (self.u_exc - vpe))
                     int_c2ie = int_c1ie * (v_ - vpe)
                     c1ie[i] = np.trapz(x=vpe, y=int_c1ie)
                     c2ie[i] = np.trapz(x=vpe, y=int_c2ie)
 
                     if i > 0:
                         vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
-                        int_c1ii = gamma_ii.sf((v_ - vpi) / (self.u_inh - vpi))
+                        int_c1ii = synapse_pdf_ii.sf((v_ - vpi) / (self.u_inh - vpi))
                         int_c2ii = int_c1ii * (vpi - v_)
                         c1ii[i] = np.trapz(x=vpi, y=int_c1ii)
                         c2ii[i] = np.trapz(x=vpi, y=int_c2ii)
@@ -1253,10 +1284,10 @@ class Nykamp_Model_1():
                 c2ie_v = np.gradient(c2ie, self.v)
                 c2ii_v = np.gradient(c2ii, self.v)
                 self.c_v[k] = np.array([[[c1ie_v, c1ii_v], [c2ie_v, c2ii_v]]])
-                self.gamma_funcs.append(gamma_ie)
-                Fie_v = np.gradient(gamma_ie.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
+                self.synapse_pdf_funcs.append(synapse_pdf_ie)
+                Fie_v = np.gradient(synapse_pdf_ie.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
                                    * np.heaviside(self.v - self.u_rest, 0.5)
-                Fii_v = np.gradient(gamma_ii.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
+                Fii_v = np.gradient(synapse_pdf_ii.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
                                    * np.heaviside(self.u_rest - self.v, 0.5)
                 self.dFdv[k] = np.array([Fie_v, Fii_v])
 
@@ -1300,7 +1331,7 @@ class Nykamp_Model_1():
         plt.ylabel(f'{self.delay_kernel_type} delay kernel')
         plt.show()
 
-    def plot(self, fname=None, heat_map=False, plot_idxs=None, savefig=False, plot_input=False, z_limit=None):
+    def plot(self, fname=None, heat_map=True, plot_idxs=None, savefig=False, plot_input=False, z_limit=None):
 
         if fname == None:
             fname = self.name

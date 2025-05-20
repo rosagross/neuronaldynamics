@@ -29,16 +29,19 @@ pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
 pars_1D['tau_alpha'] = 1/3
 pars_1D['n_alpha'] = 9
 pars_1D['input_function'] = step
-# pars_1D['input_type'] = 'current'
+pars_1D['input_type'] = 'rate'
 pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 
 T = 100  # 200
-dt = 0.03 # 0.1
+dt = 0.02 # 0.1
 dv = 0.1
+pars_1D['T'] = T
+pars_1D['dt'] = dt
+pars_1D['dv'] = dv
 
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='nykamp_test_1D')
-nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
-nyk1D.plot(heat_map=True, plot_input=True, z_limit=0.3)
+nyk1D.simulate()
+nyk1D.plot(heat_map=False, plot_input=True, z_limit=0.3)
 nyk1D.clean()
