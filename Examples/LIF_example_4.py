@@ -74,9 +74,12 @@ pars_1D['input_function'] = v0
 pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
+pars_1D['T'] = T
+pars_1D['dt'] = dt
 dv = 0.01
+pars_1D['dv'] = dv
 
 nyk = Nykamp_Model_1(parameters=pars_1D, name='nykamp_test_1D')
-nyk.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
+nyk.simulate()
 
 compare_firing_rate('nykamp_test_1D', 'Conductance_LIF', smooth=True, idx=0)

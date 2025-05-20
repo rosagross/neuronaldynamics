@@ -115,9 +115,12 @@ pars_1D['c_mem'] = [0.2]  # 0.2F capacitance
 
 dt = 0.1 # 0.1
 dv = 0.01
+pars_1D['T'] = T
+pars_1D['dt'] = dt
+pars_1D['dv'] = dv
 
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp')
-nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
+nyk1D.simulate()
 nyk1D.plot(heat_map=True, z_limit=0.2)
 #
 compare_firing_rate('Nykamp', 'Conductance_LIF')

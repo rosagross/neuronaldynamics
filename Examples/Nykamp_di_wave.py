@@ -31,10 +31,10 @@ with h5py.File(os.path.splitext(fn_session)[0] + ".hdf5", "r") as f:
 # create grid object to transform from real to normalized coordinates [-1, 1]
 theta = 0               # angle of e-field [0, 180]°
 gradient = 0            # relative gradient of e-field [-20, 20] %/mm
-intensity = 229         # intensity of e-field [100, 400] V/m
+intensity = 230         # intensity of e-field [100, 400] V/m
 fraction_nmda = 0.5     # fraction of nmda synapses [0.25, 0.75]
 fraction_gaba_a = 0.95  # fraction of gaba_a synapses [0.9, 1.0]
-fraction_ex = 0.294      # fraction of exc/ihn synapses [0.2, 0.8]
+fraction_ex = 0.6      # fraction of exc/ihn synapses [0.2, 0.8]
 
 coords = np.array([[theta, gradient, intensity, fraction_nmda, fraction_gaba_a, fraction_ex]])
 
@@ -52,7 +52,7 @@ ext_current = current * 1e6
 
 # interpolate current on custom time grid
 T_new = 30
-dt_new = 0.005
+dt_new = 0.01
 t_new = np.arange(0, T_new, dt_new)
 ext_current = np.interp(t_new, t, ext_current)
 
@@ -63,7 +63,7 @@ ext_current = np.interp(t_new, t, ext_current)
 # plt.ylabel('Iext in A')
 # plt.show()
 
-y = DI_wave_test_function(t_new, intensity=1.5, t0=1, dt=1.5, width=0.3)
+y = DI_wave_test_function(t_new, intensity=1.5, t0=0.1, dt=1.5, width=0.3)
 # plt.plot(t_new, y)
 # plt.xlabel('time in ms')
 # plt.ylabel('firing rate test function')
@@ -72,7 +72,7 @@ y = DI_wave_test_function(t_new, intensity=1.5, t0=1, dt=1.5, width=0.3)
 
 # set a scalable conductance in mS?
 # g_r_l5pt = 7e-5
-g_r_l5pt = 8.41e-5
+g_r_l5pt = 3.0e-5
 
 
 dv = 0.1
@@ -100,12 +100,17 @@ pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 pars_1D['input_type'] = 'current'
 pars_1D['input_function'] = ext_current *0.4 # * 0.33 # scaling down by 3
-pars_1D['g_leak'] = [g_r_l5pt]
+# pars_1D['g_leak'] = [g_r_l5pt]
+pars_1D['T'] = T_new
+pars_1D['dt'] = dt_new
+pars_1D['dv'] = dv
+pars_1D['sparse_mat'] = True
+pars_1D['name'] = 'Nykamp'
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp')
 
 # nyk1D.plot_delay_kernel()
 
-nyk1D.simulate(T=T_new, dt=dt_new, dv=dv, verbose=0, sparse_mat=True)
+nyk1D.simulate()
 nyk1D.plot(heat_map=True, plot_input=True)
 nyk1D.save_log()
 nyk1D.clean()

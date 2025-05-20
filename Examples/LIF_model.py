@@ -27,7 +27,7 @@ def block_input(t, height, t1, t2):
     if t1<t<t2:
         return height
 
-# TODO: resetting he voltage poses a problem to the formulation of the ODE for now
+# TODO: resetting the voltage poses a problem to the formulation of the ODE for now
 LIF = General1DSystem(model='-x', input_func=block_input)
 LIF.solve(x0=x0, t=t)
 LIF.plot_solution()

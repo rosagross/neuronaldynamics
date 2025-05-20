@@ -734,75 +734,55 @@ class Nykamp_Model_1():
     populations
     """
 
-    def __init__(self, parameters, name='Nykamp'):
+    def __init__(self, parameters=None, name=None):
 
         self.connectivity_matrix = np.ones([2, 2])
         self.delay_kernel_type = 'alpha'
         self.delay_kernel_parameters = {'n_alpha': 9, 'tau_alpha': 1/3}
-
+        self.name = 'Nykamp_example'
+        self.u_reset = -70
+        self.u_rest = -70
+        self.u_thr = -55
+        self.u_exc = 0
+        self.u_inh = -75
+        self.tau_mem = 20
+        self.tau_ref = 1
+        self.mu_gamma = np.array([[0.008, 0.027]])
+        self.var_coeff_gamma = 0.5*np.ones((1, 2))
         self.dt = 0.1
         self.dv = 0.01
         self.T = 100
         self.tqdm_disable = False
+        self.sparse_mat = True
+        self.input_function = np.zeros((int(self.T/self.dt)))
+        self.input_function_idx = [0, 0]
+        self.population_type = ['exc']
+        self.verbose = 0
 
-        if name is None:
-            self.name = 'Nykamp_example'
-        else:
+        # input current
+        self.input_type = 'rate'
+
+        if parameters is not None:
+            self.__dict__.update(parameters)
+
+        self.parameters = parameters
+
+        if name is not None:
             self.name = name
-        if 'connectivity_matrix' in parameters:
-            self.connectivity_matrix = parameters['connectivity_matrix']
-        if 'u_rest' in parameters:
-            self.u_rest = parameters['u_rest']
-        if 'u_reset' in parameters:
-            self.u_reset = parameters['u_reset']
-        else:
-            self.u_reset = parameters['u_rest']
-        if 'u_thr' in parameters:
-            self.u_thr = parameters['u_thr']
-        if 'u_exc' in parameters:
-            self.u_exc = parameters['u_exc']
-        if 'u_inh' in parameters:
-            self.u_inh = parameters['u_inh']
-        if 'tau_mem' in parameters:
-            self.tau_mem = parameters['tau_mem']
-        if 'tau_ref' in parameters:
-            self.tau_ref = parameters['tau_ref']
-        if 'mu_gamma' in parameters:
-            self.mu_gamma = parameters['mu_gamma']
-        if 'var_coeff_gamma' in parameters:
-            self.var_coeff_gamma = parameters['var_coeff_gamma']
-        if 'tau_alpha' in parameters:
-            self.tau_alpha = parameters['tau_alpha']
-        if 'n_alpha' in parameters:
-            self.n_alpha = parameters['n_alpha']
-        if 'input_function' in parameters:
-            self.input_function = parameters['input_function']
-        if 'input_function_type' in parameters:
-            self.input_function_type = parameters['input_function_type']
-        if 'input_function_idx' in parameters:
-            self.input_function_idx = parameters['input_function_idx']
-        if 'population_type' in parameters:
-            self.population_type = parameters['population_type']
-        if 'delay_kernel_type' in parameters:
-            self.delay_kernel_type = parameters['delay_kernel_type']
-        if 'delay_kernel_parameters' in parameters:
-            self.delay_kernel_parameters = parameters['delay_kernel_parameters']
-        if 'tqdm_disable' in parameters:
-            self.tqdm_disable = parameters['tqdm_disable']
 
         self.n_populations = len(self.population_type)
 
-        # input current
-        if 'input_type' in parameters:
-            self.input_type = parameters['input_type']
-        else:
-            self.input_type = 'rate'
-        if 'g_leak' in parameters:
-            self.g_leak = parameters['g_leak']
-        else:
-            self.g_leak = [1e-5]*self.n_populations
+        # leakage conductance
+        if not 'neuron_size' in parameters:
+            self.neuron_size = 3.0 * np.ones(self.n_populations)  # unit is mm average is here for l5pt cells
 
-        self.parameters = parameters
+        if not 'g_leak' in parameters:
+            avg_c_mem_per_mm = 0.1  # generally accepted avg
+            self.c_mem = self.neuron_size * avg_c_mem_per_mm
+
+            # compute g_leak from tau and average length
+            self.g_leak = [1e-5]*self.n_populations
+            self.g_leak = self.c_mem/self.tau_mem * 1e-3  # (conversion to mS from µS)
 
         # set up arrays for simluation
         self.t = np.arange(0, self.T, self.dt)
@@ -815,26 +795,11 @@ class Nykamp_Model_1():
         self.break_outer = False
 
 
-    def simulate(self, T=None, dt=None, dv=None, dv_fine=None, sparse_mat=True, verbose=0):
-
-        #TODO: this version of passing args is becoming deprecated and needs to be moved to the init
-
-        if dv is not None:
-            self.dv = dv
-        if dt is not None:
-            self.dt = dt
-        if T is not None:
-            self.T = T
-        if dv_fine is None:
-            self.dv_fine = dv
-        else:
-            self.dv_fine = dv_fine
+    def simulate(self):
 
         self.t = np.arange(0, self.T, self.dt)
         self.v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
         self.get_delay_kernel()
-
-        self.sparse_mat = sparse_mat
 
         self.input = np.zeros([self.n_populations, self.n_populations, self.t.shape[0]])
         self.i_ext = np.zeros([self.n_populations, self.t.shape[0]])
@@ -847,14 +812,14 @@ class Nykamp_Model_1():
         elif self.input_type == 'current':
             self.i_ext[self.input_function_idx] = self.input_function(t=self.t)
 
-        if verbose > 0:
+        if self.verbose > 0:
             t0_coeff = time.time()
 
         # loop version of code
         self.get_diffusion_coeffs()
         self.r = None
 
-        if verbose > 0:
+        if self.verbose > 0:
             t1_coeff = time.time()
             print(f'time for coeffs: {t1_coeff - t0_coeff:.3f}s')
 
@@ -971,20 +936,8 @@ class Nykamp_Model_1():
                     f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
                                                              np.sum(v_in[inh_idxs, j, i]) * c2ei + self.c2eext)
 
-                    if i == 0 and verbose > 0:
-                        time0_A_exc = time.time()
-
                     A_exc = self.get_A(f0_exc, f1_exc, f2_exc)
-
-                    if i == 0 and verbose > 0:
-                        time0_B_exc = time.time()
-                        time1_A_exc = time.time()
-
                     B_exc = self.get_B(f0_exc, f1_exc, f2_exc)
-
-                    if i == 0 and verbose > 0:
-                        time1_B_exc = time.time()
-                        time0_rho_exc = time.time()
 
                     # contribution to drho/dt from rho_delta at u_res
 
@@ -1006,7 +959,7 @@ class Nykamp_Model_1():
                         r[j, i] = 0
 
                     if r[j, i] > 1e6:
-                        if sparse_mat:
+                        if self.sparse_mat:
                             A = np.array(A_exc.todense())
                             B = np.array(B_exc.todense())
                             kappa_A = np.linalg.cond(A)
@@ -1053,9 +1006,6 @@ class Nykamp_Model_1():
                             -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
                             rho_delta[j, i] + r_delayed[j, i])
 
-                    if i == 0 and verbose > 0:
-                        time1_rho_exc = time.time()
-
                 else:
                     # inhibitory population
                     # ==================================================================================================
@@ -1080,20 +1030,8 @@ class Nykamp_Model_1():
                     f2_inh = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ie +
                                                              np.sum(v_in[inh_idxs, j, i]) * c2ii)
 
-                    if i == 0 and verbose > 0:
-                        time0_A_inh = time.time()
-
                     A_inh = self.get_A(f0_inh, f1_inh, f2_inh)
-
-                    if i == 0 and verbose > 0:
-                        time0_B_inh = time.time()
-                        time1_A_inh = time.time()
-
                     B_inh = self.get_B(f0_inh, f1_inh, f2_inh)
-
-                    if i == 0 and verbose > 0:
-                        time1_B_inh = time.time()
-                        time0_rho_inh = time.time()
 
                     # contribution to drho/dt from rho_delta at u_res
                     g_inh = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
@@ -1117,32 +1055,10 @@ class Nykamp_Model_1():
                         rho[j, :, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho[j, :, i]))
                     else:
                         rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_inh, B_inh.dot(rho[j, :, i]))
-                    rho[j, :, i + 1] += dt * g_inh
-                    rho_delta[j, i + 1] = rho_delta[j, i] + dt * (
+                    rho[j, :, i + 1] += self.dt * g_inh
+                    rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
                             -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
                             rho_delta[j, i] + r_delayed[j, i])
-
-                    if i == 0 and verbose > 0:
-                        time1_rho_inh = time.time()
-
-            if i == 1 and verbose > 0:
-                print('\n')
-                if 'exc' in self.population_type:
-                    time_A_exc = time1_A_exc - time0_A_exc
-                    time_B_exc = time1_B_exc - time0_B_exc
-                    time_rho_exc = time1_rho_exc - time0_rho_exc
-
-                    print(f'time for A_exc: {time_A_exc:.3f}s')
-                    print(f'time for B_exc: {time_B_exc:.3f}s')
-                    print(f'time for rho_exc: {time_rho_exc:.3f}s')
-                if 'inh' in self.population_type:
-                    time_A_inh = time1_A_inh - time0_A_inh
-                    time_B_inh = time1_B_inh - time0_B_inh
-                    time_rho_inh = time1_rho_inh - time0_rho_inh
-
-                    print(f'time for A_inh: {time_A_inh:.3f}s')
-                    print(f'time for B_inh: {time_B_inh:.3f}s')
-                    print(f'time for rho_inh: {time_rho_inh:.3f}s')
 
         rho_plot = np.zeros_like(rho)
         self.r = r

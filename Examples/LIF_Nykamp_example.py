@@ -85,8 +85,12 @@ parameters_nykamp['population_type'] = ['exc', 'inh', 'exc']
 
 dv = 0.01
 
+parameters_nykamp['T'] = T
+parameters_nykamp['dt'] = dt
+parameters_nykamp['dv'] = dv
+
 nyk = Nykamp_Model_1(parameters=parameters_nykamp, name='nykamp_test_3D')
-nyk.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
+nyk.simulate()
 
 compare_firing_rate('nykamp_test_3D', 'Conductance_LIF', idx=0)
 compare_firing_rate('nykamp_test_3D', 'Conductance_LIF', idx=1)

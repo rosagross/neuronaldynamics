@@ -69,10 +69,13 @@ parameters['input_function'] = v0
 parameters['input_function_type'] = 'custom'
 parameters['input_function_idx'] = [0, 0]
 parameters['population_type'] = ['exc', 'inh']
+parameters['T'] = T
+parameters['dt'] = dt
 dv = 0.01
+parameters['dv'] = dv
 
 nyk = Nykamp_Model_1(parameters=parameters, name='nykamp_test_2D')
-nyk.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
+nyk.simulate()
 # nyk.plot('nykamp_test_2D', heat_map=True)
 
 compare_firing_rate('nykamp_test_2D', 'Conductance_LIF', smooth=True, idx=0)

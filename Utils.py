@@ -226,6 +226,17 @@ def compare_solution(sol_1, sol_2, x=None, save_fname=None, titles = ['plot1', '
         plt.savefig(save_fname)
 
 def compare_firing_rate(fname1, fname2, idx=0, n_neurons=1000, dt=0.1, smooth = True, save_fname=None):
+    """
+    Function specifically for comparing the firing rate between a NMM that produces r as output and a LIF network
+     that needs some formatting and filtering to get the output into the proper firing rate shape
+    :param fname1: name of NMM output file
+    :param fname2: name of LIF network output fil
+    :param idx: idx of population
+    :param n_neurons: number of neurons
+    :param dt: time step
+    :param smooth: bool, applying smoothing
+    :param save_fname: file name to save this image to, if None, it won't be saved
+    """
 
     with h5py.File(fname1 + '.hdf5', 'r') as h5file:
         r1 = np.array(h5file['r'])

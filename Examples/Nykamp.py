@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import h5py
 import matplotlib
 import os
-from Model.Nykamp_Model import Nykamp_Model, Nykamp_Model_1
+from Model.Nykamp_Model import Nykamp_Model_1
 matplotlib.use('TkAgg')
 
 
@@ -40,8 +40,12 @@ T = 100 # 200
 dt = 0.1 # 0.1
 dv = 0.01
 
+pars_1D['T'] = T
+pars_1D['dt'] = dt
+pars_1D['dv'] = dv
+
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='nykamp_test_1D')
-nyk1D.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
+nyk1D.simulate()
 nyk1D.plot(heat_map=True)
 nyk1D.clean()
 
@@ -63,13 +67,12 @@ parameters['input_function'] = input_sine_function
 parameters['input_function_type'] = 'custom'
 parameters['input_function_idx'] = [0, 0]
 parameters['population_type'] = ['exc', 'inh']
-
-T = 100 # 200
-dt = 0.1 # 0.1
-dv = 0.01
+parameters['T'] = T
+parameters['dt'] = dt
+parameters['dv'] = dv
 
 nyk = Nykamp_Model_1(parameters=parameters, name='nykamp_test_2D')
-nyk.simulate(T=T, dt=dt, dv=dv, verbose=0, sparse_mat=True)
+nyk.simulate()
 
 parameters_1 = parameters.copy()
 parameters_1['connectivity_matrix'] = np.array([[15, 30, 30], [30, 30, 30], [30, 30, 30]])
@@ -80,7 +83,7 @@ parameters_1['var_coeff_gamma'] = 0.5*np.ones((3, 2))
 parameters_1['population_type'] = ['exc', 'inh', 'exc']
 parameters_1['input_function_idx'] = [0, 0]
 nyk_1 = Nykamp_Model_1(parameters=parameters_1, name='nykamp_test_3D')
-nyk_1.simulate(T=T, dt=dt, dv=dv)
+nyk_1.simulate()
 
 # plot results
 nyk.plot('nykamp_test_2D', heat_map=True)
@@ -111,11 +114,19 @@ def model_timing(n_repetitions, dts, dvs, T, model):
         print(f'>n = {n + 1} ---------------------------------------')
         for i in range(5):
             t0 = time.time()
-            model.simulate(T=T, dt=dts[i], dv=0.01, sparse_mat=False)
+            model.T = T
+            model.dt = dts[i]
+            model.dv = 0.01
+            model.sparse_mat = False
+            model.simulate()
             t1 = time.time()
 
             t0_sparse = time.time()
-            model.simulate(T=T, dt=dts[i], dv=0.01, sparse_mat=True)
+            model.T = T
+            model.dt = dts[i]
+            model.dv = 0.01
+            model.sparse_mat = True
+            model.simulate()
             t1_sparse = time.time()
 
             t_n = t1-t0
@@ -126,11 +137,19 @@ def model_timing(n_repetitions, dts, dvs, T, model):
 
             if i != 0:
                 t0 = time.time()
-                model.simulate(T=T, dt=0.1, dv=dvs[i], sparse_mat=False)
+                model.T = T
+                model.dt = 0.1
+                model.dv = dvs[i]
+                model.sparse_mat = False
+                model.simulate()
                 t1 = time.time()
 
                 t0_sparse = time.time()
-                model.simulate(T=T, dt=0.1, dv=dvs[i], sparse_mat=True)
+                model.T = T
+                model.dt = 0.1
+                model.dv = dvs[i]
+                model.sparse_mat = True
+                model.simulate()
                 t1_sparse = time.time()
 
             t_n = t1 - t0

@@ -61,8 +61,12 @@ fraction_gaba_a = 0.95  # fraction of gaba_a synapses [0.9, 1.0]
 fraction_ex = 0.6      # fraction of exc/ihn synapses [0.2, 0.8]
 
 T_new = 10
-dt_new = 0.005
+dt_new = 0.01
 t_new = np.arange(0, T_new, dt_new)
+
+pars_1D['T'] = T_new
+pars_1D['dt'] = dt_new
+pars_1D['dv'] = dv
 
 y = DI_wave_test_function(t_new, intensity=1.5, t0=1, dt=1.5, width=0.3)
 def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, g_r_l5pt, idx='0'):
@@ -92,7 +96,7 @@ def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, g_r_l5pt, i
 
     nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp_' + idx)
 
-    nyk1D.simulate(T=T_new, dt=dt_new, dv=dv, verbose=0, sparse_mat=True)
+    nyk1D.simulate()
     nyk1D.plot(savefig=True, heat_map=True)
     nyk1D.clean()
     return nyk1D.r[0]
