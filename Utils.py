@@ -225,6 +225,35 @@ def compare_solution(sol_1, sol_2, x=None, save_fname=None, titles = ['plot1', '
     else:
         plt.savefig(save_fname)
 
+
+def plot_rates(solutions, x=None, save_fname=None, titles = ['Plot1', 'Plot2']):
+    """
+    Function that plots a 2D solution against a reference solution and their nrmse
+    :param solutions: np.ndarray
+        Solutions
+    :param x: np.ndarray
+        x values (optional) default: None
+    :param titles: list of strings
+        titles of the plotted rates default: ['Plot1', 'Plot2']
+    """
+
+    if not type(x) == np.ndarray:
+        x = np.arange(solutions.shape[1])
+
+    fig = plt.figure(figsize=(10, 4.25))
+    n_plots = solutions.shape[0]
+    ax1 = fig.add_subplot(1, 1, 1)
+    for i in range(n_plots):
+        ax1.plot(x, solutions[i])
+
+    ax1.set_xlabel('t in ms')
+    ax1.set_title('Firing rates in Hz')
+    ax1.legend(titles)
+    if save_fname==None:
+        plt.show()
+    else:
+        plt.savefig(save_fname)
+
 def compare_firing_rate(fname1, fname2, idx=0, n_neurons=1000, dt=0.1, smooth = True, save_fname=None):
     """
     Function specifically for comparing the firing rate between a NMM that produces r as output and a LIF network

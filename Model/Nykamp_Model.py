@@ -903,6 +903,7 @@ class Nykamp_Model_1():
                     g_eext = 0
                     F_ext_delta = 0
                     v_in_i_ext = 0
+                    v_ext = 0
 
                     if self.input_type == 'current':
                         v_ext = self.i_ext[j, i] / self.g_leak[j]
@@ -927,10 +928,14 @@ class Nykamp_Model_1():
                         # all new delay component terms
                         # apply dirac delta at v = self.u_rest + v_ext
                         g_eext = np.zeros_like(self.v)
-                        dirac_index = np.where(self.v > self.u_rest + v_ext)[0]
-                        g_eext[dirac_index] = -rho_delta[j, i]
+                        dirac_index = np.where(self.v > self.u_reset + v_ext)[0]
+                        if dirac_index.size == 0:
+                            dirac_index = np.where(self.v > self.u_reset)[0][0]
+                        else:
+                            dirac_index = dirac_index[0]
+                        g_eext[dirac_index] = rho_delta[j, i]
 
-                        F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_rest, 0.5)
+                        F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
 
                         v_in_i_ext = 1
 
@@ -956,7 +961,8 @@ class Nykamp_Model_1():
 
                     # calculate firing rate
                     r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
-                                                               self.synapse_pdf_funcs[j].sf((self.u_thr - self.u_rest) / (
+                                                               self.synapse_pdf_funcs[j].sf(
+                                                                   (self.u_thr - self.u_rest) / (
                                                                            self.u_exc - self.u_rest)) *
                                                                rho_delta[j, i])
                     r_ext = + self.c2eext[-1] * rho[j, -2, i] / self.dv + F_ext_delta * rho_delta[j, i]
@@ -1014,6 +1020,9 @@ class Nykamp_Model_1():
                     rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
                             -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
                             rho_delta[j, i] + r_delayed[j, i])
+
+                    if i ==400:
+                        a=1
 
                 else:
                     # inhibitory population

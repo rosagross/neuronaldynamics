@@ -8,7 +8,7 @@ matplotlib.use('TkAgg')
 
 # init parameters
 def step(t, t0=0, t1=80):
-    res = 1e2*np.ones_like(t)
+    res = 1e-4*np.ones_like(t)
     res[t < t0] = 0
     res[t > t1] = 0
     return res
@@ -29,7 +29,7 @@ pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
 pars_1D['tau_alpha'] = 1/3
 pars_1D['n_alpha'] = 9
 pars_1D['input_function'] = step
-pars_1D['input_type'] = 'rate'
+pars_1D['input_type'] = 'current'
 pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from Model.LIF import Conductance_LIF
 from Model.Nykamp_Model import Nykamp_Model_1
+from Utils import plot_rates
 from scipy.stats import gamma, norm, lognorm
 
 def step(t, t0=0, t1=80):
@@ -10,6 +11,7 @@ def step(t, t0=0, t1=80):
     res[t < t0] = 0
     res[t > t1] = 0
     return res
+sols = []
 
 ########################################################################################################################
 # GAMMA DISTRIBUTION
@@ -17,7 +19,8 @@ def step(t, t0=0, t1=80):
 
 nyk_gamma = Nykamp_Model_1(parameters={'input_function': step}, name='nykamp_gamma')
 nyk_gamma.simulate()
-nyk_gamma.plot()
+# nyk_gamma.plot()
+sols.append(nyk_gamma.r[0])
 nyk_gamma.clean()
 
 ########################################################################################################################
@@ -30,7 +33,8 @@ normal_params = {'synapse_pdf_type': 'normal', 'synapse_pdf_params': np.array([[
 
 nyk_gamma = Nykamp_Model_1(parameters=normal_params, name='nykamp_normal')
 nyk_gamma.simulate()
-nyk_gamma.plot()
+# nyk_gamma.plot()
+sols.append(nyk_gamma.r[0])
 nyk_gamma.clean()
 
 ########################################################################################################################
@@ -43,7 +47,8 @@ lognormal_params = {'synapse_pdf_type': 'log-normal', 'synapse_pdf_params': np.a
 
 nyk_gamma = Nykamp_Model_1(parameters=lognormal_params, name='nykamp_lognormal')
 nyk_gamma.simulate()
-nyk_gamma.plot()
+# nyk_gamma.plot()
+sols.append(nyk_gamma.r[0])
 nyk_gamma.clean()
 
 
@@ -60,7 +65,11 @@ plt.hist(gamma_samples, bins=30, alpha=0.5, label="Gamma Distribution", density=
 plt.hist(normal_samples, bins=30, alpha=0.5, label="Normal Distribution", density=True)
 plt.hist(lognormal_samples, bins=30, alpha=0.5, label="Log-Normal Distribution", density=True)
 plt.legend()
-plt.xlabel("Synaptic Conductance")
+plt.xlabel("Synaptic Conductance Jump")
 plt.ylabel("Density")
-plt.title("Comparison of Gamma and Normal Distributions")
+plt.legend(['Gamma', 'Normal', 'Log-Normal'])
 plt.show()
+
+solutions = np.array(sols)
+t = np.arange(0, nyk_gamma.T, nyk_gamma.dt)
+plot_rates(solutions, t, titles=['Gamma', 'Normal', 'Log-Normal'])
