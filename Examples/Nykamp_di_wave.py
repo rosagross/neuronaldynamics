@@ -78,8 +78,7 @@ g_r_l5pt = 3.0e-5
 dv = 0.1
 
 #TODO: 1) There is a weird switch to the model be varying the ref time (may be related to runaway solutions)
-#      2) Implement different PDFs for the drift & diffusion coeffs (i.e. lognormal, normal, beta) find out if the
-#      moments of them play a role or their entire shape
+
 
 pars_1D = {}
 pars_1D['connectivity_matrix'] = np.array([[15]])

@@ -930,10 +930,11 @@ class Nykamp_Model_1():
                         g_eext = np.zeros_like(self.v)
                         dirac_index = np.where(self.v > self.u_reset + v_ext)[0]
                         if dirac_index.size == 0:
-                            dirac_index = np.where(self.v > self.u_reset)[0][0]
+                            dirac_index = -3  # set dirac to latest point in v-space to preserve
+                                                               # flux and keep spiking
                         else:
                             dirac_index = dirac_index[0]
-                        g_eext[dirac_index] = rho_delta[j, i]
+                        g_eext[dirac_index] = - rho_delta[j, i]
 
                         F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
 
@@ -983,7 +984,7 @@ class Nykamp_Model_1():
                             kappa_A = np.linalg.cond(A_exc)
                             kappa_B = np.linalg.cond(B_exc)
 
-                        dt_proposal = self.dt/kappa_A*50  # may use 75 for border to insatbility
+                        dt_proposal = self.dt/kappa_A*50  # may use 75 for boarder to instability
 
                         print(f'Exiting simulation: rate of {r[j, i]} detected \n Condition number for A and B are: '
                               f'{kappa_A}, {kappa_B} \n Try dt<= {dt_proposal}')
@@ -1016,12 +1017,15 @@ class Nykamp_Model_1():
                         # rho[j, :, i + 1] = scipy.sparse.linalg.lsmr(A_exc, B_exc.dot(rho[j, :, i]),
                         #                                             damp=0.2, maxiter=100)[0]
 
+                    # update rho and rho_delta by their time derivative components from discontinuous terms
                     rho[j, :, i + 1] += self.dt * g_exc
-                    rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
-                            -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
-                            rho_delta[j, i] + r_delayed[j, i])
+                    rho[j, 50, i + 1] += 0.2
+                    # rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
+                    #         -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
+                    #         rho_delta[j, i] + r_delayed[j, i])
+                    rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-1*rho_delta[j, i] + r_delayed[j, i])
 
-                    if i ==400:
+                    if i ==700:
                         a=1
 
                 else:

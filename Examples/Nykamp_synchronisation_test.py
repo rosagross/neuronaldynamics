@@ -43,5 +43,5 @@ pars_1D['dv'] = dv
 
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='nykamp_test_1D')
 nyk1D.simulate()
-nyk1D.plot(heat_map=False, plot_input=True, z_limit=0.3)
+nyk1D.plot(heat_map=True, plot_input=True, z_limit=0.3)
 nyk1D.clean()
