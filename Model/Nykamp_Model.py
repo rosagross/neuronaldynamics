@@ -1019,14 +1019,17 @@ class Nykamp_Model_1():
 
                     # update rho and rho_delta by their time derivative components from discontinuous terms
                     rho[j, :, i + 1] += self.dt * g_exc
-                    rho[j, 50, i + 1] += 0.2
+                    # rho[j, 50, i + 1] += 0.2
                     # rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
                     #         -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
                     #         rho_delta[j, i] + r_delayed[j, i])
-                    rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-1*rho_delta[j, i] + r_delayed[j, i])
+                    rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-100*rho_delta[j, i] + r_delayed[j, i])
 
                     if i ==700:
                         a=1
+
+                    if not g_exc.all() == 0:
+                        print(i)
 
                 else:
                     # inhibitory population
