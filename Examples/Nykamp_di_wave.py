@@ -31,10 +31,10 @@ with h5py.File(os.path.splitext(fn_session)[0] + ".hdf5", "r") as f:
 # create grid object to transform from real to normalized coordinates [-1, 1]
 theta = 0               # angle of e-field [0, 180]°
 gradient = 0            # relative gradient of e-field [-20, 20] %/mm
-intensity = 230         # intensity of e-field [100, 400] V/m
+intensity = 200         # intensity of e-field [100, 400] V/m
 fraction_nmda = 0.5     # fraction of nmda synapses [0.25, 0.75]
 fraction_gaba_a = 0.95  # fraction of gaba_a synapses [0.9, 1.0]
-fraction_ex = 0.6      # fraction of exc/ihn synapses [0.2, 0.8]
+fraction_ex = 0.40      # fraction of exc/ihn synapses [0.2, 0.8]
 
 coords = np.array([[theta, gradient, intensity, fraction_nmda, fraction_gaba_a, fraction_ex]])
 
@@ -77,9 +77,6 @@ g_r_l5pt = 3.0e-5
 
 dv = 0.1
 
-#TODO: 1) There is a weird switch to the model be varying the ref time (may be related to runaway solutions)
-
-
 pars_1D = {}
 pars_1D['connectivity_matrix'] = np.array([[15]])
 pars_1D['u_rest'] = -70
@@ -88,7 +85,7 @@ pars_1D['u_exc'] = 0
 pars_1D['u_inh'] = -75
 pars_1D['tau_mem'] = np.array([20])
 # pars_1D['tau_ref'] = np.array([2.2])
-pars_1D['tau_ref'] = np.array([1.1])
+pars_1D['tau_ref'] = np.array([0.7])
 pars_1D['mu_gamma'] = np.array([[0.008, 0.027]])
 pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
 # pars_1D['delay_kernel_parameters'] = {'tau_alpha': 1/3, 'n_alpha': 9}

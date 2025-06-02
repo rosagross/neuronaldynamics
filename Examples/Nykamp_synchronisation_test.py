@@ -8,7 +8,7 @@ matplotlib.use('TkAgg')
 
 # init parameters
 def step(t, t0=0, t1=80):
-    res = 1e-4*np.ones_like(t)
+    res = 2e-5*np.ones_like(t)
     res[t < t0] = 0
     res[t > t1] = 0
     return res
@@ -19,6 +19,7 @@ def step(t, t0=0, t1=80):
 pars_1D = {}
 pars_1D['connectivity_matrix'] = 30*np.array([[0]])
 pars_1D['u_rest'] = -65
+pars_1D['u_reset'] = -65
 pars_1D['u_thr'] = -55
 pars_1D['u_exc'] = 0
 pars_1D['u_inh'] = -70

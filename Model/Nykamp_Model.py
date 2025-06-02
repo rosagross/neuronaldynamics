@@ -930,11 +930,11 @@ class Nykamp_Model_1():
                         g_eext = np.zeros_like(self.v)
                         dirac_index = np.where(self.v > self.u_reset + v_ext)[0]
                         if dirac_index.size == 0:
-                            dirac_index = -3  # set dirac to latest point in v-space to preserve
-                                                               # flux and keep spiking
+                            # dirac_index = -3  # set dirac to latest point in v-space to preserve flux?
+                            pass
                         else:
                             dirac_index = dirac_index[0]
-                        g_eext[dirac_index] = - rho_delta[j, i]
+                        g_eext[dirac_index] = - rho_delta[j, i] * 1e1
 
                         F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
 
@@ -957,7 +957,7 @@ class Nykamp_Model_1():
                     # contribution to drho/dt from rho_delta at u_res
 
                     g_exc = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
-                                               np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1]) + v_in_i_ext * g_eext
+                                               np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1]) - v_in_i_ext * g_eext
 
 
                     # calculate firing rate
@@ -1020,16 +1020,19 @@ class Nykamp_Model_1():
                     # update rho and rho_delta by their time derivative components from discontinuous terms
                     rho[j, :, i + 1] += self.dt * g_exc
                     # rho[j, 50, i + 1] += 0.2
-                    # rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
-                    #         -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
-                    #         rho_delta[j, i] + r_delayed[j, i])
-                    rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-100*rho_delta[j, i] + r_delayed[j, i])
+                    rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
+                            -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
+                            rho_delta[j, i] + r_delayed[j, i])
+                    # rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-100*rho_delta[j, i] + r_delayed[j, i])
 
-                    if i ==700:
+                    if i ==500:
                         a=1
+                    b = rho[j, :, i + 1]
+                    if (self.v[rho[j, :, i + 1] < 0]).shape[0] > 0:
+                        a = 1
 
-                    if not g_exc.all() == 0:
-                        print(i)
+                    # if not g_exc.all() == 0:
+                    #     print(i)
 
                 else:
                     # inhibitory population
