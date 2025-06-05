@@ -934,6 +934,7 @@ class Nykamp_Model_1():
                             pass
                         else:
                             dirac_index = dirac_index[0]
+                        # dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
                         g_eext[dirac_index] = - rho_delta[j, i] * 1e1
 
                         F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)

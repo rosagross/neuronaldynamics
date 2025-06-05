@@ -8,7 +8,7 @@ matplotlib.use('TkAgg')
 
 # init parameters
 def step(t, t0=0, t1=80):
-    res = 2e-5*np.ones_like(t)
+    res = 4e-5*np.ones_like(t)
     res[t < t0] = 0
     res[t > t1] = 0
     return res
@@ -44,5 +44,5 @@ pars_1D['dv'] = dv
 
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='nykamp_test_1D')
 nyk1D.simulate()
-nyk1D.plot(heat_map=True, plot_input=True, z_limit=0.3)
+nyk1D.plot(heat_map=True, plot_input=True, z_limit=0.5)
 nyk1D.clean()
