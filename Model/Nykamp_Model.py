@@ -934,7 +934,7 @@ class Nykamp_Model_1():
                             pass
                         else:
                             dirac_index = dirac_index[0]
-                        # dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
+                        dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
                         g_eext[dirac_index] = - rho_delta[j, i] * 1e1
 
                         F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
@@ -1026,10 +1026,10 @@ class Nykamp_Model_1():
                             rho_delta[j, i] + r_delayed[j, i])
                     # rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-100*rho_delta[j, i] + r_delayed[j, i])
 
-                    if i ==500:
-                        a=1
+                    # if i ==500:
+                    #     a=1
                     b = rho[j, :, i + 1]
-                    if (self.v[rho[j, :, i + 1] < 0]).shape[0] > 0:
+                    if (self.v[rho[j, :, i + 1] < 0]).shape[0] > 1:
                         a = 1
 
                     # if not g_exc.all() == 0:
@@ -1091,6 +1091,7 @@ class Nykamp_Model_1():
 
         rho_plot = np.zeros_like(rho)
         self.r = r
+        self.rho = rho
         for k in range(self.n_populations):
             rho_plot[k, :] = rho[k, :]
             rho_plot[k, v_reset_idx, :] = rho[k, v_reset_idx, :] + rho_delta[k, :]

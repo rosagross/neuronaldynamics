@@ -8,6 +8,7 @@ import os
 import h5py
 from tqdm import tqdm
 from Model.Nykamp_Model import Nykamp_Model_1
+from Model.Neck import generate_EP
 from Utils import DI_wave_test_function, nrmse
 matplotlib.use('TkAgg')
 
@@ -63,7 +64,25 @@ ext_current = np.interp(t_new, t, ext_current)
 # plt.ylabel('Iext in A')
 # plt.show()
 
-y = DI_wave_test_function(t_new, intensity=1.5, t0=0.1, dt=1.5, width=0.3)
+y_potential = DI_wave_test_function(t_new, intensity=1.5, t0=0.1, dt=1.5, width=0.3)
+EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=dt_new*10)
+EP = -EP
+EP = EP / np.max(EP)
+EP_small = np.interp(t_new - 0.5, t_EP, EP)
+y_rate = scipy.signal.convolve(y_potential, EP_small)
+y_shape = y_potential.shape[0]
+y = y_rate[:y_shape]
+fig, ax = plt.subplots(3, 1)
+ax[0].plot(t_new, y_potential)
+ax[0].set_ylabel('DI wave potential')
+ax[1].plot(t_new[:EP_small.shape[0]], EP_small)
+ax[1].set_ylabel('Kernel')
+ax[2].plot(t_new, y)
+ax[2].set_ylabel('DI wave rate')
+for i in range(3):
+    ax[i].set_xlabel('t (ms)')
+    ax[i].set_xlim([t_new[0], t_new[-1]])
+plt.show()
 # plt.plot(t_new, y)
 # plt.xlabel('time in ms')
 # plt.ylabel('firing rate test function')

@@ -1,12 +1,14 @@
 import numpy as np
+import matplotlib
+matplotlib.use('TKAgg')
 import scipy.io
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-from scipy.signal import deconvolve
+from scipy import signal
 import scipy.spatial.distance
+import skimage
 
-
-def generate_EP(d=0.01, plot=False, Axontype=1):
+def generate_EP(d=0.01, plot=False, Axontype=1, N=1000):
     # Load AP data based on Axontype
     if Axontype == 1:
         data = scipy.io.loadmat('AP.mat')
@@ -33,7 +35,7 @@ def generate_EP(d=0.01, plot=False, Axontype=1):
     ddv = np.gradient(dv)
 
     # Calculate extracellular potential (EP)
-    EP = np.zeros_like(ddv)
+    EP = np.zeros((ddv.shape[0]))
     # dists = scipy.spatial.distance.cdist(times, times)
     # masks = 1/dists # needs the d offset for some reason?
     for t in range(times.shape[0]):
@@ -61,17 +63,22 @@ def generate_EP(d=0.01, plot=False, Axontype=1):
         plt.show()
 
     # Prepare output data
-    dt2 = 1e-3
-    times2 = np.arange(-0.5, 0.5 + dt2, dt2)
+    dt_new = 1e-3  # old version with dt
+    times_new = np.arange(-0.5, 0.5 + dt_new, dt_new)
+    # times_new = np.linspace(-0.7, 0.7, int(N))
 
     AP2 = v - np.min(v)
-    AP2 /= np.max(AP2)
-    AP2 = np.interp(times2, times - np.argmax(AP2), AP2)
+    max_AP_idx = np.argmax(AP2)
+    max_AP = np.max(AP2)
+    min_EP_idx = np.argmin(EP)
+    min_EP = np.min(EP)
 
-    EP2 = EP / abs(np.min(EP))
-    EP2 = np.interp(times2, times - np.argmin(EP), EP2)
+    AP2 /= max_AP
+    AP2 = np.interp(times_new, times - times[max_AP_idx], AP2)
+    EP2 = EP / abs(min_EP)
+    EP2 = np.interp(times_new, times - times[min_EP_idx], EP2)
 
-    return EP2, times2, AP2
+    return EP2, times_new, AP2
 
 def sigmoid(x, x0, r, a):
     return a / (1 + np.exp(r * (x0 - x)))
@@ -90,24 +97,22 @@ def gen_DIwave(t, intensity):
 
     # Compute DIwave using summation of Gaussian functions weighted by sigmoid
     for i in range(5):
-        DIwave += np.exp(-((t - t0 - (i * T)) ** 2) / (2 * width ** 2)) * sigmoid(intensity, x0[i], r[i], a[i])
+        DIwave += np.exp(-(t - t0 - (i * T)) ** 2 / (2 * width ** 2)) * sigmoid(intensity, x0[i], r[i], a[i])
 
     return DIwave
 
-# Example usage and plotting
-# if __name__ == "__main__":
-#     t = np.linspace(2, 14, 1000)  # Timepoints
-#     intensity = 1.5  # RTM
-#
-#     DIwave = gen_DIwave(t, intensity)
-#
-#     plt.plot(t, DIwave)
-#     plt.xlabel("Time (ms)")
-#     plt.ylabel("Normalized Amplitude")
-#     plt.title(f"DIwave (at {intensity} RMT)")
-#     plt.show()
+def regularized_deconvolution(signal, kernel, reg_param=0.01):
+    signal_shape = signal.shape[0]
+    kernel_shape = kernel.shape[0]
+    n_kernel_padding = signal_shape - kernel_shape
+    kernel_padding = np.zeros(n_kernel_padding)
+    kernel = np.hstack((kernel, kernel_padding))
+    kernel_fft = np.fft.fft(kernel)
+    signal_fft = np.fft.fft(signal)
+    deconvolved_fft = signal_fft / (kernel_fft + reg_param)
+    return np.fft.ifft(deconvolved_fft).real, 0
 
-
+plot_scatter = False
 # Data preparation
 x = 3 / 80 * np.arange(-3, 31, 3) + 1  # AMT average
 x *= 0.75  # AMT to RMT
@@ -115,75 +120,97 @@ z = np.linspace(0.55, 1.7, 1000)  # Continuous range for fitting
 
 # Data values
 data = {
-    "D": [0, 0, 0, 0, 0, 0, 0, 0, 6.389, 9.444, 10.00, 14.17],
     "I1": [0, 2.609, 2.958, 10.57, 16.79, 18.82, 30.33, 30.97, 37.46, 33.35, 36.22, 36.85],
     "I2": [0, 0, 0, 10.06, 9.113, 11.17, 14.89, 18.86, 22.56, 21.34, 25.60, 29.58],
     "I3": [0, 0, 0, 0, 7.659, 10.90, 16.10, 15.69, 16.69, 13.47, 16.71, 21.34],
-    "I4": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11.44, 8.991]
+    "I4": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11.44, 8.991],
+    "D": [0, 0, 0, 0, 0, 0, 0, 0, 6.389, 9.444, 10.00, 14.17]
 }
 
 colors = ["blue", "orange", "green", "red", "purple"]
 
 # Plot scatter & sigmoid curve fitting
-plt.figure(figsize=(10, 8))
-for label, y in data.items():
-    plt.scatter(x, y, label=label, color=colors[list(data.keys()).index(label)], alpha=0.7)
-    p0 = [1.5, 10, 20]
-    bounds = ([1, 0, 0], [2.5, 500, 40])
+if plot_scatter:
+    plt.figure(figsize=(10, 8))
+    for label, y in data.items():
+        plt.scatter(x, y, label=label, color=colors[list(data.keys()).index(label)], alpha=0.7)
+        p0 = [1.5, 10, 20]
+        bounds = ([1, 0, 0], [2.5, 500, 40])
 
-    popt = curve_fit(sigmoid, x, y, p0=p0, bounds=bounds)
-    plt.plot(z, sigmoid(z, popt[0][0], popt[0][1], popt[0][2]), color=colors[list(data.keys()).index(label)], linewidth=1.5)
+        popt = curve_fit(sigmoid, x, y, p0=p0, bounds=bounds)
+        plt.plot(z, sigmoid(z, popt[0][0], popt[0][1], popt[0][2]), color=colors[list(data.keys()).index(label)], linewidth=1.5)
 
-plt.legend()
-plt.xlabel("TMS intensity (RMT)")
-plt.ylabel("Amplitude (μV)")
-plt.title("Sigmoid Curve Fit")
-plt.show()
+    plt.legend()
+    plt.xlabel("TMS intensity (RMT)")
+    plt.ylabel("Amplitude (μV)")
+    plt.title("Sigmoid Curve Fit")
+    plt.show()
 
 # Generate DIwaves
 dt = 0.01  # ms
-t = np.arange(0, 20, dt)
-TMS = [0.8, 1, 1.5]
+t = np.arange(0, 15, dt)
+TMS_intensities = [0.8, 1, 1.5]
+n_intensities = len(TMS_intensities)
 
-meancurve2 = np.array([gen_DIwave(t, intensity) for intensity in TMS]).T
+di_waves = np.array([gen_DIwave(t, intensity) for intensity in TMS_intensities]).T
+
+# Interpolate DIwave
+times_new = np.arange(t[0], t[-1] + dt, dt)
+times_new_positive = times_new[times_new > 0]
+
+di_waves_interp = np.zeros_like(di_waves)
+for i in range(n_intensities):
+    di_waves_interp[:, i] = np.interp(times_new, t, di_waves[:, i].T).T
 
 # Generate EP
 d = 0.1
-EP, t_EP, AP_out = generate_EP(d, plot=False, Axontype=1)
+kernel_length = int(times_new.shape[0])
+EP, t_EP, AP_out = generate_EP(d, plot=False, Axontype=1, N=kernel_length)
 EP = -EP
 
-# Interpolate DIwave
-times2 = np.arange(t[0], t[-1], dt)
-meancurve3 = np.zeros_like(meancurve2)
-for i in range(meancurve3.shape[1]):
-    meancurve3[:, i] = np.interp(times2, t, meancurve2[:, i].T).T
+padding = EP.shape[0]
+if padding < 0:
+    raise ValueError('Kernel dimension is bigger than signal dimension!')
+# di_wave_padding = np.ones((padding, n_intensities)) * di_waves_interp[0, :]
+di_wave_padding = 1e-50*np.ones((padding, n_intensities))
+di_waves_extended = np.vstack([di_wave_padding, di_waves_interp])
 
-times2 = times2[times2 > 0]
-padding = 1000
-meancurve3 = np.vstack([np.ones((padding, meancurve3.shape[1])) * meancurve3[0, :], meancurve3])
 
 # Deconvolution
-lambda_val = 100
-rate = np.zeros_like(meancurve2)
-for i in range(meancurve3.shape[1]):
-    rate[:, i], _ = deconvolve(meancurve3[:, i].flatten(), EP.flatten())
+rate = np.zeros_like(di_waves_interp)
+for i in range(di_waves_extended.shape[1]):
+    deco = regularized_deconvolution(di_waves_extended[:, i], EP, reg_param=0.1)[0][:times_new.shape[0]]
+#     deco = signal.deconvolve(di_waves_extended[:, i], EP)[0][:-1]
+    rate[:, i] = deco / np.max(deco)
+# repeated_EP = EP.repeat(3).reshape((EP.shape[0], 3))
+# p0 = {'prior': di_waves_interp}
+# rate = skimage.restoration.unsupervised_wiener(di_waves_interp, repeated_EP, user_params=p0)[0]
 
 # Plot results
+intensities = ['0.8', '1.0', '1.5']
 fig, axes = plt.subplots(3, 1, figsize=(10, 8))
-for i in range(meancurve2.shape[1]):
-    norm_curve = meancurve2[:, i] / np.max(meancurve2[:, i])
-    axes[0].plot(t, norm_curve, linewidth=1.5)
+for i in range(di_waves_interp.shape[1]):
+    # norm_curve = di_waves_interp[:, i] / np.max(di_waves_interp[:, i])
+    axes[0].plot(t, di_waves_interp[:, i], linewidth=2)
 axes[0].set_title("DI-waves")
 axes[0].set_ylabel("Potential")
+axes[0].legend(intensities)
 
-axes[1].plot(t_EP - t_EP[0], EP, 'k', linewidth=1)
+axes[1].plot(t_EP - t_EP[0], EP, 'k', linewidth=1.2)
 axes[1].set_title(f"EP (d/c={d})")
 axes[1].set_ylabel("Potential")
+
 for i in range(rate.shape[1]):
-    axes[2].plot(times2, rate[:-1, i] / np.max(rate[:-1, i]), linewidth=1.5)
+    axes[2].plot(times_new, rate[:, i] / np.max(rate[:, i]), linewidth=2)
 axes[2].set_title("Deconvolved DI-waves")
 axes[2].set_xlabel("Time (ms)")
 axes[2].set_ylabel("Firing Rate")
+axes[2].legend(intensities)
+
+for i in range(3):
+    axes[i].set_xlim([t[0], t[-1]])
+    axes[i].grid()
+
 
 plt.tight_layout()
 plt.show()
