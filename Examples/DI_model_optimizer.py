@@ -10,6 +10,7 @@ import h5py
 from tqdm import tqdm
 from Model.LIF import Conductance_LIF
 from Model.Nykamp_Model import Nykamp_Model_1
+from Model.Neck import EP_convolve
 from Utils import compare_firing_rate, DI_wave_test_function, nrmse
 matplotlib.use('TkAgg')
 
@@ -60,7 +61,7 @@ fraction_nmda = 0.5     # fraction of nmda synapses [0.25, 0.75]
 fraction_gaba_a = 0.95  # fraction of gaba_a synapses [0.9, 1.0]
 fraction_ex = 0.6      # fraction of exc/ihn synapses [0.2, 0.8]
 
-T_new = 10
+T_new = 30
 dt_new = 0.01
 t_new = np.arange(0, T_new, dt_new)
 
@@ -69,7 +70,7 @@ pars_1D['dt'] = dt_new
 pars_1D['dv'] = dv
 
 y = DI_wave_test_function(t_new, intensity=1.5, t0=1, dt=1.5, width=0.3)
-def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, g_r_l5pt, idx='0'):
+def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, g_r_l5pt, y, idx='0'):
     coords = np.array([[theta, gradient, intensity, fraction_nmda, fraction_gaba_a, fraction_ex]])
 
     grid = pygpc.RandomGrid(parameters_random=session.parameters_random, coords=coords)
@@ -97,9 +98,13 @@ def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, g_r_l5pt, i
     nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp_' + idx)
 
     nyk1D.simulate()
-    nyk1D.plot(savefig=True, heat_map=True)
+    nyk1D.plot(savefig=True, heat_map=True, plot_input=True)
+    plt.close()
     nyk1D.clean()
-    return nyk1D.r[0]
+
+    x_convolved = EP_convolve(x=nyk1D.r[0], t=t_new, dt=dt_new, scale=np.max(y))
+
+    return x_convolved
 
 # params: intensity, i_e balance,  g_l (scaling of i)
 lower_bound = np.array([100, 0.2, 1e-5])
@@ -120,13 +125,15 @@ for i in tqdm(range(max_iter)):
     param_values = np.zeros((n_param, n_grid))
     for j in range(n_param):
         param_values[j] = np.random.uniform(lower_bound[j], upper_bound[j], n_grid)
-    error = np.zeros(param_values.shape[1])
+    error = np.zeros((i, param_values.shape[1]))
     for k in range(n_grid):
         x = simulate(intensity=param_values[0, k], fraction_nmda=0.5, fraction_gaba_a=0.95,
                      fraction_ex=param_values[1, k],
-                     g_r_l5pt=param_values[2, k], idx=f'{i}_{k}')
+                     g_r_l5pt=param_values[2, k], y=y, idx=f'{i}_{k}')
+
         error[k] = nrmse(y, x)
-        np.savetxt(X=np.array([error[k], param_values]), fname=f'params_{i}_{k}.csv')
+        # np.savetxt(X=param_values, fname=f'params_{i}_{k}.csv')
+        # np.savetxt(X=np.array([error[k]]), fname=f'error_{i}_{k}.csv')
     min_error = np.nanmin(error)
     print(f'error: {min_error:.5f}')
     min_error_idx = np.nanargmin(error)
@@ -134,11 +141,12 @@ for i in tqdm(range(max_iter)):
     param_list.append(param_values[:, min_error_idx])
     print(param_values[:, min_error_idx])
     if min_error < eps:
-        print(f'error: {min_error}')
+        print(f'error: {min_error:.4f}')
         break
 
     if min_error < np.min(np.array(errors)) - noise_term:
         # contract region in parameter space if error was smaller
+        print(f'new min error: {min_error:.4f} at index {i, k}')
 
         # get new bounds for next iteration
         p_new = param_values[:, min_error_idx]
@@ -148,9 +156,12 @@ for i in tqdm(range(max_iter)):
             upper_bound[j] = min(upper_bound[j], p_new[j] + 0.5 * delta[j])
 
 plt.close()
-nykamp_rate = x
-diff = nrmse(y, nykamp_rate)
-plt.plot(t_new, nykamp_rate)
+nykamp_potential = x
+print(f'optimal param: {p_new}')
+np.savetxt(X=p_new, fname=f'opt_param.csv')
+
+diff = nrmse(y, nykamp_potential)
+plt.plot(t_new, nykamp_potential)
 plt.plot(t_new, y)
 plt.grid()
 plt.xlabel('t in ms')

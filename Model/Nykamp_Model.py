@@ -928,12 +928,12 @@ class Nykamp_Model_1():
                         # all new delay component terms
                         # apply dirac delta at v = self.u_rest + v_ext
                         g_eext = np.zeros_like(self.v)
-                        dirac_index = np.where(self.v > self.u_reset + v_ext)[0]
-                        if dirac_index.size == 0:
-                            # dirac_index = -3  # set dirac to latest point in v-space to preserve flux?
-                            pass
-                        else:
-                            dirac_index = dirac_index[0]
+                        # dirac_index = np.where(self.v > self.u_reset + v_ext)[0]
+                        # if dirac_index.size == 0:
+                        #     # dirac_index = -3  # set dirac to latest point in v-space to preserve flux?
+                        #     pass
+                        # else:
+                        #     dirac_index = dirac_index[0]
                         dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
                         g_eext[dirac_index] = - rho_delta[j, i] * 1e1
 

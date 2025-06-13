@@ -12,6 +12,8 @@ from Model.Neck import generate_EP
 from Utils import DI_wave_test_function, nrmse
 matplotlib.use('TkAgg')
 
+plot_convolution = False
+
 # time in ms
 t = np.linspace(0, 99.81, 500)
 # t = np.linspace(0, 32., 1000)
@@ -32,10 +34,10 @@ with h5py.File(os.path.splitext(fn_session)[0] + ".hdf5", "r") as f:
 # create grid object to transform from real to normalized coordinates [-1, 1]
 theta = 0               # angle of e-field [0, 180]°
 gradient = 0            # relative gradient of e-field [-20, 20] %/mm
-intensity = 200         # intensity of e-field [100, 400] V/m
-fraction_nmda = 0.5     # fraction of nmda synapses [0.25, 0.75]
+intensity = 120.6        # intensity of e-field [100, 400] V/m
+fraction_nmda = 0.4 #0.5     # fraction of nmda synapses [0.25, 0.75]
 fraction_gaba_a = 0.95  # fraction of gaba_a synapses [0.9, 1.0]
-fraction_ex = 0.40      # fraction of exc/ihn synapses [0.2, 0.8]
+fraction_ex = 0.746 # 0.40      # fraction of exc/ihn synapses [0.2, 0.8]
 
 coords = np.array([[theta, gradient, intensity, fraction_nmda, fraction_gaba_a, fraction_ex]])
 
@@ -64,25 +66,8 @@ ext_current = np.interp(t_new, t, ext_current)
 # plt.ylabel('Iext in A')
 # plt.show()
 
-y_potential = DI_wave_test_function(t_new, intensity=1.5, t0=0.1, dt=1.5, width=0.3)
-EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=dt_new*10)
-EP = -EP
-EP = EP / np.max(EP)
-EP_small = np.interp(t_new - 0.5, t_EP, EP)
-y_rate = scipy.signal.convolve(y_potential, EP_small)
-y_shape = y_potential.shape[0]
-y = y_rate[:y_shape]
-fig, ax = plt.subplots(3, 1)
-ax[0].plot(t_new, y_potential)
-ax[0].set_ylabel('DI wave potential')
-ax[1].plot(t_new[:EP_small.shape[0]], EP_small)
-ax[1].set_ylabel('Kernel')
-ax[2].plot(t_new, y)
-ax[2].set_ylabel('DI wave rate')
-for i in range(3):
-    ax[i].set_xlabel('t (ms)')
-    ax[i].set_xlim([t_new[0], t_new[-1]])
-plt.show()
+y = DI_wave_test_function(t_new, intensity=1.5, t0=0.1, dt=1.5, width=0.3)
+
 # plt.plot(t_new, y)
 # plt.xlabel('time in ms')
 # plt.ylabel('firing rate test function')
@@ -91,8 +76,9 @@ plt.show()
 
 # set a scalable conductance in mS?
 # g_r_l5pt = 7e-5
-g_r_l5pt = 3.0e-5
+# g_r_l5pt = 3.0e-5
 
+g_r_l5pt = 5.366e-5
 
 dv = 0.1
 
@@ -131,12 +117,38 @@ nyk1D.save_log()
 nyk1D.clean()
 
 nykamp_rate = nyk1D.r[0]
-diff = nrmse(y, nykamp_rate)
-plt.plot(t_new, nykamp_rate)
+
+EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=dt_new*10)
+EP = -EP
+EP = EP / np.max(EP)
+EP_small = np.interp(t_new[t_new < 1.0] - 0.5, t_EP, EP)
+nykamp_potential = scipy.signal.convolve(nykamp_rate, EP_small)
+nykamp_shape = nykamp_rate.shape[0]
+nykamp_potential_out = nykamp_potential[:nykamp_shape]
+di_max = np.max(y)
+nykamp_potential_scaled = nykamp_potential_out / np.max(nykamp_potential_out) * di_max
+if plot_convolution:
+    fig, ax = plt.subplots(3, 1)
+    ax[0].plot(t_new, nykamp_rate)
+    ax[0].set_ylabel('DI wave potential')
+    ax[1].plot(t_new[:EP_small.shape[0]], EP_small)
+    ax[1].set_ylabel('Kernel')
+    ax[2].plot(t_new, nykamp_potential_scaled)
+    ax[2].set_ylabel('DI wave rate')
+    for i in range(3):
+        ax[i].set_xlabel('t (ms)')
+        ax[i].set_xlim([t_new[0], t_new[-1]])
+    plt.show()
+
+
+diff = nrmse(y, nykamp_potential_scaled)
+# plt.plot(t_new, nykamp_rate)
+plt.plot(t_new, nykamp_potential_scaled)
 plt.plot(t_new, y)
 plt.grid()
 plt.xlabel('t in ms')
-plt.legend(['nykamp', 'D-I-wave test function'])
+plt.legend(['nykamp_potential', 'D-I-wave test function'])
+plt.legend(['nykamp rate', 'nykamp_potential', 'D-I-wave test function'])
 plt.title(f'nrmse: {diff:.4f}')
 plt.show()
 

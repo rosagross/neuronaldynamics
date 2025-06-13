@@ -81,3 +81,27 @@ def generate_EP(d=0.01, plot=False, Axontype=1, N=1000, dt=1e-3):
     EP2 = np.interp(times_new, times - times[min_EP_idx], EP2)
 
     return EP2, times_new, AP2
+
+
+def EP_convolve(x, t, dt=0.1, scale=1, plot=False):
+    EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=dt * 10)
+    EP = -EP
+    EP = EP / np.max(EP)
+    EP_small = np.interp(t[t < 1.0] - 0.5, t_EP, EP)
+    x_potential = scipy.signal.convolve(x, EP_small)
+    x_shape = x.shape[0]
+    x_potential_out = x_potential[:x_shape]
+    x_potential_scaled = x_potential_out / np.max(x_potential_out) * scale
+    if plot:
+        fig, ax = plt.subplots(3, 1)
+        ax[0].plot(t, x)
+        ax[0].set_ylabel('DI wave potential')
+        ax[1].plot(t[:EP_small.shape[0]], EP_small)
+        ax[1].set_ylabel('Kernel')
+        ax[2].plot(t, x_potential_scaled)
+        ax[2].set_ylabel('DI wave rate')
+        for i in range(3):
+            ax[i].set_xlabel('t (ms)')
+            ax[i].set_xlim([t[0], t[-1]])
+        plt.show()
+    return x_potential_scaled
