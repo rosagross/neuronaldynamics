@@ -116,49 +116,64 @@ max_iter = 10
 noise_term = 0.02
 n_param = lower_bound.shape[0]
 eps = 0.01
-errors = []
+min_errors = []
 param_list = []
+
+opt_idxs = []
+n_grid = 10
+x_vals = np.zeros((max_iter, n_grid, t_new.shape[0]))
+min_error_idxs = np.zeros(max_iter)
+parameters = np.zeros((max_iter, n_grid, lower_bound.shape[0]))
+error = np.ones((max_iter, n_grid))
 x = 0
+p_new = 0
+
 
 for i in tqdm(range(max_iter)):
-    n_grid = 20
     param_values = np.zeros((n_param, n_grid))
     for j in range(n_param):
         param_values[j] = np.random.uniform(lower_bound[j], upper_bound[j], n_grid)
-    error = np.zeros((i, param_values.shape[1]))
+
     for k in range(n_grid):
+        parameters[i, k] = param_values[:, k]
         x = simulate(intensity=param_values[0, k], fraction_nmda=0.5, fraction_gaba_a=0.95,
                      fraction_ex=param_values[1, k],
                      g_r_l5pt=param_values[2, k], y=y, idx=f'{i}_{k}')
+        x_vals[i, k] = x
+        error[i, k] = nrmse(y, x)
 
-        error[k] = nrmse(y, x)
-        # np.savetxt(X=param_values, fname=f'params_{i}_{k}.csv')
-        # np.savetxt(X=np.array([error[k]]), fname=f'error_{i}_{k}.csv')
-    min_error = np.nanmin(error)
-    print(f'error: {min_error:.5f}')
-    min_error_idx = np.nanargmin(error)
-    errors.append(min_error)
-    param_list.append(param_values[:, min_error_idx])
-    print(param_values[:, min_error_idx])
+    min_error = np.nanmin(error[i])
+
+    min_error_idx = (i, np.nanargmin(error[i]))
+    min_error_idxs[i] = min_error_idx[1]
+    min_errors.append(min_error)
+    opt_idxs.append(min_error_idx)
+    print('#########################################################################')
+    print(f'error: {min_error:.5f}, at index {min_error_idx}')
+    print(f'{param_values[:, min_error_idx[1]]}')
+    print('#########################################################################')
+
     if min_error < eps:
         print(f'error: {min_error:.4f}')
         break
 
-    if min_error < np.min(np.array(errors)) - noise_term:
+    if min_error < np.min(np.array(min_errors)) - noise_term or i == 0:
         # contract region in parameter space if error was smaller
-        print(f'new min error: {min_error:.4f} at index {i, k}')
+        print(f'new min error, updating parameters')
 
         # get new bounds for next iteration
-        p_new = param_values[:, min_error_idx]
+        p_new = param_values[:, min_error_idx[1]]
         delta = upper_bound - lower_bound
         for j in range(n_param):
             lower_bound[j] = max(lower_bound[j], p_new[j] - 0.5 * delta[j])
             upper_bound[j] = min(upper_bound[j], p_new[j] + 0.5 * delta[j])
 
 plt.close()
-nykamp_potential = x
-print(f'optimal param: {p_new}')
-np.savetxt(X=p_new, fname=f'opt_param.csv')
+idx = np.argmin(error, axis=0)
+nykamp_potential = x_vals[idx[0], idx[1]]
+# print(f'optimal param: {p_new}')
+np.savetxt(X=parameters, fname=f'parameter_values.csv')
+np.savetxt(X=x_vals, fname=f'x_values.csv')
 
 diff = nrmse(y, nykamp_potential)
 plt.plot(t_new, nykamp_potential)
