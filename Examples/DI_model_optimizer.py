@@ -69,8 +69,8 @@ pars_1D['T'] = T_new
 pars_1D['dt'] = dt_new
 pars_1D['dv'] = dv
 
-y = DI_wave_test_function(t_new, intensity=1.5, t0=1, dt=1.5, width=0.3)
-def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, g_r_l5pt, y, idx='0'):
+y = DI_wave_test_function(t_new, intensity=1.5, t0=1.5, dt=1.5, width=0.3)
+def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, y, idx='0'):
     coords = np.array([[theta, gradient, intensity, fraction_nmda, fraction_gaba_a, fraction_ex]])
 
     grid = pygpc.RandomGrid(parameters_random=session.parameters_random, coords=coords)
@@ -89,8 +89,9 @@ def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, g_r_l5pt, y
     ext_current = np.interp(t_new, t, ext_current)
 
     pars_1D['input_function'] = ext_current # * 0.33 # scaling down by 3
-    pars_1D['g_leak'] = [g_r_l5pt]
-    pars_1D['tau_ref'] = [1.0]
+    pars_1D['tau_ref'] = [0.5]
+    pars_1D['delay_kernel_type'] = 'bi-exp'
+    pars_1D['delay_kernel_parameters'] = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
 
 
     # set a scalable conductance in mS?
@@ -104,11 +105,22 @@ def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, g_r_l5pt, y
 
     x_convolved = EP_convolve(x=nyk1D.r[0], t=t_new, dt=dt_new, scale=np.max(y))
 
+
+    diff = nrmse(y, x_convolved)
+    plt.plot(t_new, x_convolved)
+    plt.plot(t_new, y)
+    plt.grid()
+    plt.xlabel('t in ms')
+    plt.legend(['nykamp', 'D-I-wave test function'])
+    plt.title(f'nrmse: {diff:.4f}')
+    plt.savefig(f'Nykamp_{i}_{k}_compare.png')
+    plt.close()
+
     return x_convolved
 
-# params: intensity, i_e balance,  g_l (scaling of i)
-lower_bound = np.array([100, 0.2, 1e-5])
-upper_bound = np.array([400, 0.8, 1e-4])
+# params: intensity, fraction_nmda, fraction_gaba_a, fraction_ex (ei_balance)
+lower_bound = np.array([100, 0.25, 0.9, 0.2 ])
+upper_bound = np.array([200, 0.75, 1.0, 0.8])
 
 i = 0
 min_error = 1.
@@ -120,7 +132,7 @@ min_errors = []
 param_list = []
 
 opt_idxs = []
-n_grid = 10
+n_grid = 20
 x_vals = np.zeros((max_iter, n_grid, t_new.shape[0]))
 min_error_idxs = np.zeros(max_iter)
 parameters = np.zeros((max_iter, n_grid, lower_bound.shape[0]))
@@ -136,9 +148,8 @@ for i in tqdm(range(max_iter)):
 
     for k in range(n_grid):
         parameters[i, k] = param_values[:, k]
-        x = simulate(intensity=param_values[0, k], fraction_nmda=0.5, fraction_gaba_a=0.95,
-                     fraction_ex=param_values[1, k],
-                     g_r_l5pt=param_values[2, k], y=y, idx=f'{i}_{k}')
+        x = simulate(intensity=param_values[0, k], fraction_nmda=param_values[1, k], fraction_gaba_a=param_values[2, k],
+                     fraction_ex=param_values[3, k], y=y, idx=f'{i}_{k}')
         x_vals[i, k] = x
         error[i, k] = nrmse(y, x)
 

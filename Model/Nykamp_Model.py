@@ -928,17 +928,17 @@ class Nykamp_Model_1():
                         # all new delay component terms
                         # apply dirac delta at v = self.u_rest + v_ext
                         g_eext = np.zeros_like(self.v)
-                        # dirac_index = np.where(self.v > self.u_reset + v_ext)[0]
-                        # if dirac_index.size == 0:
-                        #     # dirac_index = -3  # set dirac to latest point in v-space to preserve flux?
-                        #     pass
-                        # else:
-                        #     dirac_index = dirac_index[0]
-                        dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
-                        g_eext[dirac_index] = - rho_delta[j, i] * 1e1
+                        dirac_index = np.where(self.v > self.u_reset + v_ext)[0]
+                        if dirac_index.size == 0:
+                            # dirac_index = -3  # set dirac to latest point in v-space to preserve flux?
+                            pass
+                        else:
+                            dirac_index = dirac_index[0]
+                        # dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
+                        g_eext[dirac_index] = - rho_delta[j, i] * 1
 
-                        F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
-
+                        # F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
+                        # F_ext_delta = self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=1)
                         v_in_i_ext = 1
 
                         # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
@@ -1205,7 +1205,7 @@ class Nykamp_Model_1():
                 c2ei = np.zeros(len(v))
 
                 # conductance jump distributions
-                # input synapse parameters into synapse depdendent voltage jump distribution
+                # input synapse parameters into synapse dependent voltage jump distribution
 
                 if self.synapse_pdf_type == 'gamma':
                     synapse_pdf_ee = gamma(a=self.synapse_pdf_params[0, k, 0] ** (-2), loc=0,
@@ -1426,5 +1426,8 @@ class Nykamp_Model_1():
         print(f'saved log to: {self.name}_log.yaml')
         with open(f'{self.name}_log.yaml', 'w') as file:
             yaml.dump(log_dict, file)
+
+    def sigmoid(self, x, r=20):
+        return 1 / (1 + np.exp(-r*x))
     def clean(self):
         os.remove(self.name + '.hdf5')
