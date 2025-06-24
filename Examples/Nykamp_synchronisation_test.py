@@ -8,7 +8,7 @@ matplotlib.use('TkAgg')
 
 # init parameters
 def step(t, t0=0, t1=80):
-    res = 4e-5*np.ones_like(t)
+    res = 4e-4*np.ones_like(t)
     res[t < t0] = 0
     res[t > t1] = 0
     return res

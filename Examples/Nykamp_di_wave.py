@@ -24,8 +24,9 @@ T = t[-1] + dt
 i_scale = 5.148136e-9
 
 # read gpc session
-fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+# fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
 # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+fn_session = '/home/erik/Downloads/gpc.pkl'
 session = pygpc.read_session(fname=fn_session)
 
 with h5py.File(os.path.splitext(fn_session)[0] + ".hdf5", "r") as f:
@@ -87,9 +88,9 @@ pars_1D['u_rest'] = -70
 pars_1D['u_thr'] = -55
 pars_1D['u_exc'] = 0
 pars_1D['u_inh'] = -75
-pars_1D['tau_mem'] = np.array([20])
+pars_1D['tau_mem'] = np.array([12])
 # pars_1D['tau_ref'] = np.array([2.2])
-pars_1D['tau_ref'] = np.array([0.5])
+pars_1D['tau_ref'] = np.array([1.0])
 pars_1D['mu_gamma'] = np.array([[0.008, 0.027]])
 pars_1D['var_coeff_gamma'] = 0.5*np.ones((1, 2))
 # pars_1D['delay_kernel_parameters'] = {'tau_alpha': 1/3, 'n_alpha': 9}

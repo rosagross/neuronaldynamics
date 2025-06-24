@@ -5,9 +5,10 @@ import scipy
 import os
 matplotlib.use('TkAgg')
 
-current_path = os.path.abspath(__file__)
-split_path = current_path.split('\\')[:-1]
-current_directory = '\\'.join(split_path)
+# current_path = os.path.abspath(__file__)
+# split_path = current_path.split('\\')[:-1]
+# current_directory = '\\'.join(split_path)
+current_directory = os.path.dirname(__file__)
 def generate_EP(d=0.01, plot=False, Axontype=1, N=1000, dt=1e-3):
     # Load AP data based on Axontype
     if Axontype == 1:

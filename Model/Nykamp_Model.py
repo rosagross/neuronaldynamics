@@ -930,18 +930,22 @@ class Nykamp_Model_1():
                         g_eext = np.zeros_like(self.v)
                         dirac_index = np.where(self.v > self.u_reset + v_ext)[0]
                         if dirac_index.size == 0:
-                            # dirac_index = -3  # set dirac to latest point in v-space to preserve flux?
+                            dirac_index = -2  # set dirac to latest point in v-space to preserve flux?
                             pass
                         else:
                             dirac_index = dirac_index[0]
                         # dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
-                        g_eext[dirac_index] = - rho_delta[j, i] * 1
-
-                        # F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
-                        # F_ext_delta = self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=1)
+                        #g_eext[dirac_index] = - rho_delta[j, i] *1
+                        # g_eext = self.gauss_func(x = self.v, mu=(v_ext + self.u_reset), sigma=0.1)
+                        g_eext = self.gauss_func(x = self.v, mu=self.v[dirac_index], sigma=0.1)
+                        # g_eext = self.gauss_func(x=self.v, mu=self.u_reset+5, sigma=2)
+                        g_eext /= g_eext.sum()
+                        g_eext = g_eext * -rho_delta[j, i]
+                        F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
+                        # F_ext_delta = 1*self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
                         v_in_i_ext = 1
 
-                        # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
+                    # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
                     #  check if this is correct
                     f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
                                             + np.sum(v_in[inh_idxs, j, i]) * c1ei_v - self.c1eext_v)
@@ -972,8 +976,27 @@ class Nykamp_Model_1():
 
                     r[j, i] = r_j + r_ext
 
+                    if i == 400:
+                        a=1
+
                     if r[j, i] < 0:
                         r[j, i] = 0
+                    if np.isnan(r[j, i]):
+                        a = 0
+
+                    if i == 0:
+                        neg_rho_counter = 0
+                        rho_shrink_counter = 0
+                        rho_area_start = np.sum(rho[j, :, i])
+                    if neg_rho_counter == 0 and np.mean(rho[j, :, i]) < 0:
+                        print('\nWarning!, negative rho detected!')
+                        neg_rho_counter = 1
+                    mean_rho_area = np.sum(rho[j, :, :], axis=0)
+                    mean_rho_idx = int(2*ref_delta_idxs[j])
+                    if i > mean_rho_idx:
+                        if np.mean(mean_rho_area[i-mean_rho_idx:i]) < rho_area_start*0.2 and rho_shrink_counter == 0:
+                            print(f'\n Warning!, rho is draining, i = {i}')
+                            rho_shrink_counter = 1
 
                     if r[j, i] > 1e6:
                         if self.sparse_mat:
@@ -987,8 +1010,8 @@ class Nykamp_Model_1():
 
                         dt_proposal = self.dt/kappa_A*50  # may use 75 for boarder to instability
 
-                        print(f'Exiting simulation: rate of {r[j, i]} detected \n Condition number for A and B are: '
-                              f'{kappa_A}, {kappa_B} \n Try dt<= {dt_proposal}')
+                        print(f'Exiting simulation: rate of {r[j, i]:5f} detected \n Condition number for A and B are: '
+                              f'{kappa_A}, {kappa_B} \n Try dt<= {dt_proposal:.6f}')
                         self.break_outer = True
                         break
 
@@ -1429,5 +1452,9 @@ class Nykamp_Model_1():
 
     def sigmoid(self, x, r=20):
         return 1 / (1 + np.exp(-r*x))
+
+    def gauss_func(self,x,  mu=0, sigma=1):
+        return (1/np.sqrt(2*np.pi*sigma**2))*np.exp(-(x-mu)**2/(2*sigma**2))
+
     def clean(self):
         os.remove(self.name + '.hdf5')
