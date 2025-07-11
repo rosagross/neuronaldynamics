@@ -12,7 +12,16 @@ from Model.Neck import generate_EP
 from Utils import DI_wave_test_function, nrmse
 matplotlib.use('TkAgg')
 
-plot_convolution = False
+# TODO: 1) Make a DI wave testbed function with all this here included and options for putting in the model (i.e. gpc)
+#  and the neck kernel (i.e. from Vincents EP function)
+#  2) allow for multiple inputs and for plotting these inputs for the random input study
+#  3) extend the log file for the DI wave function and test that it can recreate the simulation from the log
+#  4) Implement an optimizer (i.e. downhill simplex) for the DI wave simulations
+#  5) Find a good measure and adjust the delay in the DI wave toy mode according to the first peak in the DI wave
+#  optimization
+#  6) create an efficient way to store the intermediate image files from the optimization
+
+plot_convolution = True
 
 # time in ms
 t = np.linspace(0, 99.81, 500)
@@ -35,10 +44,10 @@ with h5py.File(os.path.splitext(fn_session)[0] + ".hdf5", "r") as f:
 # create grid object to transform from real to normalized coordinates [-1, 1]
 theta = 0               # angle of e-field [0, 180]°
 gradient = 0            # relative gradient of e-field [-20, 20] %/mm
-intensity = 160        # intensity of e-field [100, 400] V/m
-fraction_nmda = 0.5     # fraction of nmda synapses [0.25, 0.75]
-fraction_gaba_a = 0.95  # fraction of gaba_a synapses [0.9, 1.0]
-fraction_ex = 0.7 # 0.40      # fraction of exc/ihn synapses [0.2, 0.8]
+intensity = 170        # intensity of e-field [100, 400] V/m
+fraction_nmda = 0.34#0.5     # fraction of nmda synapses [0.25, 0.75]
+fraction_gaba_a = 0.94#0.95  # fraction of gaba_a synapses [0.9, 1.0]
+fraction_ex = 0.57#0.7 # 0.40      # fraction of exc/ihn synapses [0.2, 0.8]
 
 coords = np.array([[theta, gradient, intensity, fraction_nmda, fraction_gaba_a, fraction_ex]])
 
@@ -55,7 +64,7 @@ current = current.flatten()
 ext_current = current * 1e6
 
 # interpolate current on custom time grid
-T_new = 20
+T_new = 8
 dt_new = 0.01
 t_new = np.arange(0, T_new, dt_new)
 ext_current = np.interp(t_new, t, ext_current)
@@ -67,7 +76,7 @@ ext_current = np.interp(t_new, t, ext_current)
 # plt.ylabel('Iext in A')
 # plt.show()
 
-y = DI_wave_test_function(t_new, intensity=2, t0=1.5, dt=1.5, width=0.3)
+y = DI_wave_test_function(t_new, intensity=1.5, t0=0.2, dt=1.5, width=0.3)
 
 # plt.plot(t_new, y)
 # plt.xlabel('time in ms')
@@ -134,14 +143,15 @@ nykamp_potential_scaled = nykamp_potential_out / np.max(nykamp_potential_out) * 
 if plot_convolution:
     fig, ax = plt.subplots(3, 1)
     ax[0].plot(t_new, nykamp_rate)
-    ax[0].set_ylabel('DI wave potential')
+    ax[0].set_ylabel('Nykamp rate')
     ax[1].plot(t_new[:EP_small.shape[0]], EP_small)
     ax[1].set_ylabel('Kernel')
     ax[2].plot(t_new, nykamp_potential_scaled)
-    ax[2].set_ylabel('DI wave rate')
+    ax[2].set_ylabel('Nykamp potential')
     for i in range(3):
         ax[i].set_xlabel('t (ms)')
         ax[i].set_xlim([t_new[0], t_new[-1]])
+        ax[i].grid()
     plt.show()
 
 

@@ -68,8 +68,11 @@ t_new = np.arange(0, T_new, dt_new)
 pars_1D['T'] = T_new
 pars_1D['dt'] = dt_new
 pars_1D['dv'] = dv
+pars_1D['tau_ref'] = [0.5]
+pars_1D['delay_kernel_type'] = 'bi-exp'
+pars_1D['delay_kernel_parameters'] = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
 
-y = DI_wave_test_function(t_new, intensity=1.5, t0=1.5, dt=1.5, width=0.3)
+y = DI_wave_test_function(t_new, intensity=1.5, t0=0.2, dt=1.5, width=0.3)
 def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, y, idx='0'):
     coords = np.array([[theta, gradient, intensity, fraction_nmda, fraction_gaba_a, fraction_ex]])
 
@@ -79,19 +82,14 @@ def simulate(intensity, fraction_nmda, fraction_gaba_a, fraction_ex, y, idx='0')
     current = session.gpc[0].get_approximation(coeffs, grid.coords_norm) * i_scale
     current = current.flatten()
 
-    # # set back half of current to 0
-    current[300:] = 0
-
-    # convert to µA from A
+    # convert to A from µA
     ext_current = current * 1e6
 
     t_new = np.arange(0, T_new, dt_new)
     ext_current = np.interp(t_new, t, ext_current)
 
     pars_1D['input_function'] = ext_current # * 0.33 # scaling down by 3
-    pars_1D['tau_ref'] = [0.5]
-    pars_1D['delay_kernel_type'] = 'bi-exp'
-    pars_1D['delay_kernel_parameters'] = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
+
 
 
     # set a scalable conductance in mS?
@@ -125,7 +123,7 @@ upper_bound = np.array([200, 0.75, 1.0, 0.8])
 i = 0
 min_error = 1.
 max_iter = 10
-noise_term = 0.02
+noise_term = 0.005
 n_param = lower_bound.shape[0]
 eps = 0.01
 min_errors = []
@@ -139,6 +137,7 @@ parameters = np.zeros((max_iter, n_grid, lower_bound.shape[0]))
 error = np.ones((max_iter, n_grid))
 x = 0
 p_new = 0
+previous_min_error = 1
 
 
 for i in tqdm(range(max_iter)):
@@ -167,8 +166,9 @@ for i in tqdm(range(max_iter)):
     if min_error < eps:
         print(f'error: {min_error:.4f}')
         break
-
-    if min_error < np.min(np.array(min_errors)) - noise_term or i == 0:
+    if i > 0:
+        previous_min_error = np.min(np.array(min_errors[:i]))
+    if min_error < previous_min_error - noise_term:
         # contract region in parameter space if error was smaller
         print(f'new min error, updating parameters')
 
@@ -178,13 +178,15 @@ for i in tqdm(range(max_iter)):
         for j in range(n_param):
             lower_bound[j] = max(lower_bound[j], p_new[j] - 0.5 * delta[j])
             upper_bound[j] = min(upper_bound[j], p_new[j] + 0.5 * delta[j])
+    else:
+        print(f'error not smaller than {previous_min_error:.4f}-{noise_term}')
 
 plt.close()
 idx = np.argmin(error, axis=0)
 nykamp_potential = x_vals[idx[0], idx[1]]
 # print(f'optimal param: {p_new}')
-np.savetxt(X=parameters, fname=f'parameter_values.csv')
-np.savetxt(X=x_vals, fname=f'x_values.csv')
+np.savetxt(X=parameters, fname='parameter_values.csv')
+np.savetxt(X=x_vals, fname='x_values.csv')
 
 diff = nrmse(y, nykamp_potential)
 plt.plot(t_new, nykamp_potential)

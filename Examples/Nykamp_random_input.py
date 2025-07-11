@@ -10,18 +10,15 @@ T = 100
 t = np.arange(0, T, dt)
 dv = 0.1
 random_signal_exc = np.random.rand(t.shape[0])
-random_signal_exc = 10*(random_signal_exc)
+random_signal_exc = 7*(random_signal_exc)
 
-random_signal_inh = -np.random.rand(t.shape[0])*0.2
-random_signal_inh = 20*(random_signal_inh)
+random_signal_inh = -np.random.rand(t.shape[0])
+random_signal_inh = 1*(random_signal_inh)
 #TODO: exc in to exc input idx, inh o inh ...
 
-random_signal = random_signal_exc + random_signal_inh
 
-
-
-
-pars = {'dt': dt, 'T': T, 'input_function': random_signal}
+pars = {'dt': dt, 'T': T, 'input_function': random_signal_exc, 'multiple_inputs':True, 'input_function_idx':[[0, 0],
+                                                                                                             [0, 1]]}
 nyk1D = Nykamp_Model_1(parameters=pars, name='nyk_random')
 
 nyk1D.simulate()

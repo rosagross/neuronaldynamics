@@ -763,6 +763,7 @@ class Nykamp_Model_1():
         self.sparse_mat = True
         self.input_function = np.zeros((int(self.T/self.dt)))
         self.input_function_idx = [0, 0]
+        self.multiple_inputs = False
         self.population_type = ['exc']
         self.synapse_pdf_type = 'gamma'
         self.verbose = 0
@@ -817,9 +818,14 @@ class Nykamp_Model_1():
             input_function_copy = self.input_function
             self.input_function = lambda t: input_function_copy
         if self.input_type == 'rate':
-            self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
+            if self.multiple_inputs == True:
+                for k in range(len(self.input_function_idx)):
+                    self.input[self.input_function_idx[k][0], self.input_function_idx[k][1]] = self.input_function[k](t=self.t)
+            else:
+                self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
         elif self.input_type == 'current':
             self.i_ext[self.input_function_idx] = self.input_function(t=self.t)
+
 
         if self.verbose > 0:
             t0_coeff = time.time()

@@ -4,6 +4,7 @@ import h5py
 import matplotlib
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter1d
+from scipy.signal import correlate
 
 
 def get_stability_2D(eigvals):
@@ -363,5 +364,23 @@ def DI_wave_test_function(t, intensity, t0=5, dt=1.4, width=0.25):
         y = y + y_
 
     return y
+
+def cross_correlation_align(x1, x2):
+
+    correlation = correlate(x1, x2, mode='full')
+    lags = np.arange(-len(x2) + 1, len(x1))
+    best_lag = lags[np.argmax(correlation)]
+    if best_lag > 0:
+        aligned_signal = x2[best_lag:]
+    elif best_lag < 0:
+        aligned_signal = np.pad(x2, (abs(best_lag), 0), mode='constant')
+    else:
+        aligned_signal = x2  # Already aligned
+    difference = np.diff(x1, aligned_signal)
+    error = nrmse(x1, aligned_signal)
+
+
+
+
 
 

@@ -30,10 +30,10 @@ class DI_wave_simulation():
         self.fraction_ex = 0.5  # fraction of exc/ihn synapses [0.2, 0.8]
         self.create_coords()
 
-        self.test_func_intensity = 2
-        self.test_func_t0 = 2
-        self.test_func_dt = 2
-        self.test_func_width = 2
+        self.test_func_intensity = 1.5
+        self.test_func_t0 = 0.2
+        self.test_func_dt = 1.5
+        self.test_func_width = 0.3
 
         self.plot_convolution = False
         self.save_plots = False
@@ -62,17 +62,18 @@ class DI_wave_simulation():
         self.mass_model.clean()
 
         mass_model_rate = self.mass_model.r[0]
-        # TODO:
         EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=self.dt * 10)
         EP = -EP
         EP = EP / np.max(EP)
         EP_small = np.interp(self.t[self.t < 1.0] - 0.5, t_EP, EP)
-        nykamp_potential = scipy.signal.convolve(mass_model_rate, EP_small)
-        nykamp_shape = mass_model_rate.shape[0]
-        nykamp_potential_out = nykamp_potential[:nykamp_shape]
+        self.neck_kernel = EP
+        self.neck_kernel_small = EP_small
+        nmm_potential = scipy.signal.convolve(mass_model_rate, EP_small)
+        nmm_shape = mass_model_rate.shape[0]
+        nmm_potential_out = nmm_potential[:nmm_shape]
         di_max = np.max(self.target)
-        nykamp_potential_scaled = nykamp_potential_out / np.max(nykamp_potential_out) * di_max
-
+        nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
+        self.mass_model_v_out = nmm_potential_scaled
 
     def update_gpc_time(self):
         self.dt_gpc = np.diff(self.t_gpc)[0]
@@ -106,3 +107,18 @@ class DI_wave_simulation():
             plt.ylabel('firing rate test function')
             plt.grid()
             plt.show()
+
+    def plot_convolution(self):
+
+        fig, ax = plt.subplots(3, 1)
+        mass_model_rate = self.mass_model.r[0]
+        ax[0].plot(self.t, mass_model_rate)
+        ax[0].set_ylabel('DI wave potential')
+        ax[1].plot(self.t[:self.neck_kernel_small.shape[0]], self.neck_kernel_small)
+        ax[1].set_ylabel('Kernel')
+        ax[2].plot(self.t, self.mass_model_v_out)
+        ax[2].set_ylabel('DI wave rate')
+        for i in range(3):
+            ax[i].set_xlabel('t (ms)')
+            ax[i].set_xlim([self.t[0], self.t[-1]])
+        plt.show()
