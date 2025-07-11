@@ -1,5 +1,5 @@
-from Nykamp_Model import Nykamp_Model_1
-from Neck import generate_EP
+from Model.Nykamp_Model import Nykamp_Model_1
+from Model.Neck import generate_EP
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -8,7 +8,8 @@ import os
 import h5py
 import scipy
 from tqdm import tqdm
-from Utils import DI_wave_test_function, nrmse
+from Utils import DI_wave_test_function, nrmse, cross_correlation_align
+import Model.Nykamp_Model
 matplotlib.use('TkAgg')
 
 class DI_wave_simulation():
@@ -28,7 +29,6 @@ class DI_wave_simulation():
         self.fraction_nmda = 0.5  # fraction of nmda synapses [0.25, 0.75]
         self.fraction_gaba_a = 0.95  # fraction of gaba_a synapses [0.9, 1.0]
         self.fraction_ex = 0.5  # fraction of exc/ihn synapses [0.2, 0.8]
-        self.create_coords()
 
         self.test_func_intensity = 1.5
         self.test_func_t0 = 0.2
@@ -40,6 +40,15 @@ class DI_wave_simulation():
         self.use_gpc = True
         self.fn_session = None
         self.t_gpc = np.linspace(0, 99.81, 500)
+        bi_exp_kernel_parameters = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
+        self.nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': 12, 'tau_ref': 1.0,
+                                  'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
+                                  'input_type': 'current', 'input_function_idx': 0, 'name': self.name}
+
+        self.plot_align = False
+
+        self.__dict__.update(parameters)
+        self.create_coords()
         self.update_gpc_time()
         if self.use_gpc:
             self.load_gpc_session()
@@ -48,10 +57,7 @@ class DI_wave_simulation():
             self.input_current = self.input_current.flatten()
             self.input_current *= 1e6 # convert to µA from A
             self.input_current = np.interp(self.t, self.t_gpc, self.input_current)  # interpolate to diesired time
-        bi_exp_kernel_parameters = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
-        self.nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh':-75, 'tau_mem':12, 'tau_ref':1.0,
-                                  'delay_kernel_type': 'bi_exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
-                                  'input_type': 'current', 'input_function': self.input_current, 'name':self.name}
+        self.nykamp_parameters['input_function'] = self.input_current
         self.mass_model = Nykamp_Model_1(parameters=self.nykamp_parameters)
 
 
@@ -74,6 +80,9 @@ class DI_wave_simulation():
         di_max = np.max(self.target)
         nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
         self.mass_model_v_out = nmm_potential_scaled
+
+        self.get_test_signal()
+        self.validate()
 
     def update_gpc_time(self):
         self.dt_gpc = np.diff(self.t_gpc)[0]
@@ -121,4 +130,27 @@ class DI_wave_simulation():
         for i in range(3):
             ax[i].set_xlabel('t (ms)')
             ax[i].set_xlim([self.t[0], self.t[-1]])
+        plt.show()
+
+    def validate(self):
+        x1 = self.mass_model_v_out
+        x2 = self.target
+        self.error, self.difference, self.target_aligned = cross_correlation_align(x1, x2, plot=self.plot_align)
+
+
+    def plot_validation(self, labels=None):
+
+        if labels == None:
+            label1 = 'nykamp_potential'
+            label2 = 'D-I-wave test function'
+        else:
+            label1, label2 = labels[0], labels[1]
+
+        plt.plot(self.t, self.mass_model_v_out)
+        plt.plot(self.t, self.target_aligned)
+        plt.grid()
+        plt.xlabel('t in ms')
+        plt.legend([label1, label2])
+        # plt.legend(['nykamp rate', 'nykamp_potential', 'D-I-wave test function'])
+        plt.title(f'nrmse: {self.error:.4f}')
         plt.show()

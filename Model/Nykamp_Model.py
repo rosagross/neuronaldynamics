@@ -815,8 +815,11 @@ class Nykamp_Model_1():
         self.i_ext = np.zeros([self.n_populations, self.t.shape[0]])
         # set up input_function for rate over time or current over time
         if not callable(self.input_function) and type(self.input_function) == np.ndarray:
+            assert self.input_function.shape[0] == self.t.shape[0], f'Dimension missmatch between input with dimension'\
+                                                                    f' {self.input_function.shape[0]} and simulation' \
+                                                                    f' time with dimension {self.t.shape[0]}!'
             input_function_copy = self.input_function
-            self.input_function = lambda t: input_function_copy
+            self.input_function = lambda x: input_function_copy  # hotfix that just returns the array for any input
         if self.input_type == 'rate':
             if self.multiple_inputs == True:
                 for k in range(len(self.input_function_idx)):
@@ -1353,7 +1356,7 @@ class Nykamp_Model_1():
                     (t_alpha/tau_alpha)**(n_alpha-1)
             self.delay_kernel = self.delay_kernel/np.trapz(self.delay_kernel, dx=self.dt)
             self.delay_kernel_time = t_alpha
-        elif self. delay_kernel_type == ('bi-exp' or 'bi-exponential'):
+        elif self. delay_kernel_type == ('bi-exp' or 'bi-exponential' or 'bi_exp'):
             """
             The bi-exponential kernel is taken from Rusu et al. 2014 [1] where the values for tau_1, tau_2 and g_peak
             are given in a table for AMPA, NMDA, GABA_a and GABA_b synapses in M1. tau_cond is specified as 1ms in the 
