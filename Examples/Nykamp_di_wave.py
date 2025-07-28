@@ -33,9 +33,9 @@ T = t[-1] + dt
 i_scale = 5.148136e-9
 
 # read gpc session
-# fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
 # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-fn_session = '/home/erik/Downloads/gpc.pkl'
+# fn_session = '/home/erik/Downloads/gpc.pkl'
 session = pygpc.read_session(fname=fn_session)
 
 with h5py.File(os.path.splitext(fn_session)[0] + ".hdf5", "r") as f:
@@ -44,10 +44,10 @@ with h5py.File(os.path.splitext(fn_session)[0] + ".hdf5", "r") as f:
 # create grid object to transform from real to normalized coordinates [-1, 1]
 theta = 0               # angle of e-field [0, 180]°
 gradient = 0            # relative gradient of e-field [-20, 20] %/mm
-intensity = 170        # intensity of e-field [100, 400] V/m
-fraction_nmda = 0.34#0.5     # fraction of nmda synapses [0.25, 0.75]
-fraction_gaba_a = 0.94#0.95  # fraction of gaba_a synapses [0.9, 1.0]
-fraction_ex = 0.57#0.7 # 0.40      # fraction of exc/ihn synapses [0.2, 0.8]
+intensity = 150        # intensity of e-field [100, 400] V/m
+fraction_nmda = 0.5     # fraction of nmda synapses [0.25, 0.75]
+fraction_gaba_a = 0.95  # fraction of gaba_a synapses [0.9, 1.0]
+fraction_ex = 0.4#0.7 # 0.40      # fraction of exc/ihn synapses [0.2, 0.8]
 
 coords = np.array([[theta, gradient, intensity, fraction_nmda, fraction_gaba_a, fraction_ex]])
 
@@ -64,7 +64,7 @@ current = current.flatten()
 ext_current = current * 1e6
 
 # interpolate current on custom time grid
-T_new = 8
+T_new = 20
 dt_new = 0.01
 t_new = np.arange(0, T_new, dt_new)
 ext_current = np.interp(t_new, t, ext_current)

@@ -827,7 +827,7 @@ class Nykamp_Model_1():
             else:
                 self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
         elif self.input_type == 'current':
-            self.i_ext[self.input_function_idx] = self.input_function(t=self.t)
+            self.i_ext[self.input_function_idx] = self.input_function(x=self.t)
 
 
         if self.verbose > 0:

@@ -35,15 +35,16 @@ class DI_wave_simulation():
         self.test_func_dt = 1.5
         self.test_func_width = 0.3
 
-        self.plot_convolution = False
+        self.create_convolution_plot = False
         self.save_plots = False
         self.use_gpc = True
         self.fn_session = None
         self.t_gpc = np.linspace(0, 99.81, 500)
         bi_exp_kernel_parameters = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
-        self.nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': 12, 'tau_ref': 1.0,
+        self.nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': [12], 'tau_ref': [1.0],
                                   'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
-                                  'input_type': 'current', 'input_function_idx': 0, 'name': self.name}
+                                  'input_type': 'current', 'input_function_idx': 0, 'name': self.name, 'dt':self.dt,
+                                  'T': self.T}
 
         self.plot_align = False
 
@@ -65,7 +66,6 @@ class DI_wave_simulation():
         self.mass_model.simulate()
         if self.save_plots:
             self.mass_model.plot(heat_map=True, plot_input=True)
-        self.mass_model.clean()
 
         mass_model_rate = self.mass_model.r[0]
         EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=self.dt * 10)
@@ -77,11 +77,13 @@ class DI_wave_simulation():
         nmm_potential = scipy.signal.convolve(mass_model_rate, EP_small)
         nmm_shape = mass_model_rate.shape[0]
         nmm_potential_out = nmm_potential[:nmm_shape]
+
+        self.get_test_signal()
         di_max = np.max(self.target)
         nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
         self.mass_model_v_out = nmm_potential_scaled
-
-        self.get_test_signal()
+        # self.plot_nmm_out()
+        # self.plot_convolution()
         self.validate()
 
     def update_gpc_time(self):
@@ -137,6 +139,9 @@ class DI_wave_simulation():
         x2 = self.target
         self.error, self.difference, self.target_aligned = cross_correlation_align(x1, x2, plot=self.plot_align)
 
+
+    def plot_nmm_out(self, heat_map=True, plot_input=True):
+        self.mass_model.plot(heat_map=heat_map, plot_input=plot_input)
 
     def plot_validation(self, labels=None):
 
