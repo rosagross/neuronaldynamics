@@ -944,14 +944,14 @@ class Nykamp_Model_1():
                         else:
                             dirac_index = dirac_index[0]
                         # dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
-                        #g_eext[dirac_index] = - rho_delta[j, i] *1
+                        # g_eext[dirac_index] = - rho_delta[j, i] #* 100 # 100 was the area under the curve of the pdf
                         # g_eext = self.gauss_func(x = self.v, mu=(v_ext + self.u_reset), sigma=0.1)
                         g_eext = self.gauss_func(x = self.v, mu=self.v[dirac_index], sigma=0.1)
                         # g_eext = self.gauss_func(x=self.v, mu=self.u_reset+5, sigma=2)
                         g_eext /= g_eext.sum()
-                        g_eext = g_eext * -rho_delta[j, i]
-                        F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
-                        # F_ext_delta = 1*self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
+                        g_eext = g_eext * -rho_delta[j, i] *80
+                        # F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
+                        F_ext_delta = 1*self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
                         v_in_i_ext = 1
 
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
@@ -985,13 +985,15 @@ class Nykamp_Model_1():
 
                     r[j, i] = r_j + r_ext
 
-                    if i == 400:
+                    if i == 1112:
                         a=1
 
-                    if r[j, i] < 0:
-                        r[j, i] = 0
+                    # if r[j, i] < 0:
+                    #     r[j, i] = 0
                     if np.isnan(r[j, i]):
                         a = 0
+                    if np.abs(r[j, i] - r[j, i-1]) > 30e-3 and i > 1:
+                        l = 12
 
                     if i == 0:
                         neg_rho_counter = 0
