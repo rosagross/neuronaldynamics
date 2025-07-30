@@ -41,10 +41,10 @@ class DI_wave_simulation():
         self.fn_session = None
         self.t_gpc = np.linspace(0, 99.81, 500)
         bi_exp_kernel_parameters = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
-        self.nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': [12], 'tau_ref': [1.0],
+        init_nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': [12], 'tau_ref': [1.0],
                                   'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
-                                  'input_type': 'current', 'input_function_idx': 0, 'name': self.name, 'dt':self.dt,
-                                  'T': self.T}
+                                  'input_type': 'current', 'input_function_idx': [0, 0], 'name': self.name, 'dt':self.dt,
+                                  'T': self.T, 'sparse_mat': True}
 
         self.plot_align = False
 
@@ -57,7 +57,9 @@ class DI_wave_simulation():
             self.input_current = self.session.gpc[0].get_approximation(self.coeffs, self.grid.coords_norm) * self.i_scale
             self.input_current = self.input_current.flatten()
             self.input_current *= 1e6 # convert to µA from A
-            self.input_current = np.interp(self.t, self.t_gpc, self.input_current)  # interpolate to diesired time
+            self.input_current = np.interp(self.t, self.t_gpc, self.input_current)  # interpolate to desired time
+        init_nykamp_parameters.update(self.nykamp_parameters)
+        self.nykamp_parameters = init_nykamp_parameters
         self.nykamp_parameters['input_function'] = self.input_current
         self.mass_model = Nykamp_Model_1(parameters=self.nykamp_parameters)
 
