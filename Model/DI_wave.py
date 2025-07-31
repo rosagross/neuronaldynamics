@@ -7,6 +7,7 @@ import pygpc
 import os
 import h5py
 import scipy
+import yaml
 from tqdm import tqdm
 from Utils import DI_wave_test_function, nrmse, cross_correlation_align
 import Model.Nykamp_Model
@@ -14,13 +15,12 @@ matplotlib.use('TkAgg')
 
 class DI_wave_simulation():
 
-    def __init__(self, parameters):
+    def __init__(self, parameters=None, logname=None):
 
         self.name = 'di_wave_sim'
         self.i_scale = 5.148136e-9
         self.T = 20
         self.dt = 0.01
-        self.t = np.arange(0, self.T, self.dt)
         self.dv = 0.1
 
         self.theta = 0  # angle of e-field [0, 180]°
@@ -40,15 +40,24 @@ class DI_wave_simulation():
         self.use_gpc = True
         self.fn_session = None
         self.t_gpc = np.linspace(0, 99.81, 500)
+        self.plot_align = False
+
+        if logname != None:
+            self.load_from_file(logname=logname)
+        elif parameters != None:
+            self.parameters = parameters
+        else:
+            raise ValueError('Please specify paramters or logname to init class!')
+
+        self.__dict__.update(self.parameters)
+
+        self.t = np.arange(0, self.T, self.dt)
         bi_exp_kernel_parameters = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
         init_nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': [12], 'tau_ref': [1.0],
                                   'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
-                                  'input_type': 'current', 'input_function_idx': [0, 0], 'name': self.name, 'dt':self.dt,
-                                  'T': self.T, 'sparse_mat': True}
+                                  'input_type': 'current', 'input_function_idx': [0, 0], 'name': self.name,
+                                  'dt':self.dt, 'T': self.T, 'sparse_mat': True}
 
-        self.plot_align = False
-
-        self.__dict__.update(parameters)
         self.create_coords()
         self.update_gpc_time()
         if self.use_gpc:
@@ -87,6 +96,8 @@ class DI_wave_simulation():
         # self.plot_nmm_out()
         # self.plot_convolution()
         self.validate()
+        # log
+
 
     def update_gpc_time(self):
         self.dt_gpc = np.diff(self.t_gpc)[0]
@@ -142,10 +153,10 @@ class DI_wave_simulation():
         self.error, self.difference, self.target_aligned = cross_correlation_align(x1, x2, plot=self.plot_align)
 
 
-    def plot_nmm_out(self, heat_map=True, plot_input=True):
-        self.mass_model.plot(heat_map=heat_map, plot_input=plot_input)
+    def plot_nmm_out(self, heat_map=True, plot_input=True, save_fig=False):
+        self.mass_model.plot(heat_map=heat_map, plot_input=plot_input, savefig=save_fig)
 
-    def plot_validation(self, labels=None):
+    def plot_validation(self, labels=None, save_fig=False):
 
         if labels == None:
             label1 = 'nykamp_potential'
@@ -160,4 +171,34 @@ class DI_wave_simulation():
         plt.legend([label1, label2])
         # plt.legend(['nykamp rate', 'nykamp_potential', 'D-I-wave test function'])
         plt.title(f'nrmse: {self.error:.4f}')
-        plt.show()
+        if save_fig:
+            plt.savefig(self.name + '_validation.png')
+            plt.close()
+        else:
+            plt.show()
+    def save_log(self, plot=True):
+        log_dict = self.parameters
+        log_file_name = self.name + '_log.yaml'
+        log_name = log_file_name.split('.')[0]
+        if os.path.exists(log_file_name):
+            if log_name[-3:] == 'log':
+                log_name = log_name + '_1'
+            else:
+                log_name_parts = log_name.split('_')
+                log_name_parts[-1] = str(int(log_name_parts[-1]) + 1)
+                log_name = '_'.join(log_name_parts)
+            log_file_name = log_name + '.yaml'
+        self.name = log_name[:-4]
+        # TODO: find a way to update the output name here
+        # self.mass_model.name = self.name
+        if plot:
+            self.plot_nmm_out(save_fig=True)
+            self.plot_validation(save_fig=True)
+
+        print(f'saved log to: {log_file_name}')
+        with open(log_file_name, 'w') as file:
+            yaml.dump(log_dict, file)
+
+    def load_from_file(self, logname):
+        with open(logname, 'r') as stream:
+            self.parameters = yaml.load(stream, Loader=yaml.Loader)

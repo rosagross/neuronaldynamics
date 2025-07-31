@@ -943,13 +943,13 @@ class Nykamp_Model_1():
                             pass
                         else:
                             dirac_index = dirac_index[0]
-                        # dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
+                        dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
                         # g_eext[dirac_index] = - rho_delta[j, i] #* 100 # 100 was the area under the curve of the pdf
                         # g_eext = self.gauss_func(x = self.v, mu=(v_ext + self.u_reset), sigma=0.1)
                         g_eext = self.gauss_func(x = self.v, mu=self.v[dirac_index], sigma=0.1)
                         # g_eext = self.gauss_func(x=self.v, mu=self.u_reset+5, sigma=2)
                         g_eext /= g_eext.sum()
-                        g_eext = g_eext * -rho_delta[j, i] *80
+                        g_eext = g_eext * -rho_delta[j, i] * 50
                         # F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
                         F_ext_delta = 1*self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
                         v_in_i_ext = 1
@@ -998,6 +998,7 @@ class Nykamp_Model_1():
                     if i == 0:
                         neg_rho_counter = 0
                         rho_shrink_counter = 0
+                        rho_inflate_counter = 0
                         rho_area_start = np.sum(rho[j, :, i])
                     if neg_rho_counter == 0 and np.mean(rho[j, :, i]) < 0:
                         print('\nWarning!, negative rho detected!')
@@ -1008,6 +1009,9 @@ class Nykamp_Model_1():
                         if np.mean(mean_rho_area[i-mean_rho_idx:i]) < rho_area_start*0.2 and rho_shrink_counter == 0:
                             print(f'\n Warning!, rho is draining, i = {i}')
                             rho_shrink_counter = 1
+                        elif mean_rho_area[i-1] > rho_area_start*1.1 and rho_inflate_counter == 0:
+                            print(f'\n Warning!, rho is inlfating, i = {i}')
+                            rho_inflate_counter = 1
 
                     if r[j, i] > 1e6:
                         if self.sparse_mat:
@@ -1122,6 +1126,11 @@ class Nykamp_Model_1():
                     rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
                             -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
                             rho_delta[j, i] + r_delayed[j, i])
+
+        plt.plot(mean_rho_area)
+        plt.plot(rho_delta[0]*1000)
+        plt.legend(['rho area', 'rho_delta'])
+        plt.show()
 
         rho_plot = np.zeros_like(rho)
         self.r = r
@@ -1449,6 +1458,7 @@ class Nykamp_Model_1():
         plt.tight_layout()
         if savefig:
             plt.savefig(self.name + '_plot.png')
+            plt.close()
         else:
             plt.show()
 
