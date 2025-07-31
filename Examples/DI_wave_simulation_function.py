@@ -8,10 +8,10 @@ matplotlib.use('TkAgg')
 # fn_session = '/home/erik/Downloads/gpc.pkl'
 fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
 # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-simulation_name = 'di_wave_test_1'
-parameters = {'intensity': 150, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
+simulation_name = 'di_wave_test_8'
+parameters = {'intensity': 200, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.8, 'plot_align': False,
               'fn_session': fn_session, 'T': 30, 'name': simulation_name,
-              'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
+              'nykamp_parameters': {'connectivity_matrix': np.array([[15]]),
                                     'tau_ref': [1.5],
                                     'tau_mem': [12],
                                     'input_type': 'current'}}
