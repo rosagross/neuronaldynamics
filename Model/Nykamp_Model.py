@@ -925,7 +925,7 @@ class Nykamp_Model_1():
                         self.c1eext_v[mask2] = 0
 
                         self.c2eext[mask1] = 0.5 * (self.v[mask1] - self.u_inh) ** 2
-                        self.c2eext[mask2] = v_ext ** 2
+                        self.c2eext[mask2] = 0.5 * v_ext ** 2
                         self.c2eext_v[mask1] = (self.v[mask1] - self.u_inh)
                         self.c2eext_v[mask2] = 0
 
