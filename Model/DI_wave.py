@@ -11,6 +11,7 @@ import yaml
 from tqdm import tqdm
 from Utils import DI_wave_test_function, nrmse, cross_correlation_align
 import Model.Nykamp_Model
+from Optimizers.Optimizer import *
 matplotlib.use('TkAgg')
 
 class DI_wave_simulation():
@@ -202,3 +203,36 @@ class DI_wave_simulation():
     def load_from_file(self, logname):
         with open(logname, 'r') as stream:
             self.parameters = yaml.load(stream, Loader=yaml.Loader)
+
+    def optimize(self, optimizer='hierarchical', opt_params={}):
+
+
+        if optimizer == 'hierarchical':
+            self.__init__(parameters=opt_params)
+            self.get_test_signal()
+            opt_params['y'] = self.target
+            opt_params['simulation_class'] = self
+            opt_params['simulate'] = self.simulate
+            opt_function = Hierarchical_Random(parameters=opt_params)
+            opt_function.run()
+            # params: intensity, fraction_nmda, fraction_gaba_a, fraction_ex (ei_balance)
+
+
+
+
+            # idx = np.argmin(error, axis=0)
+            # nykamp_potential = x_vals[idx[0], idx[1]]
+            # # print(f'optimal param: {p_new}')
+            # np.savetxt(X=parameters, fname='parameter_values.csv')
+            # np.savetxt(X=x_vals, fname='x_values.csv')
+            #
+            # diff = nrmse(y, nykamp_potential)
+            # plt.plot(t_new, nykamp_potential)
+            # plt.plot(t_new, y)
+            # plt.grid()
+            # plt.xlabel('t in ms')
+            # plt.legend(['nykamp', 'D-I-wave test function'])
+            # plt.title(f'nrmse: {diff:.4f}')
+            # plt.show()
+
+

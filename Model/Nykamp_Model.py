@@ -795,7 +795,7 @@ class Nykamp_Model_1():
 
         if self.synapse_pdf_type == 'gamma':
             self.synapse_pdf_params = np.array([self.var_coeff_gamma, self.mu_gamma])
-        # set up arrays for simluation
+        # set up arrays for simulation
         self.t = np.arange(0, self.T, self.dt)
         self.v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
 
@@ -804,6 +804,9 @@ class Nykamp_Model_1():
 
         # initialize breaking variable for numerical unstable solutions
         self.break_outer = False
+
+        if type(self.connectivity_matrix) != np.ndarray:
+            self.connectivity_matrix = np.array(self.connectivity_matrix)
 
 
     def simulate(self):
@@ -949,7 +952,7 @@ class Nykamp_Model_1():
                         g_eext = self.gauss_func(x = self.v, mu=self.v[dirac_index], sigma=0.1)
                         # g_eext = self.gauss_func(x=self.v, mu=self.u_reset+5, sigma=2)
                         g_eext /= g_eext.sum()
-                        g_eext = g_eext * -rho_delta[j, i] * 50
+                        g_eext = g_eext * -rho_delta[j, i]# * 50
                         # F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
                         F_ext_delta = 1*self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
                         v_in_i_ext = 1
@@ -1127,10 +1130,10 @@ class Nykamp_Model_1():
                             -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
                             rho_delta[j, i] + r_delayed[j, i])
 
-        plt.plot(mean_rho_area)
-        plt.plot(rho_delta[0]*1000)
-        plt.legend(['rho area', 'rho_delta'])
-        plt.show()
+        # plt.plot(mean_rho_area)
+        # plt.plot(rho_delta[0]*1000)
+        # plt.legend(['rho area', 'rho_delta'])
+        # plt.show()
 
         rho_plot = np.zeros_like(rho)
         self.r = r
