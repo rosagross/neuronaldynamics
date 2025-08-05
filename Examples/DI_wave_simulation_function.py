@@ -9,10 +9,10 @@ matplotlib.use('TkAgg')
 fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
 # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 simulation_name = 'diw_2025_08_04_opt_test'
-# [380.11439606   0.69919058   0.9749796    0.40482059  12.21559531]
-parameters = {'intensity': 380.1, 'fraction_nmda': 0.7, 'fraction_gaba_a': 0.975, 'fraction_ex': 0.4, 'plot_align': False,
+# [109.61367607   0.48166361   0.92450167   0.50431263   9.15847855]
+parameters = {'intensity': 119, 'fraction_nmda': 0.25, 'fraction_gaba_a': 0.97, 'fraction_ex': 0.58, 'plot_align': False,
               'fn_session': fn_session, 'T': 8, 'name': simulation_name,
-              'nykamp_parameters': {'connectivity_matrix': np.array([[12]]),
+              'nykamp_parameters': {'connectivity_matrix': np.array([[17]]),
                                     'tau_ref': [1.5],
                                     'tau_mem': [12],
                                     'input_type': 'current'}}

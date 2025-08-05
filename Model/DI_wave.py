@@ -67,6 +67,7 @@ class DI_wave_simulation():
             self.input_current = self.session.gpc[0].get_approximation(self.coeffs, self.grid.coords_norm) * self.i_scale
             self.input_current = self.input_current.flatten()
             self.input_current *= 1e6 # convert to µA from A
+            self.input_current[np.where(self.input_current < 0)[0]] = 0
             self.input_current = np.interp(self.t, self.t_gpc, self.input_current)  # interpolate to desired time
         init_nykamp_parameters.update(self.nykamp_parameters)
         self.nykamp_parameters = init_nykamp_parameters

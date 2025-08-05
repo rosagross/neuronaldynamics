@@ -83,7 +83,9 @@ class Hierarchical_Random(Optimizer):
                     # exec(f'x = self.simulation_class.{self.x_out}')  # idk this doesn't work atm
                     x = self.simulation_class.mass_model_v_out
                 self.x_vals[i, k] = x
-                self.error[i, k] = nrmse(self.y, x)
+                # TODO: make this work with independent functions eventually
+                # self.error[i, k] = nrmse(self.y, x)
+                self.error[i, k] = self.simulation_class.error
 
             min_error = np.nanmin(self.error[i])
 
