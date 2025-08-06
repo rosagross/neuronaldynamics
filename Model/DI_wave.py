@@ -93,7 +93,10 @@ class DI_wave_simulation():
 
         self.get_test_signal()
         di_max = np.max(self.target)
-        nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
+        if np.max(mass_model_rate) > 0.04:  # only scale to normalize if rate is sufficiently large
+            nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
+        else:
+            nmm_potential_scaled = nmm_potential_out
         self.mass_model_v_out = nmm_potential_scaled
         # self.plot_nmm_out()
         # self.plot_convolution()
