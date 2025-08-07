@@ -9,7 +9,7 @@ import h5py
 import scipy
 import yaml
 from tqdm import tqdm
-from Utils import DI_wave_test_function, nrmse, cross_correlation_align
+from Utils import DI_wave_test_function, nrmse, cross_correlation_align, butter_highpass_filter
 import Model.Nykamp_Model
 from Optimizers.Optimizer import *
 matplotlib.use('TkAgg')
@@ -42,6 +42,7 @@ class DI_wave_simulation():
         self.fn_session = None
         self.t_gpc = np.linspace(0, 99.81, 500)
         self.plot_align = False
+        self.enable_high_pass = False
 
         if logname != None:
             self.load_from_file(logname=logname)
@@ -91,9 +92,19 @@ class DI_wave_simulation():
         nmm_shape = mass_model_rate.shape[0]
         nmm_potential_out = nmm_potential[:nmm_shape]
 
+        if self.enable_high_pass:
+            v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.5, fps=int(1 / self.dt))
+            hp_mean = v_out_hp.mean()
+            if hp_mean > 1:
+                v_out_hp -= hp_mean
+            else:
+                v_out_hp += hp_mean
+            v_out_hp[v_out_hp < 0] = 0
+            nmm_potential_out = v_out_hp
+
         self.get_test_signal()
         di_max = np.max(self.target)
-        if np.max(mass_model_rate) > 0.04:  # only scale to normalize if rate is sufficiently large
+        if np.max(mass_model_rate) > 0.1:  # only scale to normalize if rate is sufficiently large
             nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
         else:
             nmm_potential_scaled = nmm_potential_out
@@ -210,15 +221,14 @@ class DI_wave_simulation():
 
     def optimize(self, optimizer='hierarchical', opt_params={}):
 
-
         if optimizer == 'hierarchical':
             self.__init__(parameters=opt_params)
             self.get_test_signal()
             opt_params['y'] = self.target
             opt_params['simulation_class'] = self
             opt_params['simulate'] = self.simulate
-            opt_function = Hierarchical_Random(parameters=opt_params)
-            opt_function.run()
+            self.optimimization_algorithm = Hierarchical_Random(parameters=opt_params)
+            self.optimimization_algorithm.run()
             # params: intensity, fraction_nmda, fraction_gaba_a, fraction_ex (ei_balance)
 
 

@@ -69,6 +69,7 @@ class Hierarchical_Random(Optimizer):
 
                 for l in range(self.n_param):
                     keywords[self.model_parameters[l]] = param_values[l, k]
+                keywords['nykamp_parameters']['connectivity_matrix'] = np.array([[param_values[-1, k]]])  # hotfix!
                 keywords['y'] = self.y
                 keywords['idx'] = f'{i}_{k}'
                 # keywords.update(...)
@@ -93,14 +94,14 @@ class Hierarchical_Random(Optimizer):
             self.min_error_idxs[i] = min_error_idx[1]
             self.min_errors.append(min_error)
             self.opt_idxs.append(min_error_idx)
-            print('#########################################################################')
+            print('\n#########################################################################')
             print(f'error: {min_error:.5f}, at index {min_error_idx}')
             print(f'{param_values[:, min_error_idx[1]]}')
             print('#########################################################################')
 
             if min_error < self.eps:
                 print(f'error: {min_error:.4f}')
-                self.optimum = param_values
+                self.optimum = param_values[:, min_error_idx[1]]
                 break
             if i > 0:
                 previous_min_error = np.min(np.array(self.min_errors[:i]))
@@ -110,11 +111,11 @@ class Hierarchical_Random(Optimizer):
 
                 # get new bounds for next iteration
                 p_new = param_values[:, min_error_idx[1]]
+                self.optimum = p_new
                 delta = self.upper_bound - self.lower_bound
                 for j in range(self.n_param):
                     self.lower_bound[j] = max(self.lower_bound[j], p_new[j] - 0.5 * delta[j])
                     self.upper_bound[j] = min(self.upper_bound[j], p_new[j] + 0.5 * delta[j])
             else:
                 print(f'error not smaller than {previous_min_error:.4f}-{self.noise_term}')
-        if self.optimum == None:
-            self.optimum = param_values
+                self.optimum = param_values[:, min_error_idx[1]]

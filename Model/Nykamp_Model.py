@@ -953,8 +953,8 @@ class Nykamp_Model_1():
                         # g_eext = self.gauss_func(x=self.v, mu=self.u_reset+5, sigma=2)
                         g_eext /= g_eext.sum()
                         g_eext = g_eext * -rho_delta[j, i]# * 50
-                        # F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
-                        F_ext_delta = 1*self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
+                        F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
+                        # F_ext_delta = 1*self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
                         v_in_i_ext = 1
 
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
@@ -1131,7 +1131,7 @@ class Nykamp_Model_1():
                             rho_delta[j, i] + r_delayed[j, i])
 
         # plt.plot(mean_rho_area)
-        # plt.plot(rho_delta[0]*1000)
+        # plt.plot(rho_delta[0]*300)
         # plt.legend(['rho area', 'rho_delta'])
         # plt.show()
 
