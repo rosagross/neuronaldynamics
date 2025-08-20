@@ -93,7 +93,7 @@ class DI_wave_simulation():
         nmm_potential_out = nmm_potential[:nmm_shape]
 
         if self.enable_high_pass:
-            v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.5, fps=int(1 / self.dt))
+            v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.3, fps=int(1 / self.dt))
             hp_mean = v_out_hp.mean()
             if hp_mean > 1:
                 v_out_hp -= hp_mean
@@ -104,7 +104,8 @@ class DI_wave_simulation():
 
         self.get_test_signal()
         di_max = np.max(self.target)
-        if np.max(mass_model_rate) > 0.1:  # only scale to normalize if rate is sufficiently large
+        I1_time = np.argmax(mass_model_rate) * self.dt
+        if np.max(mass_model_rate) > 0.1 and I1_time < 4:  # only scale to normalize if rate is sufficiently large
             nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
         else:
             nmm_potential_scaled = nmm_potential_out

@@ -118,4 +118,3 @@ class Hierarchical_Random(Optimizer):
                     self.upper_bound[j] = min(self.upper_bound[j], p_new[j] + 0.5 * delta[j])
             else:
                 print(f'error not smaller than {previous_min_error:.4f}-{self.noise_term}')
-                self.optimum = param_values[:, min_error_idx[1]]

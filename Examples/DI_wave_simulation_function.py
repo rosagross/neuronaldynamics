@@ -8,11 +8,11 @@ matplotlib.use('TkAgg')
 # fn_session = '/home/erik/Downloads/gpc.pkl'
 fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
 # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-simulation_name = 'diw_2025_08_07_9_hp_no_neg'
-# [375.70564949   0.45089362   0.96765791   0.50382576   0.94524256]
-parameters = {'intensity': 276, 'fraction_nmda': 0.45, 'fraction_gaba_a': 0.97, 'fraction_ex': 0.50, 'plot_align': False,
-              'fn_session': fn_session, 'T': 8, 'name': simulation_name, 'dt': 0.05, 'enable_high_pass': True,
-              'nykamp_parameters': {'connectivity_matrix': np.array([[10]]),
+simulation_name = 'diw_2025_08_13_12'
+# [140.34858132   0.67971667   0.98021345   0.43615625  13.24401196]
+parameters = {'intensity': 140.34, 'fraction_nmda': 0.67, 'fraction_gaba_a': 0.98, 'fraction_ex': 0.43, 'plot_align': False,
+              'fn_session': fn_session, 'T': 15, 'name': simulation_name, 'dt': 0.05, 'enable_high_pass': False,
+              'nykamp_parameters': {'connectivity_matrix': np.array([[13.24]]),
                                     'tau_ref': [1.5],
                                     'tau_mem': [12],
                                     'input_type': 'current'}}

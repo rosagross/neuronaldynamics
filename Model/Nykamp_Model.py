@@ -949,7 +949,7 @@ class Nykamp_Model_1():
                         dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
                         # g_eext[dirac_index] = - rho_delta[j, i] #* 100 # 100 was the area under the curve of the pdf
                         # g_eext = self.gauss_func(x = self.v, mu=(v_ext + self.u_reset), sigma=0.1)
-                        g_eext = self.gauss_func(x = self.v, mu=self.v[dirac_index], sigma=0.1)
+                        g_eext = self.gauss_func(x=self.v, mu=self.v[dirac_index], sigma=0.1)
                         # g_eext = self.gauss_func(x=self.v, mu=self.u_reset+5, sigma=2)
                         g_eext /= g_eext.sum()
                         g_eext = g_eext * -rho_delta[j, i]# * 50
