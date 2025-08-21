@@ -70,7 +70,7 @@ simConfig.recordStep = 0.1 # Step size in ms to save data (eg. V traces, LFP, et
 
 # Saving
 simConfig.filename = 'HHTut'  # Set file output name
-simConfig.savePickle = False # Whether or not to write spikes etc. to a .mat file
+simConfig.savePickle = False  # Whether or not to write spikes etc. to a .mat file
 simConfig.saveJson = True
 
 # Analysis and plotting

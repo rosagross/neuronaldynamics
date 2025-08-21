@@ -48,35 +48,19 @@ netParams = specs.NetParams()
 #   - 'refrac' is absolute refractory period (ms)
 #   - 'thresh' is the firing threshold for m (unitless; typical = 1.0)
 #   - After a spike, m is reset to 0.
-IF_PARAMS = dict(tau=20.0, refrac=2.0, thresh=1.0)
+IF_PARAMS = dict(tau=20.0, refrac=2.0, trhesh=1.0)
 
 # Define an artificial-cell rule to pass IntFire1 parameters
 # Even though artificial cells don't require sections, defining a cell rule lets us specify parameters.
+
 cellRule = {
     'conds': {'cellType': 'L5Pyr', 'cellModel': 'IntFire1'},
-    'secs': {},
-    # Parameters for IntFire1 passed via point process params
-    'pointps': {'if1': {'mod': 'IntFire1', **IF_PARAMS}}
+    'secs': {'soma': {'geom': {}}},   # no morphology
+    'params': IF_PARAMS   # <- artificial cell parameters go here
 }
+# cellRule['secs']['soma']['pointps']['L5'] = dict(mod='IntFire1')
 
-
-PYR_Izhi = {'secs': {}}
-PYR_Izhi['secs']['soma'] = {'geom': {}, 'pointps': {}}                        # soma params dict
-PYR_Izhi['secs']['soma']['geom'] = {'diam': 10.0, 'L': 10.0, 'cm': 31.831}    # soma geometry
-PYR_Izhi['secs']['soma']['pointps']['Izhi'] = {                               # soma Izhikevich properties
-        'mod':'Izhi2007b',
-        'C':1,
-        'k':0.7,
-        'vr':-60,
-        'vt':-40,
-        'vpeak':35,
-        'a':0.03,
-        'b':-2,
-        'c':-50,
-        'd':100,
-        'celltype':1}
-netParams.cellParams['L5Pyr_IF'] = PYR_Izhi
-# netParams.cellParams['L5Pyr_IF'] = cellRule
+netParams.cellParams['L5Pyr_IF'] = cellRule
 # Population
 netParams.popParams['L5Pyr'] = {
     'cellType': 'L5Pyr',
@@ -98,10 +82,10 @@ netParams.stimTargetParams['bkg->L5Pyr'] = {
     'weight': bkg_weight,
     # Uniform delay between given bounds
     'delay': 5,
-    'synMech': 'exc'
+    'synMech': None
 }
 
-netParams.synMechParams['exc'] = {'mod': 'Exp2Syn', 'tau1': 0.1, 'tau2': 5.0, 'e': 0}
+# netParams.synMechParams['exc'] = {'mod': 'Exp2Syn', 'tau1': 0.1, 'tau2': 5.0, 'e': 0}
 
 # feedback
 if recurrent_p > 0 and recurrent_weight > 0:
@@ -111,8 +95,7 @@ if recurrent_p > 0 and recurrent_weight > 0:
         'probability': recurrent_p,
         'weight': recurrent_weight,
         'delay': recurrent_delay,
-        'synMech': 'exc',
-        'allowSelfConns': False
+        'synMech': 'exc'
     }
 
 # -----------------------
@@ -130,6 +113,8 @@ simConfig.recordCells = []  # all cells
 simConfig.recordTraces = {}  # no Vm for artificial cells
 simConfig.recordStep = dt
 simConfig.recordDipole = False
+
+simConfig.validateNetParams=True
 
 # Analysis & plots
 simConfig.analysis = {
