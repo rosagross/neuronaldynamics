@@ -9,7 +9,7 @@ netParams.popParams['L5Pyr'] = {
     'cellModel': 'IntFire4',      # artificial cell model
     'cellType': 'E',
     'numCells': 50,
-    'params': {                   # IntFire1 parameters
+    'params': {                   # IntFire4 parameters
         'tau': 20.0,
         'refrac': 2.0
     }
@@ -50,11 +50,17 @@ netParams.connParams['Bkg->L5Pyr'] = {
 # TODO: this seems like a tough workaround!
 def add_time_varying_input(sim):
     tvec = h.Vector(np.arange(0, simConfig.duration, simConfig.dt))  # time in ms
-    ivec = h.Vector(0.5 * (1 + np.sin(50 * np.pi * tvec.as_numpy())))  # example waveform
-
+    ivec = h.Vector(0.5 * (1 + np.sin(50 * np.pi * tvec.as_numpy())))
     for cell in sim.net.cells:
-        if cell.tags['cellModel'] == 'IntFire4':
-            ivec.play(cell.hPointp._ref_i, tvec, 1)
+        if cell.tags.get('pop') == 'L5Pyr':
+            ivec = h.Vector(0.5 * (1 + np.sin(50 * np.pi * tvec.as_numpy())))  # example waveform
+            sec = cell.secs['soma']['hObj']
+            ic = h.IClamp(sec(0.5))
+            ic.delay = 0.0
+            ic.dur = 1e9  # effectively "hold" open
+            ic.amp = 0.0
+            ivec.play(cell.hPointp._ref_amp, tvec, 1)
+
 
 
 # Register this function

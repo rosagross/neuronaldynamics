@@ -830,7 +830,7 @@ class Nykamp_Model_1():
             else:
                 self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(x=self.t)
         elif self.input_type == 'current':
-            self.i_ext[self.input_function_idx] = self.input_function(x=self.t)
+            self.i_ext[self.input_function_idx] = self.input_function(self.t)
 
 
         if self.verbose > 0:
@@ -869,7 +869,7 @@ class Nykamp_Model_1():
         ################################################################################################################
         for i in range(len(self.population_type)):
             # initialize arrays
-            rho[i, :, 0] = scipy.stats.norm.pdf(self.v, self.u_rest, 1)
+            rho[i, :, 0] = scipy.stats.norm.pdf(self.v, self.u_rest - 0, 1)
             rho[i, 0, 0] = 0
             rho[i, -1, 0] = 0
 
@@ -934,8 +934,8 @@ class Nykamp_Model_1():
 
                         self.c1eext = 1*self.c1eext
                         self.c1eext_v = 1*self.c1eext_v
-                        self.c2eext = 0.2*self.c2eext
-                        self.c2eext_v = 0.2*self.c2eext_v
+                        self.c2eext = 0.2*self.c2eext  # was 0.2
+                        self.c2eext_v = 0.2*self.c2eext_v  # was 0.2
 
                         # all new delay component terms
                         # apply dirac delta at v = self.u_rest + v_ext
@@ -953,8 +953,8 @@ class Nykamp_Model_1():
                         # g_eext = self.gauss_func(x=self.v, mu=self.u_reset+5, sigma=2)
                         g_eext /= g_eext.sum()
                         g_eext = g_eext * -rho_delta[j, i]# * 50
-                        F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
-                        # F_ext_delta = 1*self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
+                        # F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
+                        F_ext_delta = 1*self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
                         v_in_i_ext = 1
 
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
@@ -988,7 +988,7 @@ class Nykamp_Model_1():
 
                     r[j, i] = r_j + r_ext
 
-                    if i == 1112:
+                    if i == 282:
                         a=1
 
                     # if r[j, i] < 0:
