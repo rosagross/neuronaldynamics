@@ -869,7 +869,7 @@ class Nykamp_Model_1():
         ################################################################################################################
         for i in range(len(self.population_type)):
             # initialize arrays
-            rho[i, :, 0] = scipy.stats.norm.pdf(self.v, self.u_rest - 0, 1)
+            rho[i, :, 0] = scipy.stats.norm.pdf(self.v, self.u_rest + 3, 4)
             rho[i, 0, 0] = 0
             rho[i, -1, 0] = 0
 
@@ -932,10 +932,10 @@ class Nykamp_Model_1():
                         self.c2eext_v[mask1] = (self.v[mask1] - self.u_inh)
                         self.c2eext_v[mask2] = 0
 
-                        self.c1eext = 1*self.c1eext
-                        self.c1eext_v = 1*self.c1eext_v
-                        self.c2eext = 0.2*self.c2eext  # was 0.2
-                        self.c2eext_v = 0.2*self.c2eext_v  # was 0.2
+                        # self.c1eext = 1*self.c1eext
+                        # self.c1eext_v = 1*self.c1eext_v
+                        # self.c2eext = 0.2*self.c2eext  # was 0.2
+                        # self.c2eext_v = 0.2*self.c2eext_v  # was 0.2
 
                         # all new delay component terms
                         # apply dirac delta at v = self.u_rest + v_ext
