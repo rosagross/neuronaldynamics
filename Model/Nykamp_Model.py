@@ -808,6 +808,16 @@ class Nykamp_Model_1():
         if type(self.connectivity_matrix) != np.ndarray:
             self.connectivity_matrix = np.array(self.connectivity_matrix)
 
+        if 'init_pdf_offset' in parameters:
+            self.init_pdf_offset = parameters['init_pdf_offset']
+        else:
+            self.init_pdf_offset = 0
+
+        if 'init_pdf_sigma' in parameters:
+            self.init_pdf_sigma = parameters['init_pdf_sigma']
+        else:
+            self.init_pdf_sigma = 1
+
 
     def simulate(self):
 
@@ -869,7 +879,7 @@ class Nykamp_Model_1():
         ################################################################################################################
         for i in range(len(self.population_type)):
             # initialize arrays
-            rho[i, :, 0] = scipy.stats.norm.pdf(self.v, self.u_rest + 3, 4)
+            rho[i, :, 0] = scipy.stats.norm.pdf(self.v, self.u_rest + self.init_pdf_offset, self.init_pdf_sigma)
             rho[i, 0, 0] = 0
             rho[i, -1, 0] = 0
 
@@ -1003,8 +1013,8 @@ class Nykamp_Model_1():
                         rho_shrink_counter = 0
                         rho_inflate_counter = 0
                         rho_area_start = np.sum(rho[j, :, i])
-                    if neg_rho_counter == 0 and np.mean(rho[j, :, i]) < 0:
-                        print('\nWarning!, negative rho detected!')
+                    if neg_rho_counter == 0 and np.mean(rho[j, :, i]) < -1:
+                        print('\nW arning!, negative rho detected!')
                         neg_rho_counter = 1
                     mean_rho_area = np.sum(rho[j, :, :], axis=0)
                     mean_rho_idx = int(2*ref_delta_idxs[j])
@@ -1398,7 +1408,8 @@ class Nykamp_Model_1():
         plt.ylabel(f'{self.delay_kernel_type} delay kernel')
         plt.show()
 
-    def plot(self, fname=None, heat_map=True, plot_idxs=None, savefig=False, plot_input=False, z_limit=None):
+    def plot(self, fname=None, heat_map=True, plot_idxs=None, savefig=False, plot_input=False, z_limit=None,
+             plot_combined=True):
 
         if fname == None:
             fname = self.name
@@ -1408,6 +1419,8 @@ class Nykamp_Model_1():
             t_plot = np.array(h5file['t'])
             v = np.array(h5file['v'])
             r_plot = np.array(h5file['r'])
+            for k in range(r_plot.shape[0]):
+                r_plot[k, -1] = r_plot[k, -2]
             rho_plot = np.array(h5file['rho_plot'])
             p_types_raw = h5file['p_types']
             p_types = p_types_raw.asstr()[:]
@@ -1422,48 +1435,98 @@ class Nykamp_Model_1():
         else:
             n_plots = len(plot_idxs)
 
-        fig = plt.figure(figsize=(10, 4.25*n_plots))
-        for i_plot, plot_idx in enumerate(plot_idxs):
-            plot_loc_1 = int(2*i_plot + 1)
-            plot_loc_2 = int(2 * i_plot + 2)
-            if heat_map:
-                ax = fig.add_subplot(n_plots, 2, plot_loc_1)
-                X, Y = np.meshgrid(t_plot, v)
-                if z_limit is None:
-                    z_limit = np.abs(rho_plot[plot_idx]).max()
-                z_min, z_max = 0, z_limit
-                c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='viridis', vmin=z_min, vmax=z_max)
-                fig.colorbar(c, ax=ax)
+        if plot_combined:
+            fig = plt.figure(figsize=(10, 4.25*n_plots))
+            for i_plot, plot_idx in enumerate(plot_idxs):
+                plot_loc_1 = int(2*i_plot + 1)
+                plot_loc_2 = int(2 * i_plot + 2)
+                if heat_map:
+                    ax = fig.add_subplot(n_plots, 2, plot_loc_1)
+                    X, Y = np.meshgrid(t_plot, v)
+                    if z_limit is None:
+                        z_limit = np.abs(rho_plot[plot_idx]).max()
+                    z_min, z_max = 0, z_limit
+                    c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='viridis', vmin=z_min, vmax=z_max)
+                    fig.colorbar(c, ax=ax)
 
+                else:
+                    ax = fig.add_subplot(n_plots, 2, plot_loc_1, projection='3d')
+                    X, Y = np.meshgrid(t_plot, v)
+                    ax.plot_surface(X, Y, rho_plot[plot_idx],
+                                    cmap="jet", linewidth=0, antialiased=False, rcount=100, ccount=100)
+                    ax.set_zlim3d(0, 1)
+
+                ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})")
+                ax.set_xlabel("time (ms)")
+                ax.set_ylabel("membrane potential (mv)")
+
+                ax = fig.add_subplot(n_plots, 2, plot_loc_2)
+                ax.plot(t_plot, r_plot[plot_idx] * 1000)
+                ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
+                ax.set_ylabel("Firing rate (Hz)")
+                ax.set_xlabel("time (ms)")
+                if plot_input:
+                    rate_height = np.max(r_plot[plot_idx] * 1000)
+                    i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
+                    ax.plot(t_plot, i_in_plot)
+                    ax.legend(['rate', 'input'])
+
+                ax.grid()
+            plt.tight_layout()
+            if savefig:
+                plt.savefig(self.name + '_plot.png')
+                plt.close()
             else:
-                ax = fig.add_subplot(n_plots, 2, plot_loc_1, projection='3d')
-                X, Y = np.meshgrid(t_plot, v)
-                ax.plot_surface(X, Y, rho_plot[plot_idx],
-                                cmap="jet", linewidth=0, antialiased=False, rcount=100, ccount=100)
-                ax.set_zlim3d(0, 1)
+                plt.show()
 
-            ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})")
-            ax.set_xlabel("time (ms)")
-            ax.set_ylabel("membrane potential (mv)")
-
-            ax = fig.add_subplot(n_plots, 2, plot_loc_2)
-            ax.plot(t_plot, r_plot[plot_idx] * 1000)
-            ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
-            ax.set_ylabel("Firing rate (Hz)")
-            ax.set_xlabel("time (ms)")
-            if plot_input:
-                rate_height = np.max(r_plot[plot_idx] * 1000)
-                i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
-                ax.plot(t_plot, i_in_plot)
-                ax.legend(['rate', 'input'])
-
-            ax.grid()
-        plt.tight_layout()
-        if savefig:
-            plt.savefig(self.name + '_plot.png')
-            plt.close()
         else:
-            plt.show()
+            for i_plot, plot_idx in enumerate(plot_idxs):
+                fig_1 = plt.figure(figsize=(5, 4.25))
+
+                if heat_map:
+                    ax = fig_1.add_subplot(n_plots, 1, 1)
+                    X, Y = np.meshgrid(t_plot, v)
+                    if z_limit is None:
+                        z_limit = np.abs(rho_plot[plot_idx]).max()
+                    z_min, z_max = 0, z_limit
+                    c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='viridis', vmin=z_min, vmax=z_max)
+                    fig_1.colorbar(c, ax=ax)
+
+                else:
+                    ax = fig_1.add_subplot(n_plots, 1, 1, projection='3d')
+                    X, Y = np.meshgrid(t_plot, v)
+                    ax.plot_surface(X, Y, rho_plot[plot_idx],
+                                    cmap="jet", linewidth=0, antialiased=False, rcount=100, ccount=100)
+                    ax.set_zlim3d(0, 1)
+
+                ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})")
+                ax.set_xlabel("time (ms)")
+                ax.set_ylabel("membrane potential (mv)")
+                plt.tight_layout()
+                if savefig:
+                    plt.savefig(self.name + 'voltage_dist_plot.png')
+                    plt.close()
+                else:
+                    plt.show()
+                fig_2 = plt.figure(figsize=(5, 4.25))
+                ax = fig_2.add_subplot(n_plots, 1, 1)
+                ax.plot(t_plot, r_plot[plot_idx] * 1000)
+                ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
+                ax.set_ylabel("Firing rate (Hz)")
+                ax.set_xlabel("time (ms)")
+                if plot_input:
+                    rate_height = np.max(r_plot[plot_idx] * 1000)
+                    i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
+                    ax.plot(t_plot, i_in_plot)
+                    ax.legend(['rate', 'input'])
+
+                    ax.grid()
+                plt.tight_layout()
+                if savefig:
+                    plt.savefig(self.name + 'rate_plot.png')
+                    plt.close()
+                else:
+                    plt.show()
 
     def save_log(self, full_out=False):
         if full_out:

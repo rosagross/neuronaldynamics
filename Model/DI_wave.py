@@ -7,6 +7,7 @@ import pygpc
 import os
 import h5py
 import scipy
+import scipy.io
 import yaml
 from tqdm import tqdm
 from Utils import DI_wave_test_function, nrmse, cross_correlation_align, butter_highpass_filter
@@ -43,6 +44,7 @@ class DI_wave_simulation():
         self.t_gpc = np.linspace(0, 99.81, 500)
         self.plot_align = False
         self.enable_high_pass = False
+        self.test_signal_from_file = False
 
         if logname != None:
             self.load_from_file(logname=logname)
@@ -58,7 +60,7 @@ class DI_wave_simulation():
         init_nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': [12], 'tau_ref': [1.0],
                                   'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
                                   'input_type': 'current', 'input_function_idx': [0, 0], 'name': self.name,
-                                  'dt':self.dt, 'T': self.T, 'sparse_mat': True}
+                                  'dt': self.dt, 'T': self.T, 'sparse_mat': True}
 
         self.create_coords()
         self.update_gpc_time()
@@ -102,7 +104,7 @@ class DI_wave_simulation():
             v_out_hp[v_out_hp < 0] = 0
             nmm_potential_out = v_out_hp
 
-        self.get_test_signal()
+        self.get_test_signal(from_file=self.test_signal_from_file)
         di_max = np.max(self.target)
         I1_time = np.argmax(mass_model_rate) * self.dt
         if np.max(mass_model_rate) > 0.1 and I1_time < 4:  # only scale to normalize if rate is sufficiently large
@@ -135,13 +137,23 @@ class DI_wave_simulation():
         plt.ylabel('Iext in A')
         plt.show()
 
-    def get_test_signal(self, plot=False):
+    def get_test_signal(self, plot=False, from_file=False):
         #TODO: extend this to different test function types eventually
-        self.target = DI_wave_test_function(self.t,
-                                            intensity=self.test_func_intensity,
-                                            t0=self.test_func_t0,
-                                            dt=self.test_func_dt,
-                                            width=self.test_func_width)
+        if not from_file:
+            self.target = DI_wave_test_function(self.t,
+                                                intensity=self.test_func_intensity,
+                                                t0=self.test_func_t0,
+                                                dt=self.test_func_dt,
+                                                width=self.test_func_width)
+        else:
+            current_directory = os.path.dirname(__file__)
+            data_fname = os.path.join(current_directory, 's2020_043_CNS2023.mat')
+            data = scipy.io.loadmat(data_fname)
+            mean_DI_waves_detrend = data['meanDIwaves_detrend']
+            mean_DI_waves = data['meanDIwaves']
+            t = np.array(data['times'])[0]
+            self.target = np.interp(self.t, t, mean_DI_waves_detrend[:, 0])
+            # plt.plot(t, mean_DI_waves_detrend[:, 0])
         if plot:
             plt.plot(self.t, self.target)
             plt.xlabel('time in ms')

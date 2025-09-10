@@ -5,20 +5,23 @@ from Model.DI_wave import DI_wave_simulation
 
 matplotlib.use('TkAgg')
 
-fn_session = '/home/erik/Downloads/gpc.pkl'
-# fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+# fn_session = '/home/erik/Downloads/gpc.pkl'
+fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
 # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-simulation_name = 'diw_2025_08_13_12'
-# [150   0.31881403   0.95170811   0.27486198  27.7887928 ]
-parameters = {'intensity': 150, 'fraction_nmda': 0.31, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.27, 'plot_align': False,
-              'fn_session': fn_session, 'T': 8, 'name': simulation_name, 'dt': 0.05, 'enable_high_pass': False,
-              'nykamp_parameters': {'connectivity_matrix': np.array([[28]]),
+simulation_name = 'diw_2025_09_10_03_from_file'
+# [140.34858132   0.67971667   0.98021345   0.43615625  13.24401196]
+# [113.66661551   0.6983768    0.98613453   0.57663151  22.7918771 ]
+parameters = {'intensity': 150, 'fraction_nmda': 0.67, 'fraction_gaba_a': 0.98, 'fraction_ex': 0.58, 'plot_align': False,
+              'test_func_intensity': 2.5, 'test_func_t0': 0.25,
+              'test_signal_from_file': True,
+              'fn_session': fn_session, 'T': 15, 'name': simulation_name, 'dt': 0.05, 'enable_high_pass': False,
+              'nykamp_parameters': {'connectivity_matrix': np.array([[22.8]]),
                                     'tau_ref': [1.5],
                                     'tau_mem': [12],
                                     'input_type': 'current'}}
 di_model = DI_wave_simulation(parameters=parameters, logname=None)
 di_model.simulate()
-# di_model.mass_model.plot(heat_map=True, plot_input=True)
+di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=False, z_limit=0.15)
 # di_model.plot_convolution()
 di_model.plot_validation()
 di_model.save_log(plot=True)
