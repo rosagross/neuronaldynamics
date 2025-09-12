@@ -132,9 +132,9 @@ class DI_wave_simulation():
         self.coords = np.array([[self.theta, self.gradient, self.intensity, self.fraction_nmda, self.fraction_gaba_a,
                                  self.fraction_ex]])
     def plot_input_current(self):
-        plt.plot(self.t, self.input_current)
-        plt.xlabel('time in ms')
-        plt.ylabel('Iext in A')
+        plt.plot(self.t, self.input_current*1e3, linewidth=2, c='orange')
+        plt.xlabel('time in ms', fontsize=15)
+        plt.ylabel('Iext in nA', fontsize=15)
         plt.show()
 
     def get_test_signal(self, plot=False, from_file=False):
@@ -157,7 +157,7 @@ class DI_wave_simulation():
         if plot:
             plt.plot(self.t, self.target)
             plt.xlabel('time in ms')
-            plt.ylabel('firing rate test function')
+            plt.ylabel('v in mV')
             plt.grid()
             plt.show()
 

@@ -817,6 +817,7 @@ class Nykamp_Model_1():
             self.init_pdf_sigma = parameters['init_pdf_sigma']
         else:
             self.init_pdf_sigma = 1
+        self.simulation_done = False
 
 
     def simulate(self):
@@ -944,8 +945,8 @@ class Nykamp_Model_1():
 
                         # self.c1eext = 1*self.c1eext
                         # self.c1eext_v = 1*self.c1eext_v
-                        # self.c2eext = 0.2*self.c2eext  # was 0.2
-                        # self.c2eext_v = 0.2*self.c2eext_v  # was 0.2
+                        # self.c2eext = 0.4*self.c2eext  # was 0.2
+                        # self.c2eext_v = 0.4*self.c2eext_v  # was 0.2
 
                         # all new delay component terms
                         # apply dirac delta at v = self.u_rest + v_ext
@@ -1163,6 +1164,7 @@ class Nykamp_Model_1():
                 h5file.create_dataset('in', data=self.input)
             h5file.create_dataset('rho_plot', data=rho_plot)
             h5file.create_dataset('p_types', data=self.population_type)
+        self.simulation_done = True
 
     def get_A(self, f0, f1, f2):
         if not self.sparse_mat:
@@ -1544,4 +1546,5 @@ class Nykamp_Model_1():
         return (1/np.sqrt(2*np.pi*sigma**2))*np.exp(-(x-mu)**2/(2*sigma**2))
 
     def clean(self):
-        os.remove(self.name + '.hdf5')
+        if self.simulation_done:
+            os.remove(self.name + '.hdf5')
