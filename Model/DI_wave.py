@@ -107,7 +107,8 @@ class DI_wave_simulation():
         self.get_test_signal(from_file=self.test_signal_from_file)
         di_max = np.max(self.target)
         I1_time = np.argmax(mass_model_rate) * self.dt
-        if np.max(mass_model_rate) > 0.1 and I1_time < 4:  # only scale to normalize if rate is sufficiently large
+        # if np.max(mass_model_rate) > 0.1 and I1_time < 4:  # only scale to normalize if rate is sufficiently large
+        if I1_time < 4:
             nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
         else:
             nmm_potential_scaled = nmm_potential_out
@@ -231,6 +232,83 @@ class DI_wave_simulation():
     def load_from_file(self, logname):
         with open(logname, 'r') as stream:
             self.parameters = yaml.load(stream, Loader=yaml.Loader)
+
+
+    def optimize(self):
+        lower_bound = np.array([100, 0.25, 0.9, 0.2])
+        upper_bound = np.array([200, 0.75, 1.0, 0.8])
+
+        max_iter = 10
+        noise_term = 0.005
+        n_param = lower_bound.shape[0]
+        eps = 0.01
+        min_errors = []
+
+        opt_idxs = []
+        n_grid = 20
+        x_vals = np.zeros((max_iter, n_grid, self.t.shape[0]))
+        min_error_idxs = np.zeros(max_iter)
+        parameters = np.zeros((max_iter, n_grid, lower_bound.shape[0]))
+        error = np.ones((max_iter, n_grid))
+        previous_min_error = 1
+
+        for i in tqdm(range(max_iter)):
+            param_values = np.zeros((n_param, n_grid))
+            for j in range(n_param):
+                param_values[j] = np.random.uniform(lower_bound[j], upper_bound[j], n_grid)
+
+            for k in range(n_grid):
+                parameters[i, k] = param_values[:, k]
+                x = simulate(intensity=param_values[0, k], fraction_nmda=param_values[1, k],
+                             fraction_gaba_a=param_values[2, k],
+                             fraction_ex=param_values[3, k], y=y, idx=f'{i}_{k}')
+                x_vals[i, k] = x
+                error[i, k] = nrmse(y, x)
+
+            min_error = np.nanmin(error[i])
+
+            min_error_idx = (i, np.nanargmin(error[i]))
+            min_error_idxs[i] = min_error_idx[1]
+            min_errors.append(min_error)
+            opt_idxs.append(min_error_idx)
+            print('#########################################################################')
+            print(f'error: {min_error:.5f}, at index {min_error_idx}')
+            print(f'{param_values[:, min_error_idx[1]]}')
+            print('#########################################################################')
+
+            if min_error < eps:
+                print(f'error: {min_error:.4f}')
+                break
+            if i > 0:
+                previous_min_error = np.min(np.array(min_errors[:i]))
+            if min_error < previous_min_error - noise_term:
+                # contract region in parameter space if error was smaller
+                print(f'new min error, updating parameters')
+
+                # get new bounds for next iteration
+                p_new = param_values[:, min_error_idx[1]]
+                delta = upper_bound - lower_bound
+                for j in range(n_param):
+                    lower_bound[j] = max(lower_bound[j], p_new[j] - 0.5 * delta[j])
+                    upper_bound[j] = min(upper_bound[j], p_new[j] + 0.5 * delta[j])
+            else:
+                print(f'error not smaller than {previous_min_error:.4f}-{noise_term}')
+
+        plt.close()
+        idx = np.argmin(error, axis=0)
+        nykamp_potential = x_vals[idx[0], idx[1]]
+        # print(f'optimal param: {p_new}')
+        np.savetxt(X=parameters, fname='parameter_values.csv')
+        np.savetxt(X=x_vals, fname='x_values.csv')
+
+        diff = nrmse(y, nykamp_potential)
+        plt.plot(t_new, nykamp_potential)
+        plt.plot(t_new, y)
+        plt.grid()
+        plt.xlabel('t in ms')
+        plt.legend(['nykamp', 'D-I-wave test function'])
+        plt.title(f'nrmse: {diff:.4f}')
+        plt.show()
 
     def optimize(self, optimizer='hierarchical', opt_params={}):
 

@@ -23,7 +23,7 @@ parameters = {'intensity': 350, 'fraction_nmda': 0.70, 'fraction_gaba_a': 0.98, 
                                     'init_pdf_sigma': 1.0}}
 di_model = DI_wave_simulation(parameters=parameters, logname=None)
 # di_model.simulate()
-# di_model.mass_model.plot(heat_map=True, plot_input=False, plot_combined=False, z_limit=0.15)
+di_model.mass_model.plot(heat_map=True, plot_input=False, plot_combined=False, z_limit=0.15)
 # di_model.plot_input_current()
 di_model.get_test_signal(plot=True)
 # di_model.plot_convolution()

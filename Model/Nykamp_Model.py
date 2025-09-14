@@ -1021,10 +1021,10 @@ class Nykamp_Model_1():
                     mean_rho_idx = int(2*ref_delta_idxs[j])
                     if i > mean_rho_idx:
                         if np.mean(mean_rho_area[i-mean_rho_idx:i]) < rho_area_start*0.2 and rho_shrink_counter == 0:
-                            print(f'\n Warning!, rho is draining, i = {i}')
+                            # print(f'\n Warning!, rho is draining, i = {i}')
                             rho_shrink_counter = 1
                         elif mean_rho_area[i-1] > rho_area_start*1.1 and rho_inflate_counter == 0:
-                            print(f'\n Warning!, rho is inlfating, i = {i}')
+                            # print(f'\n Warning!, rho is inlfating, i = {i}')
                             rho_inflate_counter = 1
 
                     if r[j, i] > 1e6:
