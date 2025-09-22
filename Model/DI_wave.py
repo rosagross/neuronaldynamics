@@ -45,6 +45,7 @@ class DI_wave_simulation():
         self.plot_align = False
         self.enable_high_pass = False
         self.test_signal_from_file = False
+        self.error_mode = 'non-zero'
 
         if logname != None:
             self.load_from_file(logname=logname)
@@ -179,7 +180,8 @@ class DI_wave_simulation():
     def validate(self):
         x1 = self.mass_model_v_out
         x2 = self.target
-        self.error, self.difference, self.target_aligned = cross_correlation_align(x1, x2, plot=self.plot_align)
+        self.error, self.difference, self.target_aligned = cross_correlation_align(x1, x2, plot=self.plot_align,
+                                                                                   mode=self.error_mode)
 
 
     def plot_nmm_out(self, heat_map=True, plot_input=True, save_fig=False):
@@ -188,18 +190,26 @@ class DI_wave_simulation():
     def plot_validation(self, labels=None, save_fig=False):
 
         if labels == None:
-            label1 = 'nykamp_potential'
+            label1 = 'NMM Potential'
             label2 = 'D-I-wave test function'
         else:
             label1, label2 = labels[0], labels[1]
 
-        plt.plot(self.t, self.mass_model_v_out)
-        plt.plot(self.t, self.target_aligned)
-        plt.grid()
-        plt.xlabel('t in ms')
-        plt.legend([label1, label2])
+        v_shade = self.mass_model_v_out.copy()
+        abs_signal = self.target_aligned
+        non_zero_mask = np.where(abs_signal > 1e-3)
+        v_shade[non_zero_mask] = self.target_aligned[non_zero_mask]
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.t, self.mass_model_v_out)
+        ax.plot(self.t, self.target_aligned)
+        ax.fill_between(self.t, self.mass_model_v_out, v_shade, alpha=0.2, color='k')
+        ax.grid()
+        ax.set_xlabel('t in ms')
+        ax.legend([label1, label2])
         # plt.legend(['nykamp rate', 'nykamp_potential', 'D-I-wave test function'])
-        plt.title(f'nrmse: {self.error:.4f}')
+        ax.set_title(f'nrmse: {self.error:.4f}')
         if save_fig:
             plt.savefig(self.name + '_validation.png')
             plt.close()

@@ -802,7 +802,7 @@ class Nykamp_Model_1():
         # calculate alpha kernel
         self.get_delay_kernel()
 
-        # initialize breaking variable for numerical unstable solutions
+        # initialize breaking variable for numerically unstable solutions
         self.break_outer = False
 
         if type(self.connectivity_matrix) != np.ndarray:
@@ -818,6 +818,7 @@ class Nykamp_Model_1():
         else:
             self.init_pdf_sigma = 1
         self.simulation_done = False
+        self.verbose = 0
 
 
     def simulate(self):
@@ -1019,7 +1020,7 @@ class Nykamp_Model_1():
                         neg_rho_counter = 1
                     mean_rho_area = np.sum(rho[j, :, :], axis=0)
                     mean_rho_idx = int(2*ref_delta_idxs[j])
-                    if i > mean_rho_idx:
+                    if i > mean_rho_idx and self.verbose > 0:
                         if np.mean(mean_rho_area[i-mean_rho_idx:i]) < rho_area_start*0.2 and rho_shrink_counter == 0:
                             print(f'\n Warning!, rho is draining, i = {i}')
                             rho_shrink_counter = 1
@@ -1045,7 +1046,6 @@ class Nykamp_Model_1():
                         break
 
                     r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
-
 
                     # test some stability criteria for the matrices
                     # A = np.array(A_exc.todense())
