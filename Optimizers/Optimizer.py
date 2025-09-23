@@ -120,3 +120,132 @@ class Hierarchical_Random(Optimizer):
                     self.upper_bound[j] = min(self.upper_bound[j], p_new[j] + 0.5 * delta[j])
             else:
                 print(f'error not smaller than {previous_min_error:.4f}-{self.noise_term}')
+
+class GA(Optimizer):
+    def __init__(self, parameters):
+        super.__init__(parameters=parameters)
+
+        self.model_parameters = None
+        self.simulation_class = None
+        self.goal_func = None
+        self.op = 1
+        self.n_iter = 50
+        self.reference = None
+        self.bounds = None
+
+        LR = self.bounds[:, 0]
+        UR = self.bounds[:, 1]
+        nParams = len(LR)
+        GA_counter = []
+        
+        conf = {'UR': UR, 'LR': LR, 'op': self.op, 'func':self.simulation_class, 'goal_func':self.goal_func,
+                'gLoop':10, 'gL': -12, 'gU': 12, 'gTol': 0.01}
+        conf['gT'] = abs(conf['gU'] - conf['gL']) + 1
+
+        ################################################################
+        N1 = 60  # population size
+        N2 = 100  # crossover, number of pair to crossover
+        N3 = 100  #  mutation, number of pairs to mutate
+        tg = 1 # total generations
+
+        K = 0  # history of[average cost, best cost]
+        KP = 0 # history of[best solution]
+        KS = 0 # history of[best cost]
+        w = 1  # counter
+        j = 1  # counter
+
+        ######## initialization #########
+        print('======== Initialization ========')
+        P = self.population(N1, nParams, LR, UR)  # generate[60 x nParams] random solutions
+        # P = [P, solution_ini]  # add pre - selected solutions
+        # TODO: check if this is necessary later
+        E, R = self.evaluation(P, self.simulation_class) # E: evaluation fitness, R: residual, error
+        P, E, R = self.selection_best(P, E, R, N1, self.op)
+        R1 = R[:, 0]
+        print('done')
+        print([f'Minimum cost: ', {E(1)}])
+        print('================================')
+        E_crit = E[0]
+
+        ################## loop ######################
+        for j in range(self.n_iter):
+            print('======= Gradient search ========')
+            Para_E_grd, E_grd, R_grd = self.gradient_search[P[0], R1, conf, E_crit]
+            # replace
+            if self.op * E_grd > self.op * E(1):
+                P[0] = Para_E_grd
+                E[0] = E_grd
+                R[0] = R_grd
+            print('done')
+
+            print('======= single-parameter mutation ========')
+            P_ = self.mutation_single(P[1,:], LR, UR)
+
+            [E_, R_] = self.evaluation(P_, conf['func'], self.ref)
+            print('done')
+
+            print('======= Gradient search ========')
+            for i in range(E_.shape[0]):
+                print('[#d/#d] cost: #f\n', i, len(E_), E_(i))
+                Para_E_grd[i,:], E_grd[i], R_grd[:, i] = self.gradient_search(P_[i,:], R_[:, i], conf, E_crit)
+
+            # replace
+            index = self.op * E_grd > self.op * E_
+            P_[index,:] = Para_E_grd[index,:] #  update gradient mutation
+            E_[index] = E_grd(index)
+            R_[:, index] = R_grd[:, index]
+            P = [P, P_]  # [(60 + nParams) x nParams] solutions
+            E = [E, E_]  # [1 x(60 + nParams)] cost
+            R = [R, R_]  # [timepoints x(60 + nParams)] residual
+            print('done')
+
+            # # # # # # # # # #
+            # add to show, delete later
+            _, E_show, _ = self.selection_best(P, E, R, 1, self.op)
+            print([f'best after gradient: ', {E_show}])
+            # # # # # # # # # #
+
+            # GA
+            print('GA search...')
+            # matlab specific
+            # TODO: solve with vstack or concatenate
+            P[-1 + 1:-1 + N1,:] = self.mutationV(P[:N1,:],0.1, 0.9, LR, UR) # + N1 solutions
+            P[-1 + 1:-1 + 2 * N2,:] = self.crossover(P, N2) # + N2 * 2 solutions
+            P[-1 + 1:-1 + 2 * N3,:] = self.mutation(P, N3) # + N3 * 2 solutions
+
+            E_, _, _ = self.evaluation(P[N1 + nParams + 1:-1,:], conf['func'], self.ref)
+            E = [E, E_] # cost[1 x (N1 + N2 + N3) * 2 + nParams]
+
+            # selection
+            P, E = self.selection_uniq(P, E, N1, N1, self.op, LR, UR) # select N1 solutions
+            _, R1, _ = self.evaluation(P[1,:], conf['func'], self.ref) # R1: residual of best solution
+            print('done')
+
+            K[w, 1] = sum(E) / N1  # average  cost(for plot)
+            K[w, 2] = E(1)  # best cost(for plot)
+            KP[w, 1: nParams] = P[1, 1: nParams]  # save best
+            KS[w] = E(1) # save best
+            E_crit = E(1)
+            print('========')
+            print([f'current best Loss: {KS[w]}'])
+            print('========')
+            gof = self.fitness_function(self.ref.y0, R1)
+
+            print('========')
+            print([f'current best R2: {gof}'])
+            print('========')
+            # # # # # # #
+            # add to show, delete later
+            if E_show > E[0]:
+                print('GA works')
+                GA_counter[w] = 1
+            else:
+                print("GA doesn't work")
+                GA_counter[w] = 0
+            # # # # # # # # # #
+
+            # stop: good fit
+            if KS[-1] < 0.01:
+                break
+    # self.population, fitness_function, evaluation, selection_uniq, mutationV, selection_best, gradient_search,
+    # mutation_single, GA_counter, crossover, mutation
