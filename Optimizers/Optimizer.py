@@ -4,6 +4,7 @@ import sympy as sy
 from scipy.integrate import odeint
 from Utils import get_stability_2D, nrmse
 import matplotlib.pyplot as plt
+import time
 from tqdm import tqdm
 
 import matplotlib
@@ -248,4 +249,263 @@ class GA(Optimizer):
             if KS[-1] < 0.01:
                 break
     # self.population, fitness_function, evaluation, selection_uniq, mutationV, selection_best, gradient_search,
-    # mutation_single, GA_counter, crossover, mutation
+    # mutation_single, crossover, mutation
+
+    # evaluation is not from GA toolbox
+
+    def crossover(self, X, n):
+        """
+        Perform n crossover operations on a population X.
+
+        Parameters:
+        X (ndarray): Population matrix of shape (population_size, parameter_size)
+        n (int): Number of crossover pairs
+
+        Returns:
+        ndarray: E New population after crossover (2*n individuals)
+        """
+        x, y = X.shape  # population size and parameter size
+        E = np.zeros((2 * n, y))
+
+        for i in range(n):
+            # Select two distinct chromosomes
+            r = np.random.choice(x, size=2, replace=False)
+            A = X[r[0]].copy()
+            B = X[r[1]].copy()
+
+            # Select cut point
+            c = np.random.randint(1, y)
+
+            # Perform crossover, putting back part from A to B and vise versa
+            A_back_part = A[c:].copy()
+            A[c:] = B[c:]
+            B[c:] = A_back_part
+
+            # Store new chromosomes
+            E[2 * i] = A
+            E[2 * i + 1] = B
+
+        return E
+
+    def mutationV(self, P, lowchance, highchance, LR, UR):
+        """
+        Applies mutation to a population based on mutation probability.
+
+        Parameters:
+        - P: 2D array of shape (n_pop, n_param), ranked population
+        - lowchance: mutation chance for best individual
+        - highchance: mutation chance for worst individual
+        - LR: lower bound (scalar or array)
+        - UR: upper bound (scalar or array)
+
+        Returns:
+        - mutateP: mutated population
+        """
+        mutateP = P.copy()
+        n_pop, n_param = mutateP.shape
+        mutateChance = np.linspace(lowchance, highchance, n_pop)
+
+        # Create mutation mask
+        mask = np.random.rand(n_pop, n_param) < mutateChance[:, np.newaxis]
+
+        # Generate new random values for mutation
+        mutation = self.population(n_pop, n_param, LR, UR)
+
+        # Apply mutation
+        mutateP[mask] = mutation[mask]
+
+        return mutateP
+
+    def population(self, N, nParams, LR, UR):
+        P = np.zeros((N, nParams))
+        for i in range(nParams):
+            P[:, i] = (UR[i] - LR[i]) * np.random.rand(N) + LR[i]
+        return P
+
+    def fitness_function(self, y, h_out):
+        """
+        Compute the fitness function between a goal function y and a model output h_out
+        :param y: np.ndarray, goal function
+        :param h_out: np.ndarray, model output
+        :return: fit: np.ndarray, fitness value
+        """
+        difference = y-h_out
+        fit = np.var(difference)/np.var(y)
+        return fit
+
+    def gradient_search(self, P, r, conf, stop_crit):
+        """
+        Perform a gradient search for a population P on a model conf
+        :param P:
+        :param r:
+        :param conf:
+        :param stop_crit:
+        :return:
+        """
+
+    def gauss_newton_slow(self, op, Para_E_test, r_test, func, y_goal, reg0, reg1, steps, loop, tol, LR, UR, fit_crit):
+        """
+        Performs iterative Gauss-Newton optimization with Levenberg regularization.
+
+        Parameters:
+        - op: optimization direction (positive or negative)
+        - Para_E_test: initial parameter vector (1D array)
+        - r_test: initial residual
+        - func: cost function
+        - y_goal: target output
+        - reg0, reg1: regularization parameters
+        - steps: number of candidate steps
+        - loop: max number of iterations
+        - tol: tolerance for stopping
+        - LR, UR: lower and upper bounds for gradient repair
+        - fit_crit: fitness criterion for stopping
+
+        Returns:
+        - fit_after_g: final fitness value
+        - Para_E_after_g: optimized parameter vector
+        - error_after_g: final residual
+        """
+        j = 1
+        fit_ = []
+        Para_E_ = []
+        error_ = []
+
+        while j <= loop:
+            print(f"[{j}/{loop}] ", end="")
+            J = self.NMM_diff_A_lfm(Para_E_test, r_test, func, y_goal)
+            Para_E_new_group = self.multi_lavenberg_regulization(steps, reg0, reg1, Para_E_test, J, r_test, LR, UR)
+
+            fit_grp, error_grp = self.evaluation(Para_E_new_group, func, y_goal)
+            Para_E_new, fit_new, error_new = self.selection_best(Para_E_new_group, fit_grp, error_grp, 1, op)
+
+            r_test = error_new
+            Para_E_test = Para_E_new.flatten()
+
+            print(fit_new)
+            fit_.append(fit_new)
+            Para_E_.append(Para_E_test.copy())
+            error_.append(r_test.copy())
+            j += 1
+
+            if len(fit_) > 1 and op * (fit_[-1] - fit_[-2]) < tol:
+                print(f"Quit: improvement < tol({tol})")
+                break
+
+        if j == loop:
+            Para_E_after_g, fit_after_g, error_after_g = self.selection_best(np.array(Para_E_), np.array(fit_),
+                                                                        np.array(error_), 1, op)
+            Para_E_after_g = Para_E_after_g.flatten()
+        else:
+            Para_E_after_g = Para_E_test
+            fit_after_g = fit_new
+            error_after_g = r_test
+
+        return fit_after_g, Para_E_after_g, error_after_g
+
+    def NMM_diff_A_lfm(self, parameter, h_output, myfunc, y_goal):
+        """
+        Computes the Jacobian matrix using finite differences.
+
+        Parameters:
+        - para: current parameter vector (1D array)
+        - houtput: current output from myfunc(para, y_goal)
+        - myfunc: function to evaluate
+        - y_goal: target output for myfunc
+
+        Returns:
+        - j: Jacobian matrix (samples x parameters)
+        """
+        h = 1e-6
+        parameter_pert = parameter + h
+        j = np.zeros((len(h_output), len(parameter)))
+
+        for i in range(len(parameter)):
+            parameter_update = parameter.copy()
+            parameter_update[i] = parameter_pert[i]
+            h_output_new = myfunc(parameter_update, y_goal)
+            j[:, i] = (h_output_new - h_output) / h
+
+        j[np.isnan(j)] = 0
+        j[np.isinf(j)] = 0
+
+        return j
+
+    def evaluation(self, X, func, y):
+        """
+        GA toolbox evaluation function that helps evaluating a simulation function 'func' over an array 'X' of values
+        :param X: parameter values
+        :param func: simulation function
+        :param y: reference
+        :return: fits: fit values (errors), h_outs: output values of evaluated functions
+        """
+        x_shape = X.shape[0]
+        fits = np.zeros(x_shape)
+        h_outs = np.zeros_like(fits)
+
+        for j in range(x_shape):
+            P = X[j]
+            start_time = time.time()
+            h_out = func(P)
+            fit = nrmse(h_out, y)
+            end_time = time.time()
+            print(f' simulation time: {end_time:.5f} --> {j+1}/{x_shape}')
+            fits[j] = fit
+            h_outs[j] = h_out
+
+        return fits, h_outs
+
+    def multi_lavenberg_regulization(self, n, reg0, reg1, Para_E, J, h_output, LR, UR):
+        """
+        Generates n updated parameter sets using Levenberg regularization.
+
+        Parameters:
+        - n: number of populations to generate
+        - reg0, reg1: min and max regularization exponents
+        - Para_E: current parameter vector (1D array)
+        - J: Jacobian matrix
+        - h_output: residual vector
+        - LR, UR: lower and upper bounds for gradient repair
+
+        Returns:
+        - Y: 2D array of shape (n, len(Para_E)) with updated parameter sets
+        """
+        Y = np.zeros((n, len(Para_E)))
+        reg = 10 ** np.linspace(reg0, reg1, n)
+
+        for i in range(len(reg)):
+            try:
+                D = np.linalg.pinv(J.T @ J + reg[i] * np.eye(len(Para_E)))
+            except:
+                # TODO: try if this error is error important and find out what exception is necessary
+                return Y  # return current Y if inversion fails
+
+            d = -D @ J.T @ h_output
+            if np.isnan(d).any():
+                continue  # skip this iteration if invalid update
+
+            Para_E_new = Para_E + d
+            Y[i, :] = self.gradient_repair(Para_E_new, LR, UR)
+
+        return Y
+
+    def gradient_repair(self, Para_E, LR, UR):
+        """
+        Function that 'repairs' a parameter selection given upper and lower bounds
+        Upper and lower bounds are replaced by new values sampled in bounds or by boundary values for inhomogeneous
+        :param Para_E:
+        :param LR:
+        :param UR:
+        :return:
+        """
+        if len(UR) == 1:
+            upper_cut = Para_E > UR
+            under_cut = Para_E < LR
+            Para_E[upper_cut] = self.population(1, Para_E[upper_cut].shape[0], LR, UR)
+            Para_E[under_cut] = self.population(1, Para_E[under_cut].shape[0], LR, UR)
+        else:  # individual constraints
+            for i in range(Para_E.shape[0]):
+                if Para_E[i] > UR[i]:
+                    Para_E[i] = UR[i]
+                elif Para_E[i] < LR[i]:
+                    Para_E[i] = LR[i]
+        return Para_E
