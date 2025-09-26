@@ -139,7 +139,7 @@ class GA(Optimizer):
         nParams = len(LR)
         GA_counter = []
         
-        conf = {'UR': UR, 'LR': LR, 'op': self.op, 'func':self.simulation_class, 'goal_func':self.goal_func,
+        conf = {'UR': UR, 'LR': LR, 'op': self.op, 'func': self.simulation_class, 'goal_func': self.goal_func,
                 'gLoop':10, 'gL': -12, 'gU': 12, 'gTol': 0.01}
         conf['gT'] = abs(conf['gU'] - conf['gL']) + 1
 
@@ -336,12 +336,34 @@ class GA(Optimizer):
     def gradient_search(self, P, r, conf, stop_crit):
         """
         Perform a gradient search for a population P on a model conf
+        run gradient search on the solutions
         :param P:
         :param r:
         :param conf:
         :param stop_crit:
         :return:
         """
+
+        N, nParams = P.shape
+        fit_post = np.zeros(N)
+        P_post = np.zeros(N, nParams)
+        r_post = np.zeros_like(r)
+        for i in range(N):
+            print(f'i\n')
+            fit_post[i], P_post[i], r_post[i] = self.gauss_newton_slow(conf.op,
+                                                                       P[i],
+                                                                       r[:, i],
+                                                                       conf.myfunc,
+                                                                       conf.y_goal,
+                                                                       conf.gL,
+                                                                       conf.gU,
+                                                                       conf.gT,
+                                                                       conf.gLoop,
+                                                                       conf.gTol,
+                                                                       conf.LR,
+                                                                       conf.UR,
+                                                                       stop_crit)
+        return P_post, fit_post, r_post
 
     def gauss_newton_slow(self, op, Para_E_test, r_test, func, y_goal, reg0, reg1, steps, loop, tol, LR, UR, fit_crit):
         """
@@ -448,7 +470,7 @@ class GA(Optimizer):
             h_out = func(P)
             fit = nrmse(h_out, y)
             end_time = time.time()
-            print(f' simulation time: {end_time:.5f} --> {j+1}/{x_shape}')
+            print(f' simulation time: {end_time-start_time:.5f} --> {j+1}/{x_shape}')
             fits[j] = fit
             h_outs[j] = h_out
 
