@@ -140,7 +140,7 @@ class GA(Optimizer):
         GA_counter = []
         
         conf = {'UR': UR, 'LR': LR, 'op': self.op, 'func': self.simulation_class, 'goal_func': self.goal_func,
-                'gLoop':10, 'gL': -12, 'gU': 12, 'gTol': 0.01}
+                'gLoop': 10, 'gL': -12, 'gU': 12, 'gTol': 0.01}
         conf['gT'] = abs(conf['gU'] - conf['gL']) + 1
 
         ################################################################
@@ -149,9 +149,9 @@ class GA(Optimizer):
         N3 = 100  #  mutation, number of pairs to mutate
         tg = 1 # total generations
 
-        K = 0  # history of[average cost, best cost]
-        KP = 0 # history of[best solution]
-        KS = 0 # history of[best cost]
+        K = []  # history of[average cost, best cost]
+        KP = [] # history of[best solution]
+        KS = [] # history of[best cost]
         w = 1  # counter
         j = 1  # counter
 
@@ -182,13 +182,13 @@ class GA(Optimizer):
             print('======= single-parameter mutation ========')
             P_ = self.mutation_single(P[1,:], LR, UR)
 
-            [E_, R_] = self.evaluation(P_, conf['func'], self.ref)
+            E_, R_ = self.evaluation(P_, conf['func'], self.reference)
             print('done')
 
             print('======= Gradient search ========')
             for i in range(E_.shape[0]):
-                print('[#d/#d] cost: #f\n', i, len(E_), E_(i))
-                Para_E_grd[i,:], E_grd[i], R_grd[:, i] = self.gradient_search(P_[i,:], R_[:, i], conf, E_crit)
+                print('[#d/#d] cost: #f\n', i, len(E_), E_[i])
+                Para_E_grd[i,:], E_grd[i], R_grd[:, i] = self.gradient_search(P_[i, :], R_[:, i], conf, E_crit)
 
             # replace
             index = self.op * E_grd > self.op * E_
@@ -210,32 +210,31 @@ class GA(Optimizer):
             print('GA search...')
             # matlab specific
             # TODO: solve with vstack or concatenate
-            P[-1 + 1:-1 + N1,:] = self.mutationV(P[:N1,:],0.1, 0.9, LR, UR) # + N1 solutions
-            P[-1 + 1:-1 + 2 * N2,:] = self.crossover(P, N2) # + N2 * 2 solutions
-            P[-1 + 1:-1 + 2 * N3,:] = self.mutation(P, N3) # + N3 * 2 solutions
+            P[-1 + 1:-1 + N1, :] = self.mutationV(P[:N1,:],0.1, 0.9, LR, UR) # + N1 solutions
+            P[-1 + 1:-1 + 2 * N2, :] = self.crossover(P, N2) # + N2 * 2 solutions
+            P[-1 + 1:-1 + 2 * N3, :] = self.mutation(P, N3) # + N3 * 2 solutions
 
-            E_, _, _ = self.evaluation(P[N1 + nParams + 1:-1,:], conf['func'], self.ref)
-            E = [E, E_] # cost[1 x (N1 + N2 + N3) * 2 + nParams]
+            E_, _ = self.evaluation(P[N1 + nParams + 1:-1, :], conf['func'], self.reference)
+            E = np.vstack([E, E_]) # cost[1 x (N1 + N2 + N3) * 2 + nParams]
 
             # selection
             P, E = self.selection_uniq(P, E, N1, N1, self.op, LR, UR) # select N1 solutions
-            _, R1, _ = self.evaluation(P[1,:], conf['func'], self.ref) # R1: residual of best solution
+            # _, R1, _ = self.evaluation(P[1,:], conf['func'], self.reference) # R1: residual of best solution
             print('done')
 
-            K[w, 1] = sum(E) / N1  # average  cost(for plot)
-            K[w, 2] = E(1)  # best cost(for plot)
-            KP[w, 1: nParams] = P[1, 1: nParams]  # save best
-            KS[w] = E(1) # save best
-            E_crit = E(1)
+            K.append([sum(E) / N1, E[1]])  # average  cost(for plot) and  best cost(for plot)
+            KP.append(P[1, 1: nParams])  # save best
+            KS.append(E[1]) # save best
+            E_crit = E[1]
             print('========')
             print([f'current best Loss: {KS[w]}'])
             print('========')
-            gof = self.fitness_function(self.ref.y0, R1)
-
-            print('========')
-            print([f'current best R2: {gof}'])
-            print('========')
-            # # # # # # #
+            # gof = self.fitness_function(self.reference.y0, R1)
+            #
+            # print('========')
+            # print([f'current best R2: {gof}'])
+            # print('========')
+            # # # # # # # #
             # add to show, delete later
             if E_show > E[0]:
                 print('GA works')
@@ -248,10 +247,6 @@ class GA(Optimizer):
             # stop: good fit
             if KS[-1] < 0.01:
                 break
-    # self.population, fitness_function, evaluation, selection_uniq, mutationV, selection_best, gradient_search,
-    # mutation_single, crossover, mutation
-
-    # evaluation is not from GA toolbox
 
     def crossover(self, X, n):
         """
@@ -317,6 +312,14 @@ class GA(Optimizer):
         return mutateP
 
     def population(self, N, nParams, LR, UR):
+        """
+        Function that creates population of random values for parameters within given upper and lower bounds
+        :param N: Numbe of samples in population
+        :param nParams: number of parameters (dimensionality)
+        :param LR: lower boundary
+        :param UR: upper boundary
+        :return: P: population of random values
+        """
         P = np.zeros((N, nParams))
         for i in range(nParams):
             P[:, i] = (UR[i] - LR[i]) * np.random.rand(N) + LR[i]
@@ -333,15 +336,39 @@ class GA(Optimizer):
         fit = np.var(difference)/np.var(y)
         return fit
 
+    def selection_best(self, P, E, R, n_out, op=-1):
+        """
+        function that finds the best (fittest) parameter set from a population of parameter sets
+        :param P: Input Population of parameter sets,(n_pop x n_parameter)
+        :param E: Fitness values of parameter sets, (n_pop x n_parameter)
+        :param R: residual, y-houtput  (n_data sample x n_pop)
+        :param n_out: population size, the number of populations want to be returned
+        :param op: default: -1, select minimum, 1 select maximum
+        :return:  P_sorted : selected population,
+                  E_sorted : the retrun of fitness of YY1
+                  R_sorted : the return of residual of YY1
+        """
+
+        E = op*E
+        # sort from high to low , get the best
+        index = np.flip(np.argsort(E))
+        P_sorted = P[index]
+        E_sorted = E[index]
+        R_sorted = R[:, index]
+
+        return P_sorted[:n_out], E_sorted[:n_out], R_sorted[:, :n_out]
+
     def gradient_search(self, P, r, conf, stop_crit):
         """
         Perform a gradient search for a population P on a model conf
         run gradient search on the solutions
-        :param P:
-        :param r:
-        :param conf:
-        :param stop_crit:
-        :return:
+        :param P: population
+        :param r: residual
+        :param conf (dict) : configuration of original function
+        :param stop_crit: stopping criterion
+        :return:  P_post: new population,
+                  fit_post: new fit,
+                  r_post: new residual
         """
 
         N, nParams = P.shape
@@ -353,15 +380,15 @@ class GA(Optimizer):
             fit_post[i], P_post[i], r_post[i] = self.gauss_newton_slow(conf.op,
                                                                        P[i],
                                                                        r[:, i],
-                                                                       conf.myfunc,
-                                                                       conf.y_goal,
-                                                                       conf.gL,
-                                                                       conf.gU,
-                                                                       conf.gT,
-                                                                       conf.gLoop,
-                                                                       conf.gTol,
-                                                                       conf.LR,
-                                                                       conf.UR,
+                                                                       conf['myfunc'],
+                                                                       conf['y_goal'],
+                                                                       conf['gL'],
+                                                                       conf['gU'],
+                                                                       conf['gT'],
+                                                                       conf['gLoop'],
+                                                                       conf['gTol'],
+                                                                       conf['LR'],
+                                                                       conf['UR'],
                                                                        stop_crit)
         return P_post, fit_post, r_post
 
@@ -451,6 +478,81 @@ class GA(Optimizer):
         j[np.isinf(j)] = 0
 
         return j
+
+    def mutation_single(self, solution, LR, UR):
+        """
+        Single-parameter mutation on the best solution.
+
+        Parameters:
+            solution (np.ndarray): 1D array of best solution parameters.
+            LR (float): Lower boundary for mutation.
+            UR (float): Upper boundary for mutation.
+
+        Returns:
+            p (np.ndarray): 2D array of mutated solutions (nParams x nParams).
+        """
+        solution = np.array(solution)
+        nParams = solution.size
+        P = np.tile(solution, (nParams, 1))
+        mutation_values = self.population(1, nParams, LR, UR).flatten()
+        np.fill_diagonal(P, mutation_values)
+        return P
+
+    def selection_uniq(self, P1, E, p, r, op, LR, UR):
+        """
+        Selects a unique subset of the population based on fitness.
+
+        Parameters:
+            P1 (np.ndarray): Population matrix.
+            E (np.ndarray): Fitness values.
+            p (int): Desired population size.
+            r (int): Number of top individuals to retain.
+            op (float): Operation factor (e.g., -1 to invert fitness).
+            LR (float): Lower bound for new individuals.
+            UR (float): Upper bound for new individuals.
+
+        Returns:
+            P1_new (np.ndarray): Selected population.
+            E_new (np.ndarray): Transformed fitness values.
+        """
+        E = op * E
+        dim = P1.shape[1]
+
+        # Remove inf and nan entries
+        valid_mask = ~np.isinf(E) & ~np.isnan(E)
+        E = E[valid_mask]
+        P1 = P1[valid_mask]
+
+        # Keep unique rows
+        P1_unique, idx = np.unique(P1, axis=0, return_index=True)
+        E = E[idx]
+        P1 = P1_unique
+
+        # Sort by fitness descending
+        sorted_idx = np.argsort(E)[::-1]
+        P1 = P1[sorted_idx]
+        E_sorted = E[sorted_idx]
+
+        n_E = len(E_sorted)
+        if n_E < p:
+            n_new = p - n_E
+            P1 = np.vstack([P1, self.population(n_new, dim, LR, UR)])
+            E_sorted = np.concatenate([E_sorted, np.full(n_new, np.nan)])
+
+        if n_E > p:
+            P1_best = P1[:r]
+            E_best = E_sorted[:r]
+            P2 = P1[r:]
+            E2 = E_sorted[r:]
+            rand_idx = np.random.permutation(len(E2))
+            P2 = P2[rand_idx][:p - r]
+            E2 = E2[rand_idx][:p - r]
+            P1 = np.vstack([P1_best, P2])
+            E_sorted = np.concatenate([E_best, E2])
+
+        P1_new = P1[:p]
+        E_new = op * E_sorted[:p]
+        return P1_new, E_new
 
     def evaluation(self, X, func, y):
         """
