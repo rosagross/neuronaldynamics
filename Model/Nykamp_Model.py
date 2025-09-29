@@ -798,6 +798,8 @@ class Nykamp_Model_1():
         # set up arrays for simulation
         self.t = np.arange(0, self.T, self.dt)
         self.v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
+        if len(self.connectivity_matrix.shape) == 1:
+            self.connectivity_matrix = self.connectivity_matrix[:, np.newaxis]
 
         # calculate alpha kernel
         self.get_delay_kernel()

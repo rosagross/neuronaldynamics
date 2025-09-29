@@ -70,7 +70,7 @@ class Hierarchical_Random(Optimizer):
 
                 for l in range(self.n_param):
                     keywords[self.model_parameters[l]] = param_values[l, k]
-                keywords['nykamp_parameters']['connectivity_matrix'] = np.array([[param_values[-1, k]]])  # hotfix!
+                # keywords['nykamp_parameters']['connectivity_matrix'] = np.array([[param_values[-1, k]]])  # hotfix!
                 keywords['y'] = self.y
                 keywords['idx'] = f'{i}_{k}'
                 # keywords.update(...)

@@ -46,6 +46,8 @@ class DI_wave_simulation():
         self.enable_high_pass = False
         self.test_signal_from_file = False
         self.error_mode = 'non-zero'
+        self.mass_model_connectivity_matrix = None
+        self.nykamp_parameters = {}
 
         if logname != None:
             self.load_from_file(logname=logname)
@@ -57,6 +59,14 @@ class DI_wave_simulation():
         self.__dict__.update(self.parameters)
 
         self.t = np.arange(0, self.T, self.dt)
+        # higher level parameter implementation to make them available as optimization parameter
+        if self.mass_model_connectivity_matrix != None:
+            if type(self.mass_model_connectivity_matrix) == np.ndarray:
+                if len(self.mass_model_connectivity_matrix.shape) == 1:
+                    self.mass_model_connectivity_matrix = self.mass_model_connectivity_matrix[:, np.newaxis]
+            elif isinstance(self.mass_model_connectivity_matrix, (int, float)):
+                self.mass_model_connectivity_matrix = np.array([[self.mass_model_connectivity_matrix]])
+            self.nykamp_parameters['connectivity_matrix'] = self.mass_model_connectivity_matrix
         bi_exp_kernel_parameters = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
         init_nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': [12], 'tau_ref': [1.0],
                                   'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,

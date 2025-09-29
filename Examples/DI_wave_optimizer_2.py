@@ -8,7 +8,7 @@ matplotlib.use('TkAgg')
 # fn_session = '/home/erik/Downloads/gpc.pkl'
 fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
 # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-simulation_name = 'diw_opt_25_09_11_2'
+simulation_name = 'diw_opt_25_09_29_1'
 parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
               'test_func_intensity': 2.5, 'test_func_t0': 0.25,
               'test_signal_from_file': True,
