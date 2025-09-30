@@ -22,6 +22,7 @@ class General2DSystem():
         self.time_vals = None
         self.nullclines=[]
         self.equilibria=[]
+        self.solutions = []
 
         if t != None:
             self.t = t
@@ -84,6 +85,7 @@ class General2DSystem():
         if self.solver == 'odeint':
             self.sol = odeint(self.system, x0, t, **kwargs)
             self.time_vals = t
+        self.solutions.append(self.sol)
 
     def plot_solution(self, save_fig=False, fig_fname='test.png', title=None, x_compare=None, compare_idx=0):
 
@@ -119,7 +121,7 @@ class General2DSystem():
                    plot_nullclines=True, get_equilibiria=True):
 
         # TODO: extend to 1D system making a slope field plot of solutions
-        # TODO: function is experimental, with the nulclines and often doesn't work
+        # TODO: function is experimental with the nullclines and often doesn't work
 
         if x_label == None:
             x_label = self.variables[0]
@@ -371,7 +373,8 @@ class General2DSystem():
 
         self.parameters[parameter] = p_vals
 
-    def phase_portrait(self, x_range=[0, 1], y_range=[0, 1], x_steps=0.05, y_steps=0.05, color='black', ax=None):
+    def phase_portrait(self, x_range=[0, 1], y_range=[0, 1], x_steps=0.05, y_steps=0.05, color='black', ax=None,
+                       plot_solution=False):
         """Plots phase portrait given a dynamical system
 
         Given a dynamical system of the form dXdt=f(X,t,...), plot the phase portrait of the system.
@@ -394,6 +397,8 @@ class General2DSystem():
         ax : pyplot plotting axes
             Optional existing axis to pass to function
 
+        plot_solutions: int
+                       enable plotting of latest plot_solutions latest solutions in phase space
         Returns
         -------
         out : ax
@@ -401,6 +406,12 @@ class General2DSystem():
         """
         if (ax is None):
             fig, ax = plt.subplots(figsize=(12, 8))
+
+        if plot_solution > 0:
+            n_plot_soln = min(plot_solution, len(self.solutions))
+            for j in range(n_plot_soln):
+                ax.plot(self.solutions[j][:, 0], self.solutions[j][:, 1], linewidth=2)
+
 
         x_vals = np.arange(x_range[0], x_range[1], x_steps)
         y_vals = np.arange(y_range[0], y_range[1], y_steps)
@@ -427,19 +438,21 @@ class General2DSystem():
         if len(self.equilibria) > 0:
             for i in range(len(self.equilibria)):
                 if self.equilibria[i][1] == 'unstable':
-                    plt.scatter(self.equilibria[i][0][0], self.equilibria[i][0][1], s=50, facecolors='none',
+                    ax.scatter(self.equilibria[i][0][0], self.equilibria[i][0][1], s=50, facecolors='none',
                                 edgecolors='k', zorder=10)
                 elif self.equilibria[i][1] == 'stable':
-                    plt.scatter(self.equilibria[i][0][0], self.equilibria[i][0][1], s=50, c='k', zorder=10)
-        plt.grid()
+                    ax.scatter(self.equilibria[i][0][0], self.equilibria[i][0][1], s=50, c='k', zorder=10)
+
+        ax.set_xlim(x_range[0], x_range[1])
+        ax.set_ylim(y_range[0], y_range[1])
+        ax.grid()
         plt.show()
 
     def get_equilibria(self, x_range=[0, 1], y_range=[0, 1], x_steps=0.5, y_steps=0.5, conv_args={}):
 
         precision = min(x_steps, y_steps)
-        precision_str = str(f'{precision:e}')
-        if precision_str[-3] == '-':
-            round_val = int(precision_str[:-3]) + 1
+        if precision < 1:
+            round_val = -int(np.floor(np.log10(precision)))
         else:
             round_val = 1
 
@@ -482,8 +495,8 @@ class General2DSystem():
                 break
             if np.abs(np.sum(u[i])) > div_tol:
                 break
-            if i+1 == max_iter:
-                print(f'Euler convergence test did not converge after {i+1} iteration')
+            # if i+1 == max_iter:
+            #     print(f'Euler convergence test did not converge after {i+1} iteration')
         return u[i]
 
 
