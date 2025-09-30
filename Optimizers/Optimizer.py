@@ -154,6 +154,8 @@ class GA(Optimizer):
 
         if hasattr(self.simulation_class, 't'):
             self.out_shape = self.simulation_class.t.shape[0]
+        else:
+            self.out_shape = 0
 
         if self.simulation_class !=None:
             self.simulation_function = self.simulation_class.simulate
@@ -662,31 +664,28 @@ class GA(Optimizer):
         :param parameters: (np.ndarray) Array of parameter values that need to be evaluated
         """
         keywords = self.parameters
-        m, n = parameters.shape
+        m = parameters.shape[0]
         h_out = np.zeros((m, self.out_shape))
         for i in range(m):
-            for j in range(self.n_param):
-                keywords[self.model_parameters[j]] = parameters[i, j]
+            # for j in range(self.n_param):
+            #     keywords[self.model_parameters[j]] = parameters[i, j]
+            #
+            # if self.simulation_class != None:
+            #     self.simulation_class.__init__(parameters=keywords)
+            #     if self.x_out != None:
+            #         self.simulation_class.simulate()
+            #         h_out[i] = eval(f'self.simulation_class.{self.x_out}')
+            #     else:
+            #         h_out[i] = self.simulation_class.simulate()
+            keywords[self.model_parameters[m]] = parameters[m]
 
         if self.simulation_class != None:
-            self.simulation_class = self.simulation_class(parameters=keywords)
+            self.simulation_class.__init__(parameters=keywords)
             if self.x_out != None:
                 self.simulation_class.simulate()
                 h_out = eval(f'self.simulation_class.{self.x_out}')
             else:
                 h_out = self.simulation_class.simulate()
         else:
-
-            keywords = self.parameters
-            for j in range(self.n_param):
-                param_values[j] = np.random.uniform(self.lower_bound[j], self.upper_bound[j], self.n_grid)
-
-            for k in range(self.n_grid):
-                self.opt_parameters[i, k] = param_values[:, k]
-
-                for l in range(self.n_param):
-                    keywords[self.model_parameters[l]] = param_values[l, k]
-                # keywords['nykamp_parameters']['connectivity_matrix'] = np.array([[param_values[-1, k]]])  # hotfix!
-                keywords['y'] = self.y
-                keywords['idx'] = f'{i}_{k}'
-                # keywords.update(...)
+            h_out = self.simulate(keywords)
+        return h_out
