@@ -39,9 +39,9 @@ class Hierarchical_Random(Optimizer):
         self.parameters = parameters
 
         assert type(self.y) == np.ndarray, 'please provide a validation function!'
-        assert self.simulate != None, 'please provide a model'
-        assert self.model_parameters != None, 'please provide a parameter names'
-        assert self.bounds != None, 'please provide a parameter ranges'
+        assert self.simulate != None, 'please provide a model!'
+        assert self.model_parameters != None, 'please provide parameter names!'
+        assert self.bounds != None, 'please provide parameter ranges!'
 
         self.n_param = len(self.model_parameters)
         self.lower_bound = np.zeros(self.n_param)
@@ -52,13 +52,15 @@ class Hierarchical_Random(Optimizer):
 
         self.error = np.ones((self.max_iter, self.n_grid))
         self.min_error_idxs = np.zeros(self.max_iter)
-        t_shape = self.simulation_class.t.shape[0]
-        self.x_vals = np.zeros((self.max_iter, self.n_grid, t_shape))
+        if hasattr(self.simulation_class, 't'):
+            t_shape = self.simulation_class.t.shape[0]
+            self.x_vals = np.zeros((self.max_iter, self.n_grid, t_shape))
+        else:
+            self.x_vals = np.zeros((self.max_iter, self.n_grid))
         self.opt_parameters = np.zeros((self.max_iter, self.n_grid, self.lower_bound.shape[0]))
 
     def run(self):
         previous_min_error = 1
-
         for i in tqdm(range(self.max_iter)):
             param_values = np.zeros((self.n_param, self.n_grid))
             keywords = self.parameters
@@ -82,13 +84,14 @@ class Hierarchical_Random(Optimizer):
                 else:
                     self.simulation_class.__init__(parameters=keywords)
                     self.simulate()
-                    # exec(f'x = self.simulation_class.{self.x_out}')  # idk this doesn't work atm
-                    x = self.simulation_class.mass_model_v_out
+                    x = eval(f'self.simulation_class.{self.x_out}')
                 self.x_vals[i, k] = x
-                # TODO: make this work with independent functions eventually
                 # self.error[i, k] = nrmse(self.y, x)
-                self.error[i, k] = self.simulation_class.error
-
+                if hasattr(self.simulation_class, 'error'):
+                    self.error[i, k] = self.simulation_class.error
+                else:
+                    #TODO: extend to other fit functions
+                    self.error[i, k] = nrmse(self.y, x)
             min_error = np.nanmin(self.error[i])
 
             min_error_idx = (i, np.nanargmin(self.error[i]))
@@ -124,31 +127,50 @@ class Hierarchical_Random(Optimizer):
 
 class GA(Optimizer):
     def __init__(self, parameters):
-        super.__init__(parameters=parameters)
+        super().__init__(parameters=parameters)
 
         self.model_parameters = None
         self.simulation_class = None
-        self.goal_func = None
+        self.simulation = None
         self.op = 1
         self.n_iter = 50
+        self.x_out = 'y'
         self.reference = None
+
         self.bounds = None
+        self.N1 = 60  # population size
+        self.N2 = 100  # crossover, number of pair to crossover
+        self.N3 = 100  # mutation, number of pairs to mutate
+        self.__dict__.update(parameters)
+
+        assert self.reference != None, 'please provide a reference value!'
+        assert self.model_parameters != None, 'please provide parameter names!'
+        assert self.bounds != None, 'please provide parameter ranges!'
+        assert self.simulation != None or self.simulation_class != None, 'please provide a simulation function or a' \
+                                                                         ' class with a simulation method!'
+        self.n_param = len(self.model_parameters)
+        if type(self.bounds) == list:
+            self.bounds = np.array(self.bounds)
+
+        if hasattr(self.simulation_class, 't'):
+            self.out_shape = self.simulation_class.t.shape[0]
+
+        if self.simulation_class !=None:
+            self.simulation_function = self.simulation_class.simulate
+        else:
+            self.simulation_function = self.simulate
+    def run(self):
 
         LR = self.bounds[:, 0]
         UR = self.bounds[:, 1]
         nParams = len(LR)
         GA_counter = []
         
-        conf = {'UR': UR, 'LR': LR, 'op': self.op, 'func': self.simulation_class, 'goal_func': self.goal_func,
+        conf = {'UR': UR, 'LR': LR, 'op': self.op, 'func': self.simulation_function,
                 'gLoop': 10, 'gL': -12, 'gU': 12, 'gTol': 0.01}
         conf['gT'] = abs(conf['gU'] - conf['gL']) + 1
 
         ################################################################
-        N1 = 60  # population size
-        N2 = 100  # crossover, number of pair to crossover
-        N3 = 100  #  mutation, number of pairs to mutate
-        tg = 1 # total generations
-
         K = []  # history of[average cost, best cost]
         KP = [] # history of[best solution]
         KS = [] # history of[best cost]
@@ -157,11 +179,11 @@ class GA(Optimizer):
 
         ######## initialization #########
         print('======== Initialization ========')
-        P = self.population(N1, nParams, LR, UR)  # generate[60 x nParams] random solutions
+        P = self.population(self.N1, nParams, LR, UR)  # generate[60 x nParams] random solutions
         # P = [P, solution_ini]  # add pre - selected solutions
         # TODO: check if this is necessary later
-        E, R = self.evaluation(P, self.simulation_class) # E: evaluation fitness, R: residual, error
-        P, E, R = self.selection_best(P, E, R, N1, self.op)
+        E, R = self.evaluation(P, self.simulation_function, self.reference) # E: evaluation fitness, R: residual, error
+        P, E, R = self.selection_best(P, E, R, self.N1, self.op)
         R1 = R[:, 0]
         print('done')
         print([f'Minimum cost: ', {E(1)}])
@@ -171,7 +193,7 @@ class GA(Optimizer):
         ################## loop ######################
         for j in range(self.n_iter):
             print('======= Gradient search ========')
-            Para_E_grd, E_grd, R_grd = self.gradient_search[P[0], R1, conf, E_crit]
+            Para_E_grd, E_grd, R_grd = self.gradient_search(P[0], R1, conf, E_crit)
             # replace
             if self.op * E_grd > self.op * E(1):
                 P[0] = Para_E_grd
@@ -192,7 +214,7 @@ class GA(Optimizer):
 
             # replace
             index = self.op * E_grd > self.op * E_
-            P_[index,:] = Para_E_grd[index,:] #  update gradient mutation
+            P_[index, :] = Para_E_grd[index, :] #  update gradient mutation
             E_[index] = E_grd(index)
             R_[:, index] = R_grd[:, index]
             P = [P, P_]  # [(60 + nParams) x nParams] solutions
@@ -210,19 +232,19 @@ class GA(Optimizer):
             print('GA search...')
             # matlab specific
             # TODO: solve with vstack or concatenate
-            P[-1 + 1:-1 + N1, :] = self.mutationV(P[:N1,:],0.1, 0.9, LR, UR) # + N1 solutions
-            P[-1 + 1:-1 + 2 * N2, :] = self.crossover(P, N2) # + N2 * 2 solutions
-            P[-1 + 1:-1 + 2 * N3, :] = self.mutation(P, N3) # + N3 * 2 solutions
+            P[-1 + 1:-1 + self.N1, :] = self.mutationV(P[:self.N1,:],0.1, 0.9, LR, UR) # + N1 solutions
+            P[-1 + 1:-1 + 2 * self.N2, :] = self.crossover(P, self.N2) # + N2 * 2 solutions
+            P[-1 + 1:-1 + 2 * self.N3, :] = self.mutation(P, self.N3) # + N3 * 2 solutions
 
-            E_, _ = self.evaluation(P[N1 + nParams + 1:-1, :], conf['func'], self.reference)
+            E_, _ = self.evaluation(P[self.N1 + nParams + 1:-1, :], conf['func'], self.reference)
             E = np.vstack([E, E_]) # cost[1 x (N1 + N2 + N3) * 2 + nParams]
 
             # selection
-            P, E = self.selection_uniq(P, E, N1, N1, self.op, LR, UR) # select N1 solutions
+            P, E = self.selection_uniq(P, E, self.N1, self.N1, self.op, LR, UR) # select N1 solutions
             # _, R1, _ = self.evaluation(P[1,:], conf['func'], self.reference) # R1: residual of best solution
             print('done')
 
-            K.append([sum(E) / N1, E[1]])  # average  cost(for plot) and  best cost(for plot)
+            K.append([sum(E) / self.N1, E[1]])  # average  cost(for plot) and  best cost(for plot)
             KP.append(P[1, 1: nParams])  # save best
             KS.append(E[1]) # save best
             E_crit = E[1]
@@ -569,7 +591,7 @@ class GA(Optimizer):
         for j in range(x_shape):
             P = X[j]
             start_time = time.time()
-            h_out = func(P)
+            h_out = self.function_call(P)
             fit = nrmse(h_out, y)
             end_time = time.time()
             print(f' simulation time: {end_time-start_time:.5f} --> {j+1}/{x_shape}')
@@ -633,3 +655,38 @@ class GA(Optimizer):
                 elif Para_E[i] < LR[i]:
                     Para_E[i] = LR[i]
         return Para_E
+
+    def function_call(self, parameters):
+        """
+        Function that evaluates a simulation class by wrapping the parameters into a dict with linked parameter names
+        :param parameters: (np.ndarray) Array of parameter values that need to be evaluated
+        """
+        keywords = self.parameters
+        m, n = parameters.shape
+        h_out = np.zeros((m, self.out_shape))
+        for i in range(m):
+            for j in range(self.n_param):
+                keywords[self.model_parameters[j]] = parameters[i, j]
+
+        if self.simulation_class != None:
+            self.simulation_class = self.simulation_class(parameters=keywords)
+            if self.x_out != None:
+                self.simulation_class.simulate()
+                h_out = eval(f'self.simulation_class.{self.x_out}')
+            else:
+                h_out = self.simulation_class.simulate()
+        else:
+
+            keywords = self.parameters
+            for j in range(self.n_param):
+                param_values[j] = np.random.uniform(self.lower_bound[j], self.upper_bound[j], self.n_grid)
+
+            for k in range(self.n_grid):
+                self.opt_parameters[i, k] = param_values[:, k]
+
+                for l in range(self.n_param):
+                    keywords[self.model_parameters[l]] = param_values[l, k]
+                # keywords['nykamp_parameters']['connectivity_matrix'] = np.array([[param_values[-1, k]]])  # hotfix!
+                keywords['y'] = self.y
+                keywords['idx'] = f'{i}_{k}'
+                # keywords.update(...)
