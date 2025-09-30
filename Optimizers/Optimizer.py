@@ -128,7 +128,7 @@ class Hierarchical_Random(Optimizer):
 class GA(Optimizer):
     def __init__(self, parameters):
         super().__init__(parameters=parameters)
-
+        self.parameters = parameters
         self.model_parameters = None
         self.simulation_class = None
         self.simulation = None
@@ -161,8 +161,11 @@ class GA(Optimizer):
             self.simulation_function = self.simulation_class.simulate
         else:
             self.simulation_function = self.simulate
-    def run(self):
 
+    def run(self):
+        """
+        Run the optimizer
+        """
         LR = self.bounds[:, 0]
         UR = self.bounds[:, 1]
         nParams = len(LR)
@@ -184,11 +187,11 @@ class GA(Optimizer):
         P = self.population(self.N1, nParams, LR, UR)  # generate[60 x nParams] random solutions
         # P = [P, solution_ini]  # add pre - selected solutions
         # TODO: check if this is necessary later
-        E, R = self.evaluation(P, self.simulation_function, self.reference) # E: evaluation fitness, R: residual, error
+        E, R, _ = self.evaluation(P, self.reference) # E: evaluation fitness, R: residual, error
         P, E, R = self.selection_best(P, E, R, self.N1, self.op)
-        R1 = R[:, 0]
+        R1 = R[0]
         print('done')
-        print([f'Minimum cost: ', {E(1)}])
+        print(f'Minimum cost: {E[0]:.5}')
         print('================================')
         E_crit = E[0]
 
@@ -197,14 +200,14 @@ class GA(Optimizer):
             print('======= Gradient search ========')
             Para_E_grd, E_grd, R_grd = self.gradient_search(P[0], R1, conf, E_crit)
             # replace
-            if self.op * E_grd > self.op * E(1):
+            if self.op * E_grd > self.op * E[0]:
                 P[0] = Para_E_grd
                 E[0] = E_grd
                 R[0] = R_grd
             print('done')
 
             print('======= single-parameter mutation ========')
-            P_ = self.mutation_single(P[1,:], LR, UR)
+            P_ = self.mutation_single(P[1, :], LR, UR)
 
             E_, R_ = self.evaluation(P_, conf['func'], self.reference)
             print('done')
@@ -212,12 +215,12 @@ class GA(Optimizer):
             print('======= Gradient search ========')
             for i in range(E_.shape[0]):
                 print('[#d/#d] cost: #f\n', i, len(E_), E_[i])
-                Para_E_grd[i,:], E_grd[i], R_grd[:, i] = self.gradient_search(P_[i, :], R_[:, i], conf, E_crit)
+                Para_E_grd[i, :], E_grd[i], R_grd[:, i] = self.gradient_search(P_[i, :], R_[:, i], conf, E_crit)
 
             # replace
             index = self.op * E_grd > self.op * E_
             P_[index, :] = Para_E_grd[index, :] #  update gradient mutation
-            E_[index] = E_grd(index)
+            E_[index] = E_grd[index]
             R_[:, index] = R_grd[:, index]
             P = [P, P_]  # [(60 + nParams) x nParams] solutions
             E = [E, E_]  # [1 x(60 + nParams)] cost
@@ -234,11 +237,15 @@ class GA(Optimizer):
             print('GA search...')
             # matlab specific
             # TODO: solve with vstack or concatenate
-            P[-1 + 1:-1 + self.N1, :] = self.mutationV(P[:self.N1,:],0.1, 0.9, LR, UR) # + N1 solutions
-            P[-1 + 1:-1 + 2 * self.N2, :] = self.crossover(P, self.N2) # + N2 * 2 solutions
-            P[-1 + 1:-1 + 2 * self.N3, :] = self.mutation(P, self.N3) # + N3 * 2 solutions
+            mutV_marker =  self.N1
+            crossover_marker = self.N1+2*self.N2
+            mut_marker = self.N1+2*self.N2+2*self.N3
+            P_add = np.zeros((P.shape[0], self.N1+2*self.N2+2*self.N3))
+            P_add[:mutV_marker, :] = self.mutationV(P[:self.N1,:],0.1, 0.9, LR, UR) # + N1 solutions
+            P_add[mutV_marker:crossover_marker, :] = self.crossover(P, self.N2) # + N2 * 2 solutions
+            P_add[crossover_marker:mut_marker, :] = self.mutation(P, self.N3) # + N3 * 2 solutions
 
-            E_, _ = self.evaluation(P[self.N1 + nParams + 1:-1, :], conf['func'], self.reference)
+            E_, _, _ = self.evaluation(P[self.N1 + nParams + 1:, :], self.reference)
             E = np.vstack([E, E_]) # cost[1 x (N1 + N2 + N3) * 2 + nParams]
 
             # selection
@@ -378,9 +385,11 @@ class GA(Optimizer):
         index = np.flip(np.argsort(E))
         P_sorted = P[index]
         E_sorted = E[index]
-        R_sorted = R[:, index]
-
-        return P_sorted[:n_out], E_sorted[:n_out], R_sorted[:, :n_out]
+        # R_sorted = R[:, index]
+        #
+        # return P_sorted[:n_out], E_sorted[:n_out], R_sorted[:, :n_out]
+        R_sorted = R[index]
+        return P_sorted[:n_out], E_sorted[:n_out], R_sorted[:n_out]
 
     def gradient_search(self, P, r, conf, stop_crit):
         """
@@ -394,16 +403,22 @@ class GA(Optimizer):
                   fit_post: new fit,
                   r_post: new residual
         """
-
-        N, nParams = P.shape
+        if len(P.shape) < 2:
+            nParams = P.shape[0]
+            N = 1
+            r = np.array([r])
+        else:
+            N, nParams = P.shape
         fit_post = np.zeros(N)
-        P_post = np.zeros(N, nParams)
+        P_post = np.zeros((N, nParams))
         r_post = np.zeros_like(r)
+        # TODO:
+        #  here r needs to be a proper array
         for i in range(N):
             print(f'i\n')
-            fit_post[i], P_post[i], r_post[i] = self.gauss_newton_slow(conf.op,
+            fit_post[i], P_post[i], r_post[i] = self.gauss_newton_slow(self.op,
                                                                        P[i],
-                                                                       r[:, i],
+                                                                       r[i],
                                                                        conf['myfunc'],
                                                                        conf['y_goal'],
                                                                        conf['gL'],
@@ -448,7 +463,7 @@ class GA(Optimizer):
             J = self.NMM_diff_A_lfm(Para_E_test, r_test, func, y_goal)
             Para_E_new_group = self.multi_lavenberg_regulization(steps, reg0, reg1, Para_E_test, J, r_test, LR, UR)
 
-            fit_grp, error_grp = self.evaluation(Para_E_new_group, func, y_goal)
+            fit_grp, error_grp = self.evaluation(Para_E_new_group, y_goal)
             Para_E_new, fit_new, error_new = self.selection_best(Para_E_new_group, fit_grp, error_grp, 1, op)
 
             r_test = error_new
@@ -578,7 +593,7 @@ class GA(Optimizer):
         E_new = op * E_sorted[:p]
         return P1_new, E_new
 
-    def evaluation(self, X, func, y):
+    def evaluation(self, X, y):
         """
         GA toolbox evaluation function that helps evaluating a simulation function 'func' over an array 'X' of values
         :param X: parameter values
@@ -587,20 +602,23 @@ class GA(Optimizer):
         :return: fits: fit values (errors), h_outs: output values of evaluated functions
         """
         x_shape = X.shape[0]
+        errors = np.zeros(x_shape)
+        h_outs = np.zeros_like(errors)
         fits = np.zeros(x_shape)
-        h_outs = np.zeros_like(fits)
 
         for j in range(x_shape):
             P = X[j]
             start_time = time.time()
             h_out = self.function_call(P)
-            fit = nrmse(h_out, y)
+            error = nrmse(h_out, y)
+            fit = np.sum(error**2)
             end_time = time.time()
-            print(f' simulation time: {end_time-start_time:.5f} --> {j+1}/{x_shape}')
+            print(f' simulation time: {end_time-start_time:.3f} --> {j+1}/{x_shape}')
             fits[j] = fit
+            errors[j] = error
             h_outs[j] = h_out
 
-        return fits, h_outs
+        return fits, errors, h_outs
 
     def multi_lavenberg_regulization(self, n, reg0, reg1, Para_E, J, h_output, LR, UR):
         """
@@ -677,7 +695,7 @@ class GA(Optimizer):
             #         h_out[i] = eval(f'self.simulation_class.{self.x_out}')
             #     else:
             #         h_out[i] = self.simulation_class.simulate()
-            keywords[self.model_parameters[m]] = parameters[m]
+            keywords[self.model_parameters[i]] = parameters[i]
 
         if self.simulation_class != None:
             self.simulation_class.__init__(parameters=keywords)
