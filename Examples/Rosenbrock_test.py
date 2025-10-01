@@ -44,6 +44,7 @@ def test_hierarchical_random():
     opt_params['bounds'] = [[-2, 1], [-1, 3]]
     opt_params['x_out'] = 'y'
     opt_params['n_grid'] = 1000
+    opt_params['tolerance'] = 0.01
     optimizer1 = Hierarchical_Random(parameters=opt_params)
     optimizer1.run()
     optimum = optimizer1.optimum

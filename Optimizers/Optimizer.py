@@ -136,6 +136,7 @@ class GA(Optimizer):
         self.n_iter = 50
         self.x_out = 'y'
         self.reference = None
+        self.tolerance = 0.05
 
         self.bounds = None
         self.N1 = 60  # population size
@@ -153,9 +154,9 @@ class GA(Optimizer):
             self.bounds = np.array(self.bounds)
 
         if hasattr(self.simulation_class, 't'):
-            self.out_shape = self.simulation_class.t.shape[0]
+            self.t_shape = self.simulation_class.t.shape[0]
         else:
-            self.out_shape = 0
+            self.t_shape = 1
 
         if self.simulation_class !=None:
             self.simulation_function = self.simulation_class.simulate
@@ -172,24 +173,25 @@ class GA(Optimizer):
         GA_counter = []
         
         conf = {'UR': UR, 'LR': LR, 'op': self.op, 'func': self.simulation_function,
-                'gLoop': 10, 'gL': -12, 'gU': 12, 'gTol': 0.01}
+                'gLoop': 10, 'gL': -12, 'gU': 12, 'gTol': self.tolerance}
         conf['gT'] = abs(conf['gU'] - conf['gL']) + 1
 
         ################################################################
         K = []  # history of[average cost, best cost]
         KP = [] # history of[best solution]
         KS = [] # history of[best cost]
-        w = 1  # counter
-        j = 1  # counter
+        w = 0  # counter
+        j = 0  # counter
 
         ######## initialization #########
         print('======== Initialization ========')
         P = self.population(self.N1, nParams, LR, UR)  # generate[60 x nParams] random solutions
         # P = [P, solution_ini]  # add pre - selected solutions
-        # TODO: check if this is necessary later
         E, R, _ = self.evaluation(P, self.reference) # E: evaluation fitness, R: residual, error
         P, E, R = self.selection_best(P, E, R, self.N1, self.op)
         R1 = R[0]
+        if isinstance(R1, (int, float)):
+            R1 = np.array([[R1]])
         print('done')
         print(f'Minimum cost: {E[0]:.5}')
         print('================================')
@@ -207,56 +209,66 @@ class GA(Optimizer):
             print('done')
 
             print('======= single-parameter mutation ========')
-            P_ = self.mutation_single(P[1, :], LR, UR)
+            P_ = self.mutation_single(P[0, :], LR, UR)
 
-            E_, R_ = self.evaluation(P_, conf['func'], self.reference)
+            E_, R_, _ = self.evaluation(P_, self.reference)
             print('done')
 
             print('======= Gradient search ========')
+            n_search = E_.shape[0]
+            E_grd_new = np.zeros(n_search)
+            R_grd_new = np.zeros(n_search)
+            E_grd_new[:E_grd.shape[0]] = E_grd
+            R_grd_new[:R_grd.shape[0]] = R_grd
+            E_grd = E_grd_new
+            R_grd = R_grd_new
+            P_shape = P_.shape
+            Para_E_grd_new = np.zeros((P_shape))
+            Para_E_grd_new[:P_.shape[0]] = P_
+            Para_E_grd = Para_E_grd_new
             for i in range(E_.shape[0]):
-                print('[#d/#d] cost: #f\n', i, len(E_), E_[i])
-                Para_E_grd[i, :], E_grd[i], R_grd[:, i] = self.gradient_search(P_[i, :], R_[:, i], conf, E_crit)
+                print(f'[{i+1}/{len(E_)}] cost: {E_[i]:.5f}\n')
+                Para_E_grd[i, :], E_grd[i], R_grd[i] = self.gradient_search(P_[i, :], R_[i], conf, E_crit)
 
             # replace
             index = self.op * E_grd > self.op * E_
             P_[index, :] = Para_E_grd[index, :] #  update gradient mutation
             E_[index] = E_grd[index]
-            R_[:, index] = R_grd[:, index]
-            P = [P, P_]  # [(60 + nParams) x nParams] solutions
-            E = [E, E_]  # [1 x(60 + nParams)] cost
-            R = [R, R_]  # [timepoints x(60 + nParams)] residual
+            R_[index] = R_grd[index]
+            P = np.vstack((P, P_))  # [(60 + nParams) x nParams] solutions
+            E = np.hstack((E, E_))  # [1 x(60 + nParams)] cost
+            R = np.hstack((R, R_))  # [timepoints x(60 + nParams)] residual
             print('done')
 
             # # # # # # # # # #
             # add to show, delete later
             _, E_show, _ = self.selection_best(P, E, R, 1, self.op)
-            print([f'best after gradient: ', {E_show}])
+            print([f'best after gradient: {E_show}'])
             # # # # # # # # # #
 
             # GA
             print('GA search...')
             # matlab specific
-            # TODO: solve with vstack or concatenate
-            mutV_marker =  self.N1
+            mutV_marker = self.N1
             crossover_marker = self.N1+2*self.N2
             mut_marker = self.N1+2*self.N2+2*self.N3
-            P_add = np.zeros((P.shape[0], self.N1+2*self.N2+2*self.N3))
-            P_add[:mutV_marker, :] = self.mutationV(P[:self.N1,:],0.1, 0.9, LR, UR) # + N1 solutions
-            P_add[mutV_marker:crossover_marker, :] = self.crossover(P, self.N2) # + N2 * 2 solutions
-            P_add[crossover_marker:mut_marker, :] = self.mutation(P, self.N3) # + N3 * 2 solutions
+            P_add = np.zeros((self.N1+2*self.N2+2*self.N3, P.shape[1]))
+            P_add[:mutV_marker, :] = self.mutationV(P[:self.N1, :], 0.1, 0.9, LR, UR)  # + N1 solutions
+            P_add[mutV_marker:crossover_marker, :] = self.crossover(P, self.N2)  # + N2 * 2 solutions
+            P_add[crossover_marker:mut_marker, :] = self.mutation(P, self.N3)  # + N3 * 2 solutions
 
             E_, _, _ = self.evaluation(P[self.N1 + nParams + 1:, :], self.reference)
-            E = np.vstack([E, E_]) # cost[1 x (N1 + N2 + N3) * 2 + nParams]
+            E = np.hstack([E, E_])  # cost[1 x (N1 + N2 + N3) * 2 + nParams]
 
             # selection
             P, E = self.selection_uniq(P, E, self.N1, self.N1, self.op, LR, UR) # select N1 solutions
             # _, R1, _ = self.evaluation(P[1,:], conf['func'], self.reference) # R1: residual of best solution
             print('done')
 
-            K.append([sum(E) / self.N1, E[1]])  # average  cost(for plot) and  best cost(for plot)
-            KP.append(P[1, 1: nParams])  # save best
-            KS.append(E[1]) # save best
-            E_crit = E[1]
+            K.append([sum(E) / self.N1, E[0]])  # average  cost(for plot) and  best cost(for plot)
+            KP.append(P[0])  # save best
+            KS.append(E[0]) # save best
+            E_crit = E[0]
             print('========')
             print([f'current best Loss: {KS[w]}'])
             print('========')
@@ -269,11 +281,12 @@ class GA(Optimizer):
             # add to show, delete later
             if E_show > E[0]:
                 print('GA works')
-                GA_counter[w] = 1
+                GA_counter.append(1)
             else:
                 print("GA doesn't work")
-                GA_counter[w] = 0
+                GA_counter.append(0)
             # # # # # # # # # #
+            w+=1
 
             # stop: good fit
             if KS[-1] < 0.01:
@@ -308,6 +321,36 @@ class GA(Optimizer):
             B[c:] = A_back_part
 
             # Store new chromosomes
+            E[2 * i] = A
+            E[2 * i + 1] = B
+
+        return E
+
+    def mutation(self, X, n):
+        """
+            Perform mutation on a population of chromosomes.
+
+            Parameters:
+            X (ndarray): Population matrix of shape (x, y)
+            n (int): Number of chromosome pairs to mutate
+
+            Returns:
+            ndarray: Mutated chromosomes, shape (2*n, y)
+            """
+        x, y = X.shape
+        E = np.zeros((2 * n, y))
+
+        for i in range(n):
+            r = np.random.randint(0, x, size=2)
+            while r[0] == r[1]:
+                r = np.random.randint(0, x, size=2)
+
+            A = X[r[0]].copy()
+            B = X[r[1]].copy()
+            c = np.random.randint(0, y)
+
+            A[c], B[c] = B[c], A[c]
+
             E[2 * i] = A
             E[2 * i + 1] = B
 
@@ -404,23 +447,20 @@ class GA(Optimizer):
                   r_post: new residual
         """
         if len(P.shape) < 2:
-            nParams = P.shape[0]
-            N = 1
-            r = np.array([r])
-        else:
-            N, nParams = P.shape
+            P = P[np.newaxis, :]
+        if isinstance(r, (int, float)):
+            r = np.array([[r]])
+
+        N, nParams = P.shape
         fit_post = np.zeros(N)
         P_post = np.zeros((N, nParams))
         r_post = np.zeros_like(r)
-        # TODO:
-        #  here r needs to be a proper array
+
         for i in range(N):
-            print(f'i\n')
+            print(f' {i}/{N}')
             fit_post[i], P_post[i], r_post[i] = self.gauss_newton_slow(self.op,
                                                                        P[i],
                                                                        r[i],
-                                                                       conf['myfunc'],
-                                                                       conf['y_goal'],
                                                                        conf['gL'],
                                                                        conf['gU'],
                                                                        conf['gT'],
@@ -431,7 +471,7 @@ class GA(Optimizer):
                                                                        stop_crit)
         return P_post, fit_post, r_post
 
-    def gauss_newton_slow(self, op, Para_E_test, r_test, func, y_goal, reg0, reg1, steps, loop, tol, LR, UR, fit_crit):
+    def gauss_newton_slow(self, op, Para_E_test, r_test, reg0, reg1, steps, loop, tol, LR, UR, fit_crit):
         """
         Performs iterative Gauss-Newton optimization with Levenberg regularization.
 
@@ -460,10 +500,10 @@ class GA(Optimizer):
 
         while j <= loop:
             print(f"[{j}/{loop}] ", end="")
-            J = self.NMM_diff_A_lfm(Para_E_test, r_test, func, y_goal)
-            Para_E_new_group = self.multi_lavenberg_regulization(steps, reg0, reg1, Para_E_test, J, r_test, LR, UR)
+            J = self.NMM_diff_A_lfm(Para_E_test, r_test)
+            Para_E_new_group = self.multi_lavenberg_regularization(steps, reg0, reg1, Para_E_test, J, r_test, LR, UR)
 
-            fit_grp, error_grp = self.evaluation(Para_E_new_group, y_goal)
+            fit_grp, error_grp, _ = self.evaluation(Para_E_new_group, self.reference)
             Para_E_new, fit_new, error_new = self.selection_best(Para_E_new_group, fit_grp, error_grp, 1, op)
 
             r_test = error_new
@@ -490,7 +530,7 @@ class GA(Optimizer):
 
         return fit_after_g, Para_E_after_g, error_after_g
 
-    def NMM_diff_A_lfm(self, parameter, h_output, myfunc, y_goal):
+    def NMM_diff_A_lfm(self, parameter, h_output):
         """
         Computes the Jacobian matrix using finite differences.
 
@@ -505,12 +545,19 @@ class GA(Optimizer):
         """
         h = 1e-6
         parameter_pert = parameter + h
-        j = np.zeros((len(h_output), len(parameter)))
+        p_shape = parameter.shape[0]
+        if isinstance(h_output, (int, float)):
+            h_shape = 1
+        else:
+            h_shape = h_output.shape[0]
 
-        for i in range(len(parameter)):
+
+        j = np.zeros((h_shape, p_shape))
+
+        for i in range(p_shape):
             parameter_update = parameter.copy()
             parameter_update[i] = parameter_pert[i]
-            h_output_new = myfunc(parameter_update, y_goal)
+            h_output_new = self.function_call(parameter_update)
             j[:, i] = (h_output_new - h_output) / h
 
         j[np.isnan(j)] = 0
@@ -603,7 +650,7 @@ class GA(Optimizer):
         """
         x_shape = X.shape[0]
         errors = np.zeros(x_shape)
-        h_outs = np.zeros_like(errors)
+        h_outs = np.zeros((self.t_shape, x_shape))
         fits = np.zeros(x_shape)
 
         for j in range(x_shape):
@@ -616,11 +663,11 @@ class GA(Optimizer):
             print(f' simulation time: {end_time-start_time:.3f} --> {j+1}/{x_shape}')
             fits[j] = fit
             errors[j] = error
-            h_outs[j] = h_out
+            h_outs[:, j] = h_out
 
         return fits, errors, h_outs
 
-    def multi_lavenberg_regulization(self, n, reg0, reg1, Para_E, J, h_output, LR, UR):
+    def multi_lavenberg_regularization(self, n, reg0, reg1, Para_E, J, h_output, LR, UR):
         """
         Generates n updated parameter sets using Levenberg regularization.
 
@@ -635,17 +682,21 @@ class GA(Optimizer):
         Returns:
         - Y: 2D array of shape (n, len(Para_E)) with updated parameter sets
         """
-        Y = np.zeros((n, len(Para_E)))
+        Y = np.zeros((n, Para_E.shape[0]))
         reg = 10 ** np.linspace(reg0, reg1, n)
+        if isinstance(h_output, (int, float)):
+            h_output = np.array([h_output])
 
-        for i in range(len(reg)):
+        for i in range(reg.shape[0]):
             try:
-                D = np.linalg.pinv(J.T @ J + reg[i] * np.eye(len(Para_E)))
+                D = np.linalg.pinv(J.T @ J + reg[i] * np.eye(Para_E.shape[0]))
             except:
                 # TODO: try if this error is error important and find out what exception is necessary
                 return Y  # return current Y if inversion fails
-
-            d = -D @ J.T @ h_output
+            if isinstance(h_output, (int, float)):
+                d = -D @ J.T * h_output
+            else:
+                d = -D @ J.T @ h_output
             if np.isnan(d).any():
                 continue  # skip this iteration if invalid update
 
@@ -683,7 +734,7 @@ class GA(Optimizer):
         """
         keywords = self.parameters
         m = parameters.shape[0]
-        h_out = np.zeros((m, self.out_shape))
+        # h_out = np.zeros((m, self.t_shape))
         for i in range(m):
             # for j in range(self.n_param):
             #     keywords[self.model_parameters[j]] = parameters[i, j]
@@ -706,4 +757,6 @@ class GA(Optimizer):
                 h_out = self.simulation_class.simulate()
         else:
             h_out = self.simulate(keywords)
+        if isinstance(h_out, (int, float)):
+            h_out = np.array([h_out, np.newaxis])
         return h_out
