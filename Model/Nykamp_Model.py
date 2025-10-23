@@ -9,6 +9,7 @@ from scipy.stats import gamma, norm, lognorm
 import os
 import h5py
 import matplotlib
+import matplotlib.animation as animation
 matplotlib.use('TkAgg')
 
 class Nykamp_Model():
@@ -1413,7 +1414,7 @@ class Nykamp_Model_1():
         plt.show()
 
     def plot(self, fname=None, heat_map=True, plot_idxs=None, savefig=False, plot_input=False, z_limit=None,
-             plot_combined=True):
+             plot_combined=True, animate=False):
 
         if fname == None:
             fname = self.name
@@ -1531,6 +1532,32 @@ class Nykamp_Model_1():
                     plt.close()
                 else:
                     plt.show()
+        if animate:
+            fig = plt.figure(figsize=(10, 4.25*n_plots))
+            for i_plot, plot_idx in enumerate(plot_idxs):
+                ax = fig.add_subplot(n_plots, 1, i_plot+1)
+                line = ax.plot(v, rho_plot[plot_idx, :, 0])[0]
+                # plt.fill_between(x=v, y1=rho_plot[plot_idx, :, 0], color="b", alpha=0.2)
+                bbox = dict(boxstyle='round', fc='blanchedalmond', ec='orange', alpha=0.5)
+                text = ax.text(0.95, 0.9, f't = {t_plot[0]:.2f}ms', fontsize=9, bbox=bbox,
+                        transform=ax.transAxes, horizontalalignment='right')
+                ax.set(xlim=[v.min(), v.max()], ylim=[0, rho_plot.max()*0.5], xlabel='v (mV)', ylabel='rho')
+                def update(frame):
+                    # for each frame, update the data stored on each artist.
+                    rho_frame = rho_plot[plot_idx, :, frame]
+
+                    # update the line plot:
+                    # line.set_xdata(v[:frame])
+                    line.set_ydata(rho_frame)
+                    text.set_text(f't = {t_plot[frame]:.2f}ms')
+                    # plt.fill_between(x=v, y1=rho_frame, color="b", alpha=0.2)
+                    return (line, text)
+
+                ani = animation.FuncAnimation(fig=fig, func=update, frames=rho_plot.shape[2], interval=22)
+                # plt.show()
+                ani.save(filename=self.name + '_rho_animation.gif', writer="pillow")
+                print(f'saved animation of rho to {self.name}_rho_animation.gif')
+                plt.close()
 
     def save_log(self, full_out=False):
         if full_out:
