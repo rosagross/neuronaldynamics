@@ -23,6 +23,10 @@ def plot_Rosenbrock():
     plt.show()
 
 class Rosenbrock_2D():
+    """
+    Rosenbroch function version in 2D
+    in 2D should have minimum at (1, 1)
+    """
     def __init__(self, parameters={}):
         self.x1 = np.array([[1]])
         self.x2 = np.array([[1]])
@@ -60,5 +64,8 @@ opt_params['simulate'] = testfunction.simulate
 opt_params['bounds'] = [[-2, 1], [-1, 3]]
 opt_params['x_out'] = 'y'
 opt_params['reference'] = 0
+opt_params['n_iter'] = 5
 optimizer = GA(parameters=opt_params)
+# opt_params['max_iter'] = 1000
+# optimizer = Hierarchical_Random(parameters=opt_params)
 optimizer.run()

@@ -227,7 +227,7 @@ class GA(Optimizer):
             Para_E_grd_new[:P_.shape[0]] = P_
             Para_E_grd = Para_E_grd_new
             for i in range(E_.shape[0]):
-                print(f'[{i+1}/{len(E_)}] cost: {E_[i]:.5f}\n')
+                # print(f'[{i+1}/{len(E_)}] cost: {E_[i]:.5f}\n')
                 Para_E_grd[i, :], E_grd[i], R_grd[i] = self.gradient_search(P_[i, :], R_[i], conf, E_crit)
 
             # replace
@@ -242,8 +242,8 @@ class GA(Optimizer):
 
             # # # # # # # # # #
             # add to show, delete later
-            _, E_show, _ = self.selection_best(P, E, R, 1, self.op)
-            print([f'best after gradient: {E_show}'])
+            P_show, E_show, _ = self.selection_best(P, E, R, 1, self.op)
+            print([f'best after gradient: {E_show} at param set {P_show}'])
             # # # # # # # # # #
 
             # GA
@@ -256,9 +256,9 @@ class GA(Optimizer):
             P_add[:mutV_marker, :] = self.mutationV(P[:self.N1, :], 0.1, 0.9, LR, UR)  # + N1 solutions
             P_add[mutV_marker:crossover_marker, :] = self.crossover(P, self.N2)  # + N2 * 2 solutions
             P_add[crossover_marker:mut_marker, :] = self.mutation(P, self.N3)  # + N3 * 2 solutions
+            P = np.vstack([P, P_add])
 
-            E_, _, _ = self.evaluation(P[self.N1 + nParams + 1:, :], self.reference)
-            E = np.hstack([E, E_])  # cost[1 x (N1 + N2 + N3) * 2 + nParams]
+            E, _, _ = self.evaluation(P, self.reference) # was P[self.N1 + nParams + 1:, :] which is definetley wrong
 
             # selection
             P, E = self.selection_uniq(P, E, self.N1, self.N1, self.op, LR, UR) # select N1 solutions
@@ -425,7 +425,7 @@ class GA(Optimizer):
 
         E = op*E
         # sort from high to low , get the best
-        index = np.flip(np.argsort(E))
+        index = np.argsort(E)
         P_sorted = P[index]
         E_sorted = E[index]
         # R_sorted = R[:, index]
@@ -457,7 +457,7 @@ class GA(Optimizer):
         r_post = np.zeros_like(r)
 
         for i in range(N):
-            print(f' {i}/{N}')
+            # print(f' {i}/{N}')
             fit_post[i], P_post[i], r_post[i] = self.gauss_newton_slow(self.op,
                                                                        P[i],
                                                                        r[i],
@@ -499,7 +499,7 @@ class GA(Optimizer):
         error_ = []
 
         while j <= loop:
-            print(f"[{j}/{loop}] ", end="")
+            # print(f"[{j}/{loop}] ", end="")
             J = self.NMM_diff_A_lfm(Para_E_test, r_test)
             Para_E_new_group = self.multi_lavenberg_regularization(steps, reg0, reg1, Para_E_test, J, r_test, LR, UR)
 
@@ -509,7 +509,7 @@ class GA(Optimizer):
             r_test = error_new
             Para_E_test = Para_E_new.flatten()
 
-            print(fit_new)
+            # print(fit_new)
             fit_.append(fit_new)
             Para_E_.append(Para_E_test.copy())
             error_.append(r_test.copy())
@@ -602,6 +602,7 @@ class GA(Optimizer):
             E_new (np.ndarray): Transformed fitness values.
         """
         E = op * E
+        E_orig = E.copy()
         dim = P1.shape[1]
 
         # Remove inf and nan entries
@@ -615,7 +616,7 @@ class GA(Optimizer):
         P1 = P1_unique
 
         # Sort by fitness descending
-        sorted_idx = np.argsort(E)[::-1]
+        sorted_idx = np.argsort(E)
         P1 = P1[sorted_idx]
         E_sorted = E[sorted_idx]
 
@@ -636,8 +637,9 @@ class GA(Optimizer):
             P1 = np.vstack([P1_best, P2])
             E_sorted = np.concatenate([E_best, E2])
 
-        P1_new = P1[:p]
+        P1_new = P1[:p] #flip added here
         E_new = op * E_sorted[:p]
+
         return P1_new, E_new
 
     def evaluation(self, X, y):
@@ -660,7 +662,7 @@ class GA(Optimizer):
             error = nrmse(h_out, y)
             fit = np.sum(error**2)
             end_time = time.time()
-            print(f' simulation time: {end_time-start_time:.3f} --> {j+1}/{x_shape}')
+            # print(f' simulation time: {end_time-start_time:.3f} --> {j+1}/{x_shape}')
             fits[j] = fit
             errors[j] = error
             h_outs[:, j] = h_out
