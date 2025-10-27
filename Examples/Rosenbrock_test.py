@@ -69,3 +69,8 @@ optimizer = GA(parameters=opt_params)
 # opt_params['max_iter'] = 1000
 # optimizer = Hierarchical_Random(parameters=opt_params)
 optimizer.run()
+optimal_param = optimizer.optimum
+opt_Rosenbrock = Rosenbrock_2D({'x1': optimal_param[0], 'x2': optimal_param[1]})
+opt_Rosenbrock.simulate()
+y_opt = opt_Rosenbrock.y
+print(f'y_opt = {y_opt}')

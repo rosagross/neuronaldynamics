@@ -13,6 +13,7 @@ matplotlib.use('TkAgg')
 class Optimizer():
     def __init__(self, parameters):
         self.opt_parameters = np.zeros((2))
+        self.optimum = None
         # self.simulate = lambda self.opt_paramters[0]: x
 
 class Hierarchical_Random(Optimizer):
@@ -291,6 +292,8 @@ class GA(Optimizer):
             # stop: good fit
             if KS[-1] < 0.01:
                 break
+        print(f'best param set {KP[-1]} with error: {KS[-1]}')
+        self.optimum = KP[-1]
 
     def crossover(self, X, n):
         """
