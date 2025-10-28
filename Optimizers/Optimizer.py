@@ -138,6 +138,7 @@ class GA(Optimizer):
         self.x_out = 'y'
         self.reference = None
         self.tolerance = 0.05
+        self.verbose = 0
 
         self.bounds = None
         self.N1 = 60  # population size
@@ -145,7 +146,7 @@ class GA(Optimizer):
         self.N3 = 100  # mutation, number of pairs to mutate
         self.__dict__.update(parameters)
 
-        assert self.reference != None, 'please provide a reference value!'
+        assert isinstance(self.reference, (np.ndarray, int, float)), 'please provide a reference value!'
         assert self.model_parameters != None, 'please provide parameter names!'
         assert self.bounds != None, 'please provide parameter ranges!'
         assert self.simulation != None or self.simulation_class != None, 'please provide a simulation function or a' \
@@ -228,7 +229,7 @@ class GA(Optimizer):
             Para_E_grd_new[:P_.shape[0]] = P_
             Para_E_grd = Para_E_grd_new
             for i in range(E_.shape[0]):
-                # print(f'[{i+1}/{len(E_)}] cost: {E_[i]:.5f}\n')
+                if self.verbose > 0: print(f'[{i+1}/{len(E_)}] cost: {E_[i]:.5f}\n')
                 Para_E_grd[i, :], E_grd[i], R_grd[i] = self.gradient_search(P_[i, :], R_[i], conf, E_crit)
 
             # replace
@@ -460,7 +461,7 @@ class GA(Optimizer):
         r_post = np.zeros_like(r)
 
         for i in range(N):
-            # print(f' {i}/{N}')
+            if self.verbose > 0: print(f' {i}/{N}')
             fit_post[i], P_post[i], r_post[i] = self.gauss_newton_slow(self.op,
                                                                        P[i],
                                                                        r[i],

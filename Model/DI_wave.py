@@ -262,4 +262,13 @@ class DI_wave_simulation():
             opt_params['simulate'] = self.simulate
             self.optimimization_algorithm = Hierarchical_Random(parameters=opt_params)
             self.optimimization_algorithm.run()
+        elif optimizer == 'GA':
+            self.__init__(parameters=opt_params)
+            self.get_test_signal()
+            opt_params['y'] = self.target
+            opt_params['reference'] = self.target
+            opt_params['simulation_class'] = self
+            opt_params['simulate'] = self.simulate
+            self.optimimization_algorithm = GA(parameters=opt_params)
+            self.optimimization_algorithm.run()
 
