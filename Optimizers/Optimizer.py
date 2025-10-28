@@ -309,13 +309,8 @@ class GA(Optimizer):
         self.errors = KS
         self.parameter_evolution = np.array(KP)
 
-<<<<<<< HEAD
-    def anime_fit(self):
-        assert self.errors != None, 'error'
-=======
     def plot_fit(self):
         assert self.errors != None, "please run the optimizer first!"
->>>>>>> upstream/main
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(np.array(self.errors)*1e-22)
