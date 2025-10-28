@@ -65,6 +65,8 @@ opt_params['bounds'] = [[-2, 1], [-1, 3]]
 opt_params['x_out'] = 'y'
 opt_params['reference'] = 0
 opt_params['n_iter'] = 5
+opt_params['N1'] = 200
+opt_params['tolerance'] = 1e18
 optimizer = GA(parameters=opt_params)
 # opt_params['max_iter'] = 1000
 # optimizer = Hierarchical_Random(parameters=opt_params)

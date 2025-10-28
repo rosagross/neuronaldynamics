@@ -243,8 +243,11 @@ class GA(Optimizer):
             E_[index] = E_grd[index]
             R_[index] = R_grd[index]
             P = np.vstack((P, P_))  # [(60 + nParams) x nParams] solutions
-            E = np.hstack((E, E_))  # [1 x(60 + nParams)] cost
-            R = np.hstack((R, R_))  # [timepoints x(60 + nParams)] residual
+            E = np.hstack((E, E_))
+            if len(R.shape) > 1 : # [1 x(60 + nParams)] cost
+                R = np.vstack((R, R_))  # [timepoints x(60 + nParams)] residual
+            else:
+                R = np.hstack((R, R_))
             print('done')
 
             # # # # # # # # # #
@@ -300,6 +303,11 @@ class GA(Optimizer):
                 break
         print(f'best param set {KP[-1]} with error: {KS[-1]}')
         self.optimum = KP[-1]
+        self.errors = KS
+
+    def anime_fit(self):
+        assert self.errors != None:
+        fig = plt.figure()
 
     def crossover(self, X, n):
         """
