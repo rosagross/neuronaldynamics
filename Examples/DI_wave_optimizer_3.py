@@ -34,7 +34,7 @@ opt_parameters['simulate'] = di_model.simulate
 opt_parameters['x_out'] = 'mass_model_v_out'
 opt_parameters['reference'] = di_model.target
 opt_parameters['n_iter'] = 1
-opt_parameters['N1'] = 20
+opt_parameters['N1'] = 50
 opt_parameters['tolerance'] = 0.01
 opt_parameters['verbose'] = 1
 optimizer = GA(parameters=opt_parameters)
@@ -42,6 +42,9 @@ optimizer = GA(parameters=opt_parameters)
 # optimizer = Hierarchical_Random(parameters=opt_params)
 optimizer.run()
 optimal_param = optimizer.optimum
+optimizer.plot_fit()
+np.savetxt('parameters.txt', optimizer.ps)
+np.savetxt('errors.txt', optimizer.errors)
 print(optimal_param)
 
 

@@ -4,6 +4,7 @@ import sympy as sy
 from scipy.integrate import odeint
 from Utils import get_stability_2D, nrmse, t_format
 import matplotlib.pyplot as plt
+import matplotlib.ticker as tck
 import time
 from tqdm import tqdm
 
@@ -145,6 +146,8 @@ class GA(Optimizer):
         self.N2 = 100  # crossover, number of pair to crossover
         self.N3 = 100  # mutation, number of pairs to mutate
         self.__dict__.update(parameters)
+        self.errors = None
+        self.parameter_evolution = None
 
         assert isinstance(self.reference, (np.ndarray, int, float)), 'please provide a reference value!'
         assert self.model_parameters != None, 'please provide parameter names!'
@@ -304,10 +307,23 @@ class GA(Optimizer):
         print(f'best param set {KP[-1]} with error: {KS[-1]}')
         self.optimum = KP[-1]
         self.errors = KS
+        self.parameter_evolution = np.array(KP)
 
+<<<<<<< HEAD
     def anime_fit(self):
         assert self.errors != None, 'error'
+=======
+    def plot_fit(self):
+        assert self.errors != None, "please run the optimizer first!"
+>>>>>>> upstream/main
         fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(np.array(self.errors)*1e-22)
+        ax.set_xlabel('# iteration')
+        ax.set_ylabel('fit error')
+        ax.set_yscale('log')
+        ax.xaxis.set_major_locator(tck.MultipleLocator())
+        plt.show()
 
     def crossover(self, X, n):
         """
