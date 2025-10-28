@@ -306,7 +306,7 @@ class GA(Optimizer):
         self.errors = KS
 
     def anime_fit(self):
-        assert self.errors != None:
+        assert self.errors != None, 'error'
         fig = plt.figure()
 
     def crossover(self, X, n):
@@ -676,6 +676,9 @@ class GA(Optimizer):
         x_shape = X.shape[0]
         errors = np.zeros(x_shape)
         h_outs = np.zeros((self.t_shape, x_shape))
+        print('houts', h_outs.shape)
+        print('tshape', self.t_shape)
+        print('y shape' , y.shape)
         fits = np.zeros(x_shape)
 
         for j in range(x_shape):
@@ -683,6 +686,7 @@ class GA(Optimizer):
             start_time = time.time()
             h_out = self.function_call(P)
             error = nrmse(h_out, y)
+            print('error', error)
             fit = np.sum(error**2)
             end_time = time.time()
             sim_time = end_time-start_time
