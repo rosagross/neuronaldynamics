@@ -420,3 +420,25 @@ def butter_highpass_filter(data, cutoff, fps, order=5):
     b, a = butter_highpass(cutoff, fps, order=order)
     y = scipy.signal.filtfilt(b, a, data)
     return y
+
+def t_format(time):
+    """
+    Function that formats a float value to a nicely readable time format
+    :param time: float
+        float value that represents time in seconds
+    :return: t, unit: float, string
+        tuple of a formated time in seconds, minutes, hours or days and the unit it is in as a string
+    """
+    if time < 60:
+        return time, "s"
+    else:
+        t_min = time / 60
+        if t_min < 60:
+            return t_min, "min"
+        else:
+            t_h = t_min / 60
+            if t_h < 24:
+                return t_h, "h"
+            else:
+                t_d = t_h / 24
+                return t_d, "d"

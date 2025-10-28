@@ -31,7 +31,6 @@ opt_parameters = {'optimizer': 'hierarchical', 'eps': 0.05, 'max_iter': 5, 'n_gr
 opt_parameters['y'] = np.array([0])
 opt_parameters['simulation_class'] = di_model
 opt_parameters['simulate'] = di_model.simulate
-opt_parameters['bounds'] = [[-2, 1], [-1, 3]]
 opt_parameters['x_out'] = 'mass_model_v_out'
 opt_parameters['reference'] = di_model.target
 opt_parameters['n_iter'] = 5

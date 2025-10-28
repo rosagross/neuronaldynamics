@@ -2,7 +2,7 @@ import warnings
 import numpy as np
 import sympy as sy
 from scipy.integrate import odeint
-from Utils import get_stability_2D, nrmse
+from Utils import get_stability_2D, nrmse, t_format
 import matplotlib.pyplot as plt
 import time
 from tqdm import tqdm
@@ -149,8 +149,10 @@ class GA(Optimizer):
         assert isinstance(self.reference, (np.ndarray, int, float)), 'please provide a reference value!'
         assert self.model_parameters != None, 'please provide parameter names!'
         assert self.bounds != None, 'please provide parameter ranges!'
-        assert self.simulation != None or self.simulation_class != None, 'please provide a simulation function or a' \
-                                                                         ' class with a simulation method!'
+        assert self.simulation != None or self.simulation_class != None, ('please provide a simulation function or a'
+                                                                          ' class with a simulation method!')
+        assert len(self.model_parameters) == len(self.bounds), ("The number of parameters must match the number of"
+                                                              " specified bounds!")
         self.n_param = len(self.model_parameters)
         if type(self.bounds) == list:
             self.bounds = np.array(self.bounds)
@@ -189,7 +191,7 @@ class GA(Optimizer):
         print('======== Initialization ========')
         P = self.population(self.N1, nParams, LR, UR)  # generate[60 x nParams] random solutions
         # P = [P, solution_ini]  # add pre - selected solutions
-        E, R, _ = self.evaluation(P, self.reference) # E: evaluation fitness, R: residual, error
+        E, _, R = self.evaluation(P, self.reference) # E: evaluation fitness, R: residual, error
         P, E, R = self.selection_best(P, E, R, self.N1, self.op)
         R1 = R[0]
         if isinstance(R1, (int, float)):
@@ -213,15 +215,15 @@ class GA(Optimizer):
             print('======= single-parameter mutation ========')
             P_ = self.mutation_single(P[0, :], LR, UR)
 
-            E_, R_, _ = self.evaluation(P_, self.reference)
+            E_, _, R_ = self.evaluation(P_, self.reference)
             print('done')
 
             print('======= Gradient search ========')
             n_search = E_.shape[0]
             E_grd_new = np.zeros(n_search)
-            R_grd_new = np.zeros(n_search)
+            R_grd_new = np.zeros((n_search, R_.shape[-1]))
             E_grd_new[:E_grd.shape[0]] = E_grd
-            R_grd_new[:R_grd.shape[0]] = R_grd
+            R_grd_new[0, :R_grd.shape[-1]] = R_grd
             E_grd = E_grd_new
             R_grd = R_grd_new
             P_shape = P_.shape
@@ -230,7 +232,10 @@ class GA(Optimizer):
             Para_E_grd = Para_E_grd_new
             for i in range(E_.shape[0]):
                 if self.verbose > 0: print(f'[{i+1}/{len(E_)}] cost: {E_[i]:.5f}\n')
-                Para_E_grd[i, :], E_grd[i], R_grd[i] = self.gradient_search(P_[i, :], R_[i], conf, E_crit)
+                P_i, E_i, R_i = self.gradient_search(P_[i, :], R_[i], conf, E_crit)
+                if isinstance(R_i, np.ndarray) and len(R_i.shape) > 1:
+                    R_i = R_i.flatten()
+                Para_E_grd[i, :], E_grd[i], R_grd[i] = P_i, E_i, R_i
 
             # replace
             index = self.op * E_grd > self.op * E_
@@ -454,14 +459,15 @@ class GA(Optimizer):
             P = P[np.newaxis, :]
         if isinstance(r, (int, float)):
             r = np.array([[r]])
-
+        elif len(r.shape) < 2:
+            r = r[np.newaxis, :]
         N, nParams = P.shape
         fit_post = np.zeros(N)
         P_post = np.zeros((N, nParams))
         r_post = np.zeros_like(r)
 
         for i in range(N):
-            if self.verbose > 0: print(f' {i}/{N}')
+            if self.verbose > 0: print(f' {i+1}/{N}')
             fit_post[i], P_post[i], r_post[i] = self.gauss_newton_slow(self.op,
                                                                        P[i],
                                                                        r[i],
@@ -507,10 +513,13 @@ class GA(Optimizer):
             J = self.NMM_diff_A_lfm(Para_E_test, r_test)
             Para_E_new_group = self.multi_lavenberg_regularization(steps, reg0, reg1, Para_E_test, J, r_test, LR, UR)
 
-            fit_grp, error_grp, _ = self.evaluation(Para_E_new_group, self.reference)
-            Para_E_new, fit_new, error_new = self.selection_best(Para_E_new_group, fit_grp, error_grp, 1, op)
+            fit_grp, error_grp, hout_group = self.evaluation(Para_E_new_group, self.reference)
+            Para_E_new, fit_new, r_new = self.selection_best(Para_E_new_group, error_grp, hout_group, 1, op)
+            r_new = r_new.flatten()
+            # this was changed
+            # TODO check against original: self.selection_best(Para_E_new_group, fit_grp, error_grp, 1, op)
 
-            r_test = error_new
+            r_test = r_new
             Para_E_test = Para_E_new.flatten()
 
             # print(fit_new)
@@ -553,7 +562,9 @@ class GA(Optimizer):
         if isinstance(h_output, (int, float)):
             h_shape = 1
         else:
-            h_shape = h_output.shape[0]
+            # TODO: this only works if h_output is a scalar or 1D, make the more general if more than one output dim is
+            #  needed
+            h_shape = h_output.shape[-1]
 
 
         j = np.zeros((h_shape, p_shape))
@@ -666,11 +677,13 @@ class GA(Optimizer):
             error = nrmse(h_out, y)
             fit = np.sum(error**2)
             end_time = time.time()
-            # print(f' simulation time: {end_time-start_time:.3f} --> {j+1}/{x_shape}')
+            sim_time = end_time-start_time
+            sim_time_float, sim_time_str = t_format(sim_time)
+            if self.verbose > 0: print(f' simulation time: {sim_time_float:.3f}{sim_time_str} --> {j+1}/{x_shape}')
             fits[j] = fit
             errors[j] = error
             h_outs[:, j] = h_out
-
+        h_outs = h_outs.T
         return fits, errors, h_outs
 
     def multi_lavenberg_regularization(self, n, reg0, reg1, Para_E, J, h_output, LR, UR):
