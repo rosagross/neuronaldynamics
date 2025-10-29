@@ -43,8 +43,8 @@ optimizer = GA(parameters=opt_parameters)
 optimizer.run()
 optimal_param = optimizer.optimum
 optimizer.plot_fit()
-np.savetxt('parameters.txt', optimizer.ps)
 np.savetxt('errors.txt', optimizer.errors)
+np.savetxt('parameters.txt', np.array(optimizer.parameter_evolution))
 print(optimal_param)
 
 

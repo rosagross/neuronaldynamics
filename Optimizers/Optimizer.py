@@ -313,7 +313,7 @@ class GA(Optimizer):
         assert self.errors != None, "please run the optimizer first!"
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(np.array(self.errors)*1e-22)
+        ax.plot(np.array(self.errors))
         ax.set_xlabel('# iteration')
         ax.set_ylabel('fit error')
         ax.set_yscale('log')
