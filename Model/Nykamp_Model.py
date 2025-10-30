@@ -959,12 +959,13 @@ class Nykamp_Model_1():
                         # all new delay component terms
                         # apply dirac delta at v = self.u_rest + v_ext
                         g_eext = np.zeros_like(self.v)
-                        dirac_index = np.where(self.v > self.u_reset + v_ext)[0]
-                        if dirac_index.size == 0:
-                            dirac_index = -2  # set dirac to latest point in v-space to preserve flux?
-                            pass
-                        else:
-                            dirac_index = dirac_index[0]
+                        # dirac_index = np.where(self.v > self.u_reset + v_ext)[0]
+                        # if dirac_index.size == 0:
+                        #     # dirac_index = -2  # set dirac to latest point in v-space to preserve flux?
+                        #     dirac_index = -50 # safety distance if gauss_func is used in g_eext
+                        #     pass
+                        # else:
+                        #     dirac_index = dirac_index[0]
                         dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
                         # g_eext[dirac_index] = - rho_delta[j, i] #* 100 # 100 was the area under the curve of the pdf
                         # g_eext = self.gauss_func(x = self.v, mu=(v_ext + self.u_reset), sigma=0.1)
@@ -1537,6 +1538,7 @@ class Nykamp_Model_1():
                 else:
                     plt.show()
         if animate:
+            print('plotting animation of rho(v, t)')
             fig = plt.figure(figsize=(10, 4.25*n_plots))
             for i_plot, plot_idx in enumerate(plot_idxs):
                 ax = fig.add_subplot(n_plots, 1, i_plot+1)
