@@ -851,7 +851,6 @@ class Nykamp_Model_1():
         if self.verbose > 0:
             t0_coeff = time.time()
 
-        # loop version of code
         self.get_diffusion_coeffs()
         self.r = None
 
@@ -933,6 +932,11 @@ class Nykamp_Model_1():
                     v_ext = 0
 
                     if self.input_type == 'current':
+                        ################################################################################################
+                        # EXTERNAL COEFFS
+                        # Additional external coefficients and pdfs to handle constant current input as dirac
+                        # distributed in voltage space
+                        ################################################################################################
                         v_ext = self.i_ext[j, i] / self.g_leak[j]
                         mask1 = np.where(self.v < v_ext + self.u_inh)[0]
                         mask2 = np.where(self.v > v_ext + self.u_inh)[0]
