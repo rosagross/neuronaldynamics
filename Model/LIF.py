@@ -357,7 +357,8 @@ class Conductance_LIF(Neuron_population):
         self.T = 400.  # Total duration of simulation [ms]
         self.dt = .1  # Simulation time step [ms]
         self.weights = None
-        self.Iext = None
+        self.Iext = None # external current in µA
+        self.Iinj = None # injected current in µA
 
         # delay and random parameter set-up #
         self.convolve = False
@@ -485,7 +486,7 @@ class Conductance_LIF(Neuron_population):
                     input = np.zeros(self.n_neurons)
                     # filter which neuron has post-synaptic spike in this time step
                     spike_output_mask = [it in k for k in self.delayed_spikes]
-                    if True in spike_output_mask:
+                    if True in spike_output_mask and not self.weights.all() == 0:
                         connections = self.weights[spike_output_mask, :]
                         active_neurons = np.where(spike_output_mask)[0]
                         n_active_neurons = active_neurons.shape[0]

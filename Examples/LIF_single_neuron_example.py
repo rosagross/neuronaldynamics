@@ -36,7 +36,7 @@ T = 10
 t = np.linspace(0, T, 1000)
 v_ext = np.zeros_like(t)
 t_mask = (t >= 2) & (t <= 8)
-v_ext[t_mask] = 5e4
+v_ext[t_mask] = 5e2
 tau = 12
 tau_ref = 1.5
 v_rest = -70
@@ -50,7 +50,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 ax.plot(t, v)
 ax2 = ax.twinx()
-ax.hlines(y=v_thr, xmin=t[0], xmax=t[-1])
+ax.hlines(y=v_thr, xmin=t[0], xmax=t[-1], colors='k', alpha=0.5, linestyles='--')
 ax.set_ylabel('v (mV)')
 ax.set_xlabel('t (ms)')
 ax.set_ylim([-80, -40])
@@ -62,4 +62,6 @@ ax2.set_ylim([-v_ext.max(), v_ext.max()*3])
 bbox = dict(boxstyle='round', fc='blanchedalmond', ec='orange', alpha=0.5)
 text = ax.text(0.98, 0.85, f'f = {f:.1f}Hz', fontsize=9, bbox=bbox,
         transform=ax.transAxes, horizontalalignment='right')
+ax.text(0.01, 0.65, 'V_threshold', fontsize=9, transform=ax.transAxes)
+plt.tight_layout()
 plt.show()

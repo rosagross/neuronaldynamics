@@ -76,10 +76,11 @@ pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 pars_1D['T'] = T
 pars_1D['dt'] = dt
-dv = 0.01
+dv = 0.1
 pars_1D['dv'] = dv
 
 nyk = Nykamp_Model_1(parameters=pars_1D, name='nykamp_test_1D')
+nyk.plot()
 nyk.simulate()
 
 compare_firing_rate('nykamp_test_1D', 'Conductance_LIF', smooth=True, idx=0)

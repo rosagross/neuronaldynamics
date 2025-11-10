@@ -47,6 +47,9 @@ class DI_wave_simulation():
         self.test_signal_from_file = False
         self.error_mode = 'non-zero'
         self.mass_model_connectivity_matrix = None
+        self.g_eext_factor = 1
+        self.c_eext1_factor = 1
+        self.c_eext2_factor = 1
         self.nykamp_parameters = {}
 
         if logname != None:
@@ -71,7 +74,8 @@ class DI_wave_simulation():
         init_nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': [12], 'tau_ref': [1.0],
                                   'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
                                   'input_type': 'current', 'input_function_idx': [0, 0], 'name': self.name,
-                                  'dt': self.dt, 'T': self.T, 'sparse_mat': True}
+                                  'dt': self.dt, 'T': self.T, 'sparse_mat': True, 'g_eext_factor': self.g_eext_factor,
+                                  'c_eext1_factor': self.c_eext1_factor, 'c_eext2_factor': self.c_eext2_factor,}
 
         self.create_coords()
         self.update_gpc_time()

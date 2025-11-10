@@ -770,6 +770,11 @@ class Nykamp_Model_1():
         self.verbose = 0
         self.implemented_pdf_types = ['gamma', 'normal', 'log-normal']
 
+        self.g_eext_factor = 1
+        self.c_eext1_factor = 1
+        self.c_eext2_factor = 1
+
+
         # input current
         self.input_type = 'rate'
 
@@ -843,7 +848,10 @@ class Nykamp_Model_1():
                 for k in range(len(self.input_function_idx)):
                     self.input[self.input_function_idx[k][0], self.input_function_idx[k][1]] = self.input_function[k](t=self.t)
             else:
-                self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(x=self.t)
+                try:
+                    self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(x=self.t)
+                except:
+                    self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
         elif self.input_type == 'current':
             self.i_ext[self.input_function_idx] = self.input_function(self.t)
 
@@ -883,7 +891,10 @@ class Nykamp_Model_1():
         ################################################################################################################
         for i in range(len(self.population_type)):
             # initialize arrays
-            rho[i, :, 0] = scipy.stats.norm.pdf(self.v, self.u_rest + self.init_pdf_offset, self.init_pdf_sigma)
+            init_dist = scipy.stats.norm.pdf(self.v, self.u_rest + self.init_pdf_offset, self.init_pdf_sigma)
+            # init_dist /= init_dist.sum()
+            # init_dist /= 10
+            rho[i, :, 0] = init_dist
             rho[i, 0, 0] = 0
             rho[i, -1, 0] = 0
 
@@ -951,10 +962,25 @@ class Nykamp_Model_1():
                         self.c2eext_v[mask1] = (self.v[mask1] - self.u_inh)
                         self.c2eext_v[mask2] = 0
 
-                        # self.c1eext = 1*self.c1eext
-                        # self.c1eext_v = 1*self.c1eext_v
-                        # self.c2eext = 0.4*self.c2eext  # was 0.2
-                        # self.c2eext_v = 0.4*self.c2eext_v  # was 0.2
+                        if i == 40:
+                            a=0
+
+                        if i == 200:
+                            a=1
+
+                        self.c1eext = self.c_eext1_factor*self.c1eext
+                        self.c1eext_v = self.c_eext1_factor*self.c1eext_v
+                        self.c2eext = self.c_eext2_factor*self.c2eext  # was 0.2
+                        self.c2eext_v = self.c_eext2_factor*self.c2eext_v  # was 0.2
+
+                        # self.c1eext[0] = 0
+                        # self.c2eext[0] = 0
+                        # self.c1eext_v[0] = 0
+                        # self.c2eext_v[0] = 0
+                        # self.c1eext[-1] = 0
+                        # self.c2eext[-1] = 0
+                        # self.c1eext_v[-1] = 0
+                        # self.c2eext_v[-1] = 0
 
                         # all new delay component terms
                         # apply dirac delta at v = self.u_rest + v_ext
@@ -967,21 +993,35 @@ class Nykamp_Model_1():
                         # else:
                         #     dirac_index = dirac_index[0]
                         dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
+                        if rho_delta[j, i-100] > 0:
+                            a=1
                         # g_eext[dirac_index] = - rho_delta[j, i] #* 100 # 100 was the area under the curve of the pdf
                         # g_eext = self.gauss_func(x = self.v, mu=(v_ext + self.u_reset), sigma=0.1)
                         g_eext = self.gauss_func(x=self.v, mu=self.v[dirac_index], sigma=0.1)
+                        g_eext[:10] = 0
+                        g_eext[-10:] = 0
                         # g_eext = self.gauss_func(x=self.v, mu=self.u_reset+5, sigma=2)
                         g_eext /= g_eext.sum()
-                        g_eext = g_eext * -rho_delta[j, i]# * 50
+                        g_eext = g_eext * -rho_delta[j, i] * self.g_eext_factor
                         # F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
                         F_ext_delta = 1*self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
                         v_in_i_ext = 1
+
+                    current_2_val = 0
+                    if self.input_type == 'current-2':
+                        ################################################################################################
+                        # EXTERNAL COEFFS
+                        # Additional external coefficients and pdfs to handle constant current input as dirac
+                        # distributed in voltage space
+                        ################################################################################################
+                        v_ext = self.i_ext[j, i] / self.g_leak[j]
+                        current_2_val = 1
 
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
                     #  check if this is correct
                     f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
                                             + np.sum(v_in[inh_idxs, j, i]) * c1ei_v - self.c1eext_v)
-                    f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest) / self.tau_mem[0] +
+                    f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest - current_2_val*v_ext) / self.tau_mem[0] +
                                                         - self.c1eext + self.c2eext_v +  # new external inputs
                                                         np.sum(v_in[exc_idxs, j, i]) * (-c1ee + c2ee_v) +
                                                         np.sum(v_in[inh_idxs, j, i]) * (c1ei + c2ei_v))
@@ -1008,7 +1048,7 @@ class Nykamp_Model_1():
 
                     r[j, i] = r_j + r_ext
 
-                    if i == 282:
+                    if i == 200:
                         a=1
 
                     # if r[j, i] < 0:
@@ -1024,7 +1064,7 @@ class Nykamp_Model_1():
                         rho_inflate_counter = 0
                         rho_area_start = np.sum(rho[j, :, i])
                     if neg_rho_counter == 0 and np.mean(rho[j, :, i]) < -1:
-                        print('\nW arning!, negative rho detected!')
+                        print('\nWarning!, negative rho detected!')
                         neg_rho_counter = 1
                     mean_rho_area = np.sum(rho[j, :, :], axis=0)
                     mean_rho_idx = int(2*ref_delta_idxs[j])
@@ -1067,7 +1107,7 @@ class Nykamp_Model_1():
                     # n_s = int(self.v.shape[0])
                     # u, s, v = scipy.sparse.linalg.svds(B_exc)
                     # u, s, v = np..linalg.svd(B_exc)
-                    # min svd = np.min(s)
+                    # min_svd = np.min(s)
                     # B_exc = u.dot(s).dot(v.T)
 
                     if not self.sparse_mat:
@@ -1080,20 +1120,21 @@ class Nykamp_Model_1():
 
                     # update rho and rho_delta by their time derivative components from discontinuous terms
                     rho[j, :, i + 1] += self.dt * g_exc
-                    # rho[j, 50, i + 1] += 0.2
                     rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
                             -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
                             rho_delta[j, i] + r_delayed[j, i])
                     # rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-100*rho_delta[j, i] + r_delayed[j, i])
 
-                    # if i ==500:
-                    #     a=1
+                    if i == 40:
+                        a = 0
+
+                    if i == 200:
+                        a = 1
                     b = rho[j, :, i + 1]
                     if (self.v[rho[j, :, i + 1] < 0]).shape[0] > 1:
                         a = 1
-
-                    # if not g_exc.all() == 0:
-                    #     print(i)
+                    if i == 180:
+                        l=20
 
                 else:
                     # inhibitory population
@@ -1170,6 +1211,7 @@ class Nykamp_Model_1():
                 h5file.create_dataset('in', data=self.i_ext)
             else:
                 h5file.create_dataset('in', data=self.input)
+            h5file.create_dataset('rho', data=rho)
             h5file.create_dataset('rho_plot', data=rho_plot)
             h5file.create_dataset('p_types', data=self.population_type)
         self.simulation_done = True
@@ -1423,6 +1465,7 @@ class Nykamp_Model_1():
 
         if fname == None:
             fname = self.name
+        rho = None
 
         with h5py.File(fname + '.hdf5', 'r') as h5file:
 
@@ -1434,6 +1477,8 @@ class Nykamp_Model_1():
             rho_plot = np.array(h5file['rho_plot'])
             p_types_raw = h5file['p_types']
             p_types = p_types_raw.asstr()[:]
+            if 'rho' in h5file:
+                rho = np.array(h5file['rho'])
 
         if plot_input:
             with h5py.File(fname + '.hdf5', 'r') as h5file:
@@ -1539,18 +1584,22 @@ class Nykamp_Model_1():
                     plt.show()
         if animate:
             print('plotting animation of rho(v, t)')
+            if isinstance(rho, np.ndarray):
+                rho_animation = rho
+            else:
+                rho_animation = rho_plot
             fig = plt.figure(figsize=(10, 4.25*n_plots))
             for i_plot, plot_idx in enumerate(plot_idxs):
                 ax = fig.add_subplot(n_plots, 1, i_plot+1)
-                line = ax.plot(v, rho_plot[plot_idx, :, 0])[0]
-                # plt.fill_between(x=v, y1=rho_plot[plot_idx, :, 0], color="b", alpha=0.2)
+                line = ax.plot(v, rho_animation[plot_idx, :, 0])[0]
+                # plt.fill_between(x=v, y1=rho_animation[plot_idx, :, 0], color="b", alpha=0.2)
                 bbox = dict(boxstyle='round', fc='blanchedalmond', ec='orange', alpha=0.5)
                 text = ax.text(0.95, 0.9, f't = {t_plot[0]:.2f}ms', fontsize=9, bbox=bbox,
                         transform=ax.transAxes, horizontalalignment='right')
-                ax.set(xlim=[v.min(), v.max()], ylim=[0, rho_plot.max()*0.5], xlabel='v (mV)', ylabel='rho')
+                ax.set(xlim=[v.min(), v.max()], ylim=[0, rho_animation.max()*0.5], xlabel='v (mV)', ylabel='rho')  # rho_animation.max()*0.5
                 def update(frame):
                     # for each frame, update the data stored on each artist.
-                    rho_frame = rho_plot[plot_idx, :, frame]
+                    rho_frame = rho_animation[plot_idx, :, frame]
 
                     # update the line plot:
                     # line.set_xdata(v[:frame])
@@ -1559,7 +1608,7 @@ class Nykamp_Model_1():
                     # plt.fill_between(x=v, y1=rho_frame, color="b", alpha=0.2)
                     return (line, text)
 
-                ani = animation.FuncAnimation(fig=fig, func=update, frames=rho_plot.shape[2], interval=22)
+                ani = animation.FuncAnimation(fig=fig, func=update, frames=rho_animation.shape[2], interval=22)
                 # plt.show()
                 ani.save(filename=self.name + '_rho_animation.gif', writer="pillow")
                 print(f'saved animation of rho to {self.name}_rho_animation.gif')
