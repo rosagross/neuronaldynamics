@@ -11,7 +11,7 @@ matplotlib.use('TkAgg')
 # LIF model #
 ########################################################################################################################
 
-T = 150
+T = 15
 dt = 0.1
 t = np.arange(0.0, T, dt)
 
@@ -32,8 +32,8 @@ for i in tqdm(range(dim), f'computing random neuron connections for {dim} neuron
 
 
 def step_µA(t):
-    t1 = 20
-    t2 = 90
+    t1 = 0
+    t2 = 10
     i_0 = 1
     res = np.zeros_like(t)
     res[t > t1] = i_0
@@ -41,9 +41,9 @@ def step_µA(t):
     return res
 
 def step_A(t):
-    t1 = 20
-    t2 = 90
-    i_0 = 1e6
+    t1 = 0
+    t2 = 10
+    i_0 = 1e-3
     res = np.zeros_like(t)
     res[t > t1] = i_0
     res[t > t2] = 0
@@ -82,14 +82,18 @@ pars_1D['input_function'] = step_A
 pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
-pars_1D['input_type'] = 'current-2'
+pars_1D['input_type'] = 'current-2' # 'current-2'
 pars_1D['c_mem'] = [0.2]  # 0.2F capacitance
 pars_1D['T'] = T
+pars_1D['c_eext2_factor'] = 1# 0.0001
+pars_1D['init_pdf_sigma'] = 0.1# 0.0001
+pars_1D['sparse_mat'] = False
 
-nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp')
+nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp_current_2')
 nyk1D.simulate()
-nyk1D.plot(heat_map=True, z_limit=0.2)
+nyk1D.plot(heat_map=True, z_limit=0.2, animate=False)
 #
-compare_firing_rate('Nykamp', 'Conductance_LIF')
+# compare_firing_rate('Nykamp', 'Conductance_LIF')
+
 
 

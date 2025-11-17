@@ -852,7 +852,7 @@ class Nykamp_Model_1():
                     self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(x=self.t)
                 except:
                     self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
-        elif self.input_type == 'current':
+        elif self.input_type == 'current' or 'current-2':
             self.i_ext[self.input_function_idx] = self.input_function(self.t)
 
 
@@ -962,12 +962,6 @@ class Nykamp_Model_1():
                         self.c2eext_v[mask1] = (self.v[mask1] - self.u_inh)
                         self.c2eext_v[mask2] = 0
 
-                        if i == 40:
-                            a=0
-
-                        if i == 200:
-                            a=1
-
                         self.c1eext = self.c_eext1_factor*self.c1eext
                         self.c1eext_v = self.c_eext1_factor*self.c1eext_v
                         self.c2eext = self.c_eext2_factor*self.c2eext  # was 0.2
@@ -1044,11 +1038,9 @@ class Nykamp_Model_1():
                                                                            self.u_exc - self.u_rest)) *
                                                                rho_delta[j, i])
                     r_ext = + self.c2eext[-1] * rho[j, -2, i] / self.dv + F_ext_delta * rho_delta[j, i]
-
-
                     r[j, i] = r_j + r_ext
 
-                    if i == 200:
+                    if i == 1:
                         a=1
 
                     # if r[j, i] < 0:
@@ -1125,8 +1117,6 @@ class Nykamp_Model_1():
                             rho_delta[j, i] + r_delayed[j, i])
                     # rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-100*rho_delta[j, i] + r_delayed[j, i])
 
-                    if i == 40:
-                        a = 0
 
                     if i == 200:
                         a = 1
