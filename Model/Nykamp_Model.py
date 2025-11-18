@@ -769,6 +769,7 @@ class Nykamp_Model_1():
         self.synapse_pdf_type = 'gamma'
         self.verbose = 0
         self.implemented_pdf_types = ['gamma', 'normal', 'log-normal']
+        self.current_sigma = 0.1
 
         self.g_eext_factor = 1
         self.c_eext1_factor = 1
@@ -828,6 +829,10 @@ class Nykamp_Model_1():
         self.simulation_done = False
         self.verbose = 0
 
+        if not self.input_type in ['rate', 'current', 'current-2', 'stochastic-current']:
+            raise NotImplementedError(f"Input type {self.input_type} not implemented! Please chose from "
+                                      f"['rate', 'current', 'current-2', 'stochastic-current']")
+
 
     def simulate(self):
 
@@ -852,8 +857,10 @@ class Nykamp_Model_1():
                     self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(x=self.t)
                 except:
                     self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
-        elif self.input_type == 'current' or 'current-2':
+        elif self.input_type in  ['current', 'current-2', 'stochastic-current']:
             self.i_ext[self.input_function_idx] = self.input_function(self.t)
+            if not isinstance(self.current_sigma, np.ndarray):
+                self.current_sigma = self.current_sigma*self.i_ext
 
 
         if self.verbose > 0:
@@ -1003,16 +1010,35 @@ class Nykamp_Model_1():
 
                     current_2_val = 0
                     if self.input_type == 'current-2':
+                        v_ext = self.i_ext[j, i] / self.g_leak[j]
+                        current_2_val = 1
+                    elif self.input_type == 'stochastic-current':
                         ################################################################################################
                         # EXTERNAL COEFFS
                         # Additional external coefficients and pdfs to handle constant current input as dirac
                         # distributed in voltage space
                         ################################################################################################
                         v_ext = self.i_ext[j, i] / self.g_leak[j]
-                        current_2_val = 1
+                        sigma = self.current_sigma[j, i]**2/self.tau_mem[j]
+                        v_shape = self.v.shape[0]
+                        self.c1eext = np.repeat(v_ext /self.tau_mem[j], v_shape)
+                        self.c1eext_v = 0
+                        self.c2eext = np.repeat(sigma, v_shape)
+                        self.c2eext_v = 0
+
+                        dirac_index = np.where(self.v > self.u_reset)[0][0]  # insert a v_reset
+                        g_eext = self.gauss_func(x=self.v, mu=self.v[dirac_index], sigma=0.1)
+                        g_eext[:10] = 0
+                        g_eext[-10:] = 0
+                        g_eext /= g_eext.sum()
+                        g_eext = g_eext * -rho_delta[j, i] * self.g_eext_factor
+                        F_ext_delta = 1 * self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
+                        v_in_i_ext = 1
+
 
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
                     #  check if this is correct
+                    # if self.input_type in ['rate', 'current', 'current-2']:
                     f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
                                             + np.sum(v_in[inh_idxs, j, i]) * c1ei_v - self.c1eext_v)
                     f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest - current_2_val*v_ext) / self.tau_mem[0] +
@@ -1021,6 +1047,8 @@ class Nykamp_Model_1():
                                                         np.sum(v_in[inh_idxs, j, i]) * (c1ei + c2ei_v))
                     f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
                                                              np.sum(v_in[inh_idxs, j, i]) * c2ei + self.c2eext)
+                    # else:
+
 
                     A_exc = self.get_A(f0_exc, f1_exc, f2_exc)
                     B_exc = self.get_B(f0_exc, f1_exc, f2_exc)
@@ -1040,7 +1068,7 @@ class Nykamp_Model_1():
                     r_ext = + self.c2eext[-1] * rho[j, -2, i] / self.dv + F_ext_delta * rho_delta[j, i]
                     r[j, i] = r_j + r_ext
 
-                    if i == 1:
+                    if i == 600:
                         a=1
 
                     # if r[j, i] < 0:
@@ -1118,7 +1146,7 @@ class Nykamp_Model_1():
                     # rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-100*rho_delta[j, i] + r_delayed[j, i])
 
 
-                    if i == 200:
+                    if i == 50:
                         a = 1
                     b = rho[j, :, i + 1]
                     if (self.v[rho[j, :, i + 1] < 0]).shape[0] > 1:

@@ -43,7 +43,7 @@ def step_µA(t):
 def step_A(t):
     t1 = 0
     t2 = 10
-    i_0 = 1e-3
+    i_0 = 5e-3
     res = np.zeros_like(t)
     res[t > t1] = i_0
     res[t > t2] = 0
@@ -74,20 +74,26 @@ pars_1D['u_rest'] = -65
 pars_1D['u_thr'] = -55
 pars_1D['u_exc'] = 0
 pars_1D['u_inh'] = -70
+pars_1D['u_reset'] = -65
 pars_1D['tau_mem'] = np.array([20])
-pars_1D['tau_ref'] = np.array([3])
+pars_1D['tau_ref'] = np.array([0])
+pars_1D['dv'] = 0.01
+pars_1D['dt'] = 0.005
 
 # pars_1D['input_function'] = step_population
 pars_1D['input_function'] = step_A
 pars_1D['input_function_type'] = 'custom'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
-pars_1D['input_type'] = 'current-2' # 'current-2'
+pars_1D['input_type'] = 'stochastic-current' # 'current-2'
 pars_1D['c_mem'] = [0.2]  # 0.2F capacitance
 pars_1D['T'] = T
 pars_1D['c_eext2_factor'] = 1# 0.0001
 pars_1D['init_pdf_sigma'] = 0.1# 0.0001
-pars_1D['sparse_mat'] = False
+pars_1D['sparse_mat'] = True
+pars_1D['current_sigma'] = 5e2
+pars_1D['g_eext_factor'] = 1
+
 
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp_current_2')
 nyk1D.simulate()
