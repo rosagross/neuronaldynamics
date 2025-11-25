@@ -6,8 +6,8 @@ from Model.DI_wave import DI_wave_simulation
 matplotlib.use('TkAgg')
 
 # fn_session = '/home/erik/Downloads/gpc.pkl'
-fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-# fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+# fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 simulation_name = 'diw_2025_11_04_5'
 # [140.34858132   0.67971667   0.98021345   0.43615625  13.24401196]
 # [150   0.6983768    0.98613453   0.57663151  22.7918771 ]
@@ -18,9 +18,9 @@ simulation_name = 'diw_2025_11_04_5'
 parameters = {'intensity': 322, 'fraction_nmda': 0.30, 'fraction_gaba_a': 0.94, 'fraction_ex': 0.80, 'plot_align': False,
               'test_func_intensity': 2.5, 'test_func_t0': 0.35,
               'test_signal_from_file': True,
-              'fn_session': fn_session, 'T': 10, 'name': simulation_name, 'dt': 0.02, 'enable_high_pass': False,
+              'fn_session': fn_session, 'T': 10, 'name': simulation_name, 'dt': 0.01, 'enable_high_pass': False,
               'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
-                                    'tau_ref': [1.5],
+                                    'tau_ref': [0],
                                     'tau_mem': [12],
                                     'input_type': 'current',
                                     'init_pdf_sigma': 1.0},
@@ -28,7 +28,7 @@ parameters = {'intensity': 322, 'fraction_nmda': 0.30, 'fraction_gaba_a': 0.94, 
               'c_eext2_factor': 1}
 di_model = DI_wave_simulation(parameters=parameters, logname=None)
 di_model.simulate()
-di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.15, animate=False, savefig=True)
+di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.15, animate=False, savefig=False)
 # di_model.plot_input_current()
 # di_model.get_test_signal(plot=True)
 # di_model.plot_convolution()

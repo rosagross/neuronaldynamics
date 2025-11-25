@@ -106,7 +106,7 @@ pars_1D['tau_alpha'] = 1/3
 pars_1D['n_alpha'] = 9
 # pars_1D['input_function'] = step_population
 pars_1D['input_function'] = i_ext_population
-pars_1D['input_function_type'] = 'custom'
+pars_1D['input_function_type'] = 'stochastic-current'
 pars_1D['input_function_idx'] = [0, 0]
 pars_1D['population_type'] = ['exc']
 

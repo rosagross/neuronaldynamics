@@ -13,7 +13,7 @@ T = 10
 x0 = -4
 sigma0 = 1
 alpha = 0.5
-a = 0.5
+a = 1
 x = np.arange(-10, 10, dx)
 t = np.arange(0, T, dt)
 
@@ -57,7 +57,13 @@ for i in tqdm(range(1, Nt), f'simulating {Nt} time steps'):
     res = A.dot(u[i-1])
     u[i] = res
 end = time.time()
-# print(f'Fourier Number: {F:.3f}')
+
+cell_Reynolds = c/s
+print(f'Cell Reynolds Number: {cell_Reynolds:.3f}')
+if cell_Reynolds > 1.0 or cell_Reynolds < 0.1:
+    print(f"Stability with may not be guaranteed with Cell Reynolds Number {cell_Reynolds:.3f}")
+
+
 print(f"computation time: {end-start:2f}s")
 print(f"Part of initial volume left: {u[-1].sum():.2f}")
 def plot_sol(u, t, x, alpha=1):
