@@ -10,10 +10,10 @@ matplotlib.use('TkAgg')
 dx = 0.1
 dt = 0.01
 T = 10
-x0 = 2
+x0 = -4
 sigma0 = 1
 alpha = 0.5
-a = 0.0
+a = 0.5
 x = np.arange(-10, 10, dx)
 t = np.arange(0, T, dt)
 
@@ -36,11 +36,12 @@ c = a*dt/dx
 s = alpha*dt/dx**2
 r1 = 0.5*(2*s + c + c**2)
 r2 = 1 - 2*s - c**2
+r3 = 0.5*(2*s - c + c**2)
 
 # Precompute sparse matrix
 main[:] = r2
 lower[:] = r1
-upper[:] = r1
+upper[:] = r3
 # Insert boundary conditions
 main[0] = 1
 main[Nx] = 1
