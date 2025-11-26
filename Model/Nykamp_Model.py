@@ -768,6 +768,7 @@ class Nykamp_Model_1():
         self.population_type = ['exc']
         self.synapse_pdf_type = 'gamma'
         self.verbose = 0
+        self.solver == 'nykamp'
         self.implemented_pdf_types = ['gamma', 'normal', 'log-normal']
         self.current_sigma = 0.1
 
@@ -899,7 +900,7 @@ class Nykamp_Model_1():
         for i in range(len(self.population_type)):
             # initialize arrays
             init_dist = scipy.stats.norm.pdf(self.v, self.u_rest + self.init_pdf_offset, self.init_pdf_sigma)
-            # init_dist /= init_dist.sum()
+            init_dist /= init_dist.sum()
             # init_dist /= 10
             rho[i, :, 0] = init_dist
             rho[i, 0, 0] = 0
@@ -1039,120 +1040,182 @@ class Nykamp_Model_1():
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
                     #  check if this is correct
                     # if self.input_type in ['rate', 'current', 'current-2']:
-                    f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
-                                            + np.sum(v_in[inh_idxs, j, i]) * c1ei_v - self.c1eext_v)
-                    f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest - current_2_val*v_ext) / self.tau_mem[0] +
-                                                        - self.c1eext + self.c2eext_v +  # new external inputs
-                                                        np.sum(v_in[exc_idxs, j, i]) * (-c1ee + c2ee_v) +
-                                                        np.sum(v_in[inh_idxs, j, i]) * (c1ei + c2ei_v))
-                    f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
-                                                             np.sum(v_in[inh_idxs, j, i]) * c2ei + self.c2eext)
-                    # else:
+                    if self.solver == 'nykamp':
+                        f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
+                                                + np.sum(v_in[inh_idxs, j, i]) * c1ei_v - self.c1eext_v)
+                        f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest - current_2_val*v_ext) / self.tau_mem[0] +
+                                                            - self.c1eext + self.c2eext_v +  # new external inputs
+                                                            np.sum(v_in[exc_idxs, j, i]) * (-c1ee + c2ee_v) +
+                                                            np.sum(v_in[inh_idxs, j, i]) * (c1ei + c2ei_v))
+                        f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
+                                                                 np.sum(v_in[inh_idxs, j, i]) * c2ei + self.c2eext)
+                        # else:
 
 
-                    A_exc = self.get_A(f0_exc, f1_exc, f2_exc)
-                    B_exc = self.get_B(f0_exc, f1_exc, f2_exc)
+                        A_exc = self.get_A(f0_exc, f1_exc, f2_exc)
+                        B_exc = self.get_B(f0_exc, f1_exc, f2_exc)
 
-                    # contribution to drho/dt from rho_delta at u_res
+                        # contribution to drho/dt from rho_delta at u_res
 
-                    g_exc = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
-                                               np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1]) - v_in_i_ext * g_eext
+                        g_exc = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
+                                                   np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1]) - v_in_i_ext * g_eext
 
 
-                    # calculate firing rate
-                    r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
-                                                               self.synapse_pdf_funcs[j].sf(
-                                                                   (self.u_thr - self.u_rest) / (
-                                                                           self.u_exc - self.u_rest)) *
-                                                               rho_delta[j, i])
-                    r_ext = + self.c2eext[-1] * rho[j, -2, i] / self.dv + F_ext_delta * rho_delta[j, i]
-                    r[j, i] = r_j + r_ext
+                        # calculate firing rate
+                        r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
+                                                                   self.synapse_pdf_funcs[j].sf(
+                                                                       (self.u_thr - self.u_rest) / (
+                                                                               self.u_exc - self.u_rest)) *
+                                                                   rho_delta[j, i])
+                        r_ext = + self.c2eext[-1] * rho[j, -2, i] / self.dv + F_ext_delta * rho_delta[j, i]
+                        r[j, i] = r_j + r_ext
 
-                    if i == 600:
-                        a=1
+                        if i == 600:
+                            a=1
 
-                    # if r[j, i] < 0:
-                    #     r[j, i] = 0
-                    if np.isnan(r[j, i]):
-                        a = 0
-                    if np.abs(r[j, i] - r[j, i-1]) > 30e-3 and i > 1:
-                        l = 12
+                        # if r[j, i] < 0:
+                        #     r[j, i] = 0
+                        if np.isnan(r[j, i]):
+                            a = 0
+                        if np.abs(r[j, i] - r[j, i-1]) > 30e-3 and i > 1:
+                            l = 12
 
-                    if i == 0:
-                        neg_rho_counter = 0
-                        rho_shrink_counter = 0
-                        rho_inflate_counter = 0
-                        rho_area_start = np.sum(rho[j, :, i])
-                    if neg_rho_counter == 0 and np.mean(rho[j, :, i]) < -1:
-                        print('\nWarning!, negative rho detected!')
-                        neg_rho_counter = 1
-                    mean_rho_area = np.sum(rho[j, :, :], axis=0)
-                    mean_rho_idx = int(2*ref_delta_idxs[j])
-                    if i > mean_rho_idx and self.verbose > 0:
-                        if np.mean(mean_rho_area[i-mean_rho_idx:i]) < rho_area_start*0.2 and rho_shrink_counter == 0:
-                            # print(f'\n Warning!, rho is draining, i = {i}')
-                            rho_shrink_counter = 1
-                        elif mean_rho_area[i-1] > rho_area_start*1.1 and rho_inflate_counter == 0:
-                            # print(f'\n Warning!, rho is inlfating, i = {i}')
-                            rho_inflate_counter = 1
+                        if i == 0:
+                            neg_rho_counter = 0
+                            rho_shrink_counter = 0
+                            rho_inflate_counter = 0
+                            rho_area_start = np.sum(rho[j, :, i])
+                        if neg_rho_counter == 0 and np.mean(rho[j, :, i]) < -1:
+                            print('\nWarning!, negative rho detected!')
+                            neg_rho_counter = 1
+                        mean_rho_area = np.sum(rho[j, :, :], axis=0)
+                        mean_rho_idx = int(2*ref_delta_idxs[j])
+                        if i > mean_rho_idx and self.verbose > 0:
+                            if np.mean(mean_rho_area[i-mean_rho_idx:i]) < rho_area_start*0.2 and rho_shrink_counter == 0:
+                                # print(f'\n Warning!, rho is draining, i = {i}')
+                                rho_shrink_counter = 1
+                            elif mean_rho_area[i-1] > rho_area_start*1.1 and rho_inflate_counter == 0:
+                                # print(f'\n Warning!, rho is inlfating, i = {i}')
+                                rho_inflate_counter = 1
 
-                    if r[j, i] > 1e6:
-                        if self.sparse_mat:
-                            A = np.array(A_exc.todense())
-                            B = np.array(B_exc.todense())
-                            kappa_A = np.linalg.cond(A)
-                            kappa_B = np.linalg.cond(B)
+                        if r[j, i] > 1e6:
+                            if self.sparse_mat:
+                                A = np.array(A_exc.todense())
+                                B = np.array(B_exc.todense())
+                                kappa_A = np.linalg.cond(A)
+                                kappa_B = np.linalg.cond(B)
+                            else:
+                                kappa_A = np.linalg.cond(A_exc)
+                                kappa_B = np.linalg.cond(B_exc)
+
+                            dt_proposal = self.dt/kappa_A*50  # may use 75 for boarder to instability
+
+                            print(f'Exiting simulation: rate of {r[j, i]:5f} detected \n Condition number for A and B are: '
+                                  f'{kappa_A}, {kappa_B} \n Try dt<= {dt_proposal:.6f}')
+                            self.break_outer = True
+                            break
+
+                        r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
+
+                        # test some stability criteria for the matrices
+                        # A = np.array(A_exc.todense())
+                        # B = np.array(B_exc.todense())
+                        # b = np.array(B_exc.dot(rho[j, :, i]))
+                        #
+
+                        # kappa = np.linalg.cond(B)
+                        #
+                        # #C_exc = np.linalg.inv(A_exc) @ B_exc
+                        # n_s = int(self.v.shape[0])
+                        # u, s, v = scipy.sparse.linalg.svds(B_exc)
+                        # u, s, v = np..linalg.svd(B_exc)
+                        # min_svd = np.min(s)
+                        # B_exc = u.dot(s).dot(v.T)
+
+                        if not self.sparse_mat:
+                            rho[j, :, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho[j, :, i]))
+                            # rho[j, :, i + 1] = scipy.linalg.solve_banded((1, 1), A_exc, np.matmul(B_exc, rho[j, :, i]))
                         else:
-                            kappa_A = np.linalg.cond(A_exc)
-                            kappa_B = np.linalg.cond(B_exc)
+                            rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_exc, B_exc.dot(rho[j, :, i]))
+                            # rho[j, :, i + 1] = scipy.sparse.linalg.lsmr(A_exc, B_exc.dot(rho[j, :, i]),
+                            #                                             damp=0.2, maxiter=100)[0]
 
-                        dt_proposal = self.dt/kappa_A*50  # may use 75 for boarder to instability
-
-                        print(f'Exiting simulation: rate of {r[j, i]:5f} detected \n Condition number for A and B are: '
-                              f'{kappa_A}, {kappa_B} \n Try dt<= {dt_proposal:.6f}')
-                        self.break_outer = True
-                        break
-
-                    r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
-
-                    # test some stability criteria for the matrices
-                    # A = np.array(A_exc.todense())
-                    # B = np.array(B_exc.todense())
-                    # b = np.array(B_exc.dot(rho[j, :, i]))
-                    #
-
-                    # kappa = np.linalg.cond(B)
-                    #
-                    # #C_exc = np.linalg.inv(A_exc) @ B_exc
-                    # n_s = int(self.v.shape[0])
-                    # u, s, v = scipy.sparse.linalg.svds(B_exc)
-                    # u, s, v = np..linalg.svd(B_exc)
-                    # min_svd = np.min(s)
-                    # B_exc = u.dot(s).dot(v.T)
-
-                    if not self.sparse_mat:
-                        rho[j, :, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho[j, :, i]))
-                        # rho[j, :, i + 1] = scipy.linalg.solve_banded((1, 1), A_exc, np.matmul(B_exc, rho[j, :, i]))
-                    else:
-                        rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_exc, B_exc.dot(rho[j, :, i]))
-                        # rho[j, :, i + 1] = scipy.sparse.linalg.lsmr(A_exc, B_exc.dot(rho[j, :, i]),
-                        #                                             damp=0.2, maxiter=100)[0]
-
-                    # update rho and rho_delta by their time derivative components from discontinuous terms
-                    rho[j, :, i + 1] += self.dt * g_exc
-                    rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
-                            -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
-                            rho_delta[j, i] + r_delayed[j, i])
-                    # rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-100*rho_delta[j, i] + r_delayed[j, i])
+                        # update rho and rho_delta by their time derivative components from discontinuous terms
+                        rho[j, :, i + 1] += self.dt * g_exc
+                        rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
+                                -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
+                                rho_delta[j, i] + r_delayed[j, i])
+                        # rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-100*rho_delta[j, i] + r_delayed[j, i])
 
 
-                    if i == 50:
-                        a = 1
-                    b = rho[j, :, i + 1]
-                    if (self.v[rho[j, :, i + 1] < 0]).shape[0] > 1:
-                        a = 1
-                    if i == 180:
-                        l=20
+                        if i == 50:
+                            a = 1
+                        b = rho[j, :, i + 1]
+                        if (self.v[rho[j, :, i + 1] < 0]).shape[0] > 1:
+                            a = 1
+                        if i == 180:
+                            l=20
+
+                    elif self.solver == 'Lax_Wendroff' or 'LW':
+
+                        if self.c1eext_v !=0 or self.c2eext_v !=0:
+                            print(f'WARNING!: v-derivatives of coefficients will are non-zero, but will be ignored!')
+
+                        Nx = self.v.shape[0]
+                        Nt = self.t.shape[0]
+
+                        main = np.zeros(Nx + 1)
+                        lower = np.zeros(Nx)
+                        upper = np.zeros(Nx)
+                        b = np.zeros(Nx + 1)
+
+                        drift_coeff = np.sum(- v_in[exc_idxs, j, i]) * c1ee_v + np.sum(v_in[inh_idxs, j, i]) * c1ei_v +\
+                                      self.c1eext
+
+                        diffusion_coeff = + self.c2eext
+
+                        c = drift_coeff * self.dt / self.dv
+                        s = diffusion_coeff * self.dt / self.dv ** 2
+                        r1 = 0.5 * (2 * s + c + c ** 2)
+                        r2 = 1 - 2 * s - c ** 2
+                        r3 = 0.5 * (2 * s - c + c ** 2)
+
+                        # Precompute sparse matrix
+                        main[:] = r2
+                        lower[:] = r1
+                        upper[:] = r3
+                        # Insert boundary conditions
+                        main[0] = 1
+                        main[Nx] = 1
+                        A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1],
+                                               shape=(Nx + 1, Nx + 1), format='csr')
+
+                        g_exc = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
+                                                   np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1]) - v_in_i_ext * g_eext
+
+                        # calculate firing rate
+                        r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
+                                                              self.synapse_pdf_funcs[j].sf(
+                                                                  (self.u_thr - self.u_rest) / (
+                                                                          self.u_exc - self.u_rest)) *
+                                                              rho_delta[j, i])
+                        r_ext = + self.c2eext[-1] * rho[j, -2, i] / self.dv + F_ext_delta * rho_delta[j, i]
+                        r[j, i] = r_j + r_ext
+
+                        if r > 1e6:
+                            break
+                        r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
+
+                        if not self.sparse_mat:
+                            rho[j, :, i + 1] = A.dot(rho[j, :, i])
+                        else:
+                            rho[j, :, i + 1] = A @ rho[j, :, i]
+
+                        # update rho and rho_delta by their time derivative components from discontinuous terms
+                        rho[j, :, i + 1] += self.dt * g_exc
+                        rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
+                                -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
+                                rho_delta[j, i] + r_delayed[j, i])
 
                 else:
                     # inhibitory population
@@ -1193,8 +1256,8 @@ class Nykamp_Model_1():
                     r_ext = 0 #c1ie[-1]*(1/self.g_leak[j])*self.i_ext[j, i] * rho[j, -2, i] / self.dv
 
                     r[j, i] = r_j + r_ext
-                    if r[j, i] < 0:
-                        # print(f"WARNING: r_inh < 0 ! (r_inh = {r_inh[i]}) ... Setting r_inh to 0")
+                    if r[j, i] < 0.1:
+                        print(f"WARNING: r_inh < 0 ! (r_inh = {r[j, i]}) ... Setting r_inh to 0")
                         r[j, i] = 0
                     r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
 

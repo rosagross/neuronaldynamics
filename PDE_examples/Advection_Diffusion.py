@@ -8,10 +8,10 @@ import time
 matplotlib.use('TkAgg')
 
 dx = 0.1
-dt = 0.01
+dt = 0.001
 T = 10
 x0 = -4
-sigma0 = 1
+sigma0 = 1.0
 alpha = 0.5
 a = 1
 x = np.arange(-10, 10, dx)
@@ -23,7 +23,7 @@ f_init /= f_init.sum()
 Nx = x.shape[0]
 Nt = t.shape[0]
 
-# a = a * np.ones(Nt)
+a = a * np.ones(Nt) + 1.5*np.sin(t)
 
 F = (alpha/dx**2*dt)
 

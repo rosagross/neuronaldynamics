@@ -60,7 +60,7 @@ def plot_sol(u, t, x, alpha=1):
     z_min, z_max = u.min(), u.max()
     c = ax.pcolormesh(x_mesh, y_mesh, u_plot, cmap='viridis', vmin=z_min, vmax=z_max)
     fig.colorbar(c, ax=ax)
-    ax.set_title(f"Time evolution of the diffusion equation for alpha ={alpha}")
+    ax.set_title(f"Time evolution of the diffusion equation for alpha = {alpha}")
     ax.set_xlabel("t")
     ax.set_ylabel("x")
     plt.tight_layout()

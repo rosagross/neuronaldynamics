@@ -97,7 +97,7 @@ pars_1D['g_eext_factor'] = 1
 
 nyk1D = Nykamp_Model_1(parameters=pars_1D, name='Nykamp_current_2')
 nyk1D.simulate()
-nyk1D.plot(heat_map=True, z_limit=0.2, animate=False)
+nyk1D.plot(heat_map=True, z_limit=0.2, animate=False, plot_input=True)
 #
 # compare_firing_rate('Nykamp', 'Conductance_LIF')
 
