@@ -8,7 +8,7 @@ import time
 matplotlib.use('TkAgg')
 
 dx = 0.1
-dt = 0.01
+dt = 0.001
 T = 10
 x0 = -4
 sigma0 = 1.0
