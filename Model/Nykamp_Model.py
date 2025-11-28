@@ -858,7 +858,7 @@ class Nykamp_Model_1():
                     self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(x=self.t)
                 except:
                     self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
-        elif self.input_type in  ['current', 'current-2', 'stochastic-current']:
+        elif self.input_type in ['current', 'current-2', 'stochastic-current']:
             self.i_ext[self.input_function_idx] = self.input_function(self.t)
             if not isinstance(self.current_sigma, np.ndarray):
                 self.current_sigma = self.current_sigma*self.i_ext
