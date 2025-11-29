@@ -9,6 +9,13 @@ matplotlib.use('TkAgg')
 
 solver = 'LW' # 'Hu-2021'
 
+def M(x, a, alpha):
+    res = np.exp(-(-x+a)**2/(2*alpha))
+    return res
+
+def harm_mean(x1, x2):
+    return 2/((1/x1)+(1/x2))
+
 dx = 0.1
 dt = 0.001
 T = 10
@@ -119,10 +126,6 @@ elif solver=='Hu-2021':
     # Set initial condition
     u[0, :Nx] = f_init
 
-    if not isinstance(a, np.ndarray):
-        a = a * np.ones(Nt)
-    if not isinstance(alpha, np.ndarray):
-        alpha = alpha * np.ones(Nt)
 
     # run over time steps
     for i in tqdm(range(1, Nt), f'simulating {Nt} time steps'):
@@ -132,15 +135,19 @@ elif solver=='Hu-2021':
         upper = np.zeros(Nx)
         b = np.zeros(Nx + 1)
 
-        # discretization for Lax-Wendroff (forward?)
-        c = a[i] * dt / dx
-        s = alpha[i] * dt / dx ** 2
-        r1 = 0.5 * (2 * s + c + c ** 2)
-        r2 = 1 - 2 * s - c ** 2
-        r3 = 0.5 * (2 * s - c + c ** 2)
+        # discretization for Hu-2021
+        c = alpha[i] * dt / dx
 
+        Ms = M(x, a[i], alpha[i])
+        M_harm = np.zeros(Nx+1)
+        for j in range(Nx+1):
+            M_harm[j] = harm_mean(Ms[i], Ms[i+1])
+
+        r1 = -c*M_harm[0:-2]/Ms[0:-2]
+        r2 = 1+c*(M_harm[1:]/Ms + M_harm[:-2]/Ms)
+        r3 = -c*M_harm[1:]/Ms[1:]
         # Precompute sparse matrix
-        main[:] = r2
+        main[1:-2] = r2
         lower[:] = r1
         upper[:] = r3
         # Insert boundary conditions
