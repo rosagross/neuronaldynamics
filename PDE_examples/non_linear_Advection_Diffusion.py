@@ -7,10 +7,10 @@ import matplotlib
 import time
 matplotlib.use('TkAgg')
 
-solver = 'LW' # 'Hu-2021'
+solver = 'Hu-2021' # 'Hu-2021'
 
 def M(x, a, alpha):
-    res = np.exp(-(-x+a)**2/(2*alpha))
+    res = np.exp(-(x-a)**2/(2*alpha+1e-6))
     return res
 
 def harm_mean(x1, x2):
@@ -126,39 +126,41 @@ elif solver=='Hu-2021':
     # Set initial condition
     u[0, :Nx] = f_init
 
+    if not isinstance(alpha, np.ndarray):
+        alpha = alpha * np.ones(Nt)
+
 
     # run over time steps
     for i in tqdm(range(1, Nt), f'simulating {Nt} time steps'):
         # Representation of sparse matrix and right-hand side
-        main = np.zeros(Nx + 1)
-        lower = np.zeros(Nx)
-        upper = np.zeros(Nx)
-        b = np.zeros(Nx + 1)
+        main = np.zeros(Nx - 1)
+        lower = np.zeros(Nx - 2)
+        upper = np.zeros(Nx - 2)
 
         # discretization for Hu-2021
         c = alpha[i] * dt / dx
 
         Ms = M(x, a[i], alpha[i])
-        M_harm = np.zeros(Nx+1)
-        for j in range(Nx+1):
-            M_harm[j] = harm_mean(Ms[i], Ms[i+1])
+        M_harm = np.zeros(Nx-1)  # idk
+        for j in range(Nx-1):
+            M_harm[j] = harm_mean(Ms[j], Ms[j+1])
 
-        r1 = -c*M_harm[0:-2]/Ms[0:-2]
-        r2 = 1+c*(M_harm[1:]/Ms + M_harm[:-2]/Ms)
-        r3 = -c*M_harm[1:]/Ms[1:]
+
+        r1 = -c*M_harm[:-2]/Ms[:-3]  # idk about the indices
+        r2 = 1+c*(M_harm[1:-1]/Ms[1:-2] + M_harm[:-2]/Ms[:-3])
+        r3 = -c*M_harm[1:-1]/Ms[1:-2]
         # Precompute sparse matrix
-        main[1:-2] = r2
-        lower[:] = r1
-        upper[:] = r3
+        main[1:-1] = r2
+        lower[:-1] = r1  # reaching here
+        upper[1:] = r3
         # Insert boundary conditions
         main[0] = 1
-        main[Nx] = 1
-        A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx + 1, Nx + 1), format='csr')
+        main[Nx-2] = 1
+        A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx - 1, Nx - 1), format='csr')
 
-        b = u[i - 1]
-        b[0] = b[-1] = 0.0  # boundary conditions
-        res = A.dot(u[i - 1])
-        u[i] = res
+        b = u[i - 1, 1:-1]
+        # b[0] = b[-1] = 0.0  # boundary conditions
+        u[i, 1:-1] = scipy.sparse.linalg.spsolve(A, b)
 
     end = time.time()
 
