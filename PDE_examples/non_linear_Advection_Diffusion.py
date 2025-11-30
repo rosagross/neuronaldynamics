@@ -7,21 +7,29 @@ import matplotlib
 import time
 matplotlib.use('TkAgg')
 
-solver = 'Hu-2021' # 'Hu-2021'
+solver = 'Hu-2021' # 'LW', 'Hu-2021'
 
-def M(x, a, alpha):
-    res = np.exp(-(x-a)**2/(2*alpha+1e-6))
-    return res
+def M(x, a, alpha, x_L=-5):
+    """
+    compute Scharfetter-Gummel flux functional
+    :param x: x
+    :param a: drift
+    :param alpha: diffusion
+    :param x_L: resting point
+    :return: M: Scharfetter-Gummel flux functional
+    """
+    U = ((1/2)*x - x_L - a)*x/alpha
+    return np.exp(-U)
 
 def harm_mean(x1, x2):
     return 2/((1/x1)+(1/x2))
 
 dx = 0.1
-dt = 0.001
+dt = 0.01
 T = 10
 x0 = -4
 sigma0 = 1.0
-alpha = 0.5
+alpha = 0.2
 a = 1
 x = np.arange(-10, 10, dx)
 t = np.arange(0, T, dt)
@@ -33,8 +41,6 @@ Nx = x.shape[0]
 Nt = t.shape[0]
 
 a = a * np.ones(Nt) + 1.5*np.sin(t)
-
-F = (alpha/dx**2*dt)
 
 start = time.time()
 if solver == 'LW':
@@ -138,7 +144,7 @@ elif solver=='Hu-2021':
         upper = np.zeros(Nx - 2)
 
         # discretization for Hu-2021
-        c = alpha[i] * dt / dx
+        c = alpha[i] * dt / dx**2  # alpha[i] * dt / dx
 
         Ms = M(x, a[i], alpha[i])
         M_harm = np.zeros(Nx-1)  # idk
@@ -146,13 +152,15 @@ elif solver=='Hu-2021':
             M_harm[j] = harm_mean(Ms[j], Ms[j+1])
 
 
-        r1 = -c*M_harm[:-2]/Ms[:-3]  # idk about the indices
+        r1 = -c*M_harm[:-2]/Ms[:-3]
         r2 = 1+c*(M_harm[1:-1]/Ms[1:-2] + M_harm[:-2]/Ms[:-3])
         r3 = -c*M_harm[1:-1]/Ms[1:-2]
+
         # Precompute sparse matrix
         main[1:-1] = r2
-        lower[:-1] = r1  # reaching here
+        lower[:-1] = r1
         upper[1:] = r3
+
         # Insert boundary conditions
         main[0] = 1
         main[Nx-2] = 1
