@@ -18,20 +18,23 @@ def M(x, a, alpha, x_L=-5):
     :param x_L: resting point
     :return: M: Scharfetter-Gummel flux functional
     """
-    U = ((1/2)*x - x_L - a)*x/alpha
+    # U = ((1/2)*x - x_L - a)*(x/alpha)
+    U = ((1 / 2) * x) * (x / alpha)
+    # U = - a*x/alpha
     return np.exp(-U)
 
 def harm_mean(x1, x2):
     return 2/((1/x1)+(1/x2))
 
 dx = 0.1
-dt = 0.01
+dt = 0.1
 T = 10
 x0 = -4
 sigma0 = 1.0
-alpha = 0.2
+# alpha = 0.08
+alpha = 1.0
 a = 1
-x = np.arange(-10, 10, dx)
+x = np.arange(-10, 15, dx)
 t = np.arange(0, T, dt)
 
 f_init = norm.pdf(x, x0, sigma0)
@@ -128,9 +131,9 @@ if solver == 'LW':
             print(f"Stability with may not be guaranteed with Cell Reynolds Number outised range (0.1, 1.0)")
 
 elif solver=='Hu-2021':
-    u = np.zeros((Nt, Nx + 1))
+    u = np.zeros((Nt, Nx))
     # Set initial condition
-    u[0, :Nx] = f_init
+    u[0] = f_init
 
     if not isinstance(alpha, np.ndarray):
         alpha = alpha * np.ones(Nt)
@@ -146,36 +149,33 @@ elif solver=='Hu-2021':
         # discretization for Hu-2021
         c = alpha[i] * dt / dx**2  # alpha[i] * dt / dx
 
-        Ms = M(x, a[i], alpha[i])
-        M_harm = np.zeros(Nx-1)  # idk
-        for j in range(Nx-1):
+        Ms = M(x, a[i], alpha[i])[:-1]
+        M_harm = np.zeros(Nx-2)  # idk
+        for j in range(Nx-2):
             M_harm[j] = harm_mean(Ms[j], Ms[j+1])
 
 
-        r1 = -c*M_harm[:-2]/Ms[:-3]
-        r2 = 1+c*(M_harm[1:-1]/Ms[1:-2] + M_harm[:-2]/Ms[:-3])
-        r3 = -c*M_harm[1:-1]/Ms[1:-2]
+        r1 = -c*M_harm[:-1]/Ms[:-2]
+        r2 = 1+c*(M_harm[1:] + M_harm[:-1])/Ms[1:-1]
+        r3 = -c*M_harm[1:]/Ms[2:]
 
-        # Precompute sparse matrix
+        # Precompute sparse matrix with boundary conditions
         main[1:-1] = r2
-        lower[:-1] = r1
-        upper[1:] = r3
-
-        # Insert boundary conditions
-        main[0] = 1
-        main[Nx-2] = 1
+        lower[1:] = r1
+        upper[:-1] = r3
+        main[0] = main[-1] = 1
         A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx - 1, Nx - 1), format='csr')
 
-        b = u[i - 1, 1:-1]
+        b = u[i - 1, :-1]
         # b[0] = b[-1] = 0.0  # boundary conditions
-        u[i, 1:-1] = scipy.sparse.linalg.spsolve(A, b)
+        u[i, :-1] = scipy.sparse.linalg.spsolve(A, b)
 
     end = time.time()
 
 print(f"computation time: {end-start:2f}s")
 print(f"Part of initial volume left: {u[-1].sum():.2f}")
 def plot_sol(u, t, x, alpha=1):
-    u_plot = u[:, :-1].T
+    u_plot = u[:].T
     fig = plt.figure(figsize=(10, 4.25))
     x_mesh, y_mesh = np.meshgrid(t, x)
     ax = fig.add_subplot(1, 1, 1)
