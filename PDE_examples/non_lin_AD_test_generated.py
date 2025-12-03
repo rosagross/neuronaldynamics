@@ -21,9 +21,9 @@ f_init /= f_init.sum()
 Nx = x.shape[0]
 Nt = t.shape[0]
 
-a = 5*(np.ones(Nt) + np.sin(t))
+a = 15*(np.ones(Nt) + np.sin(t))
 
-cell_wise = False
+cell_wise = True
 
 def B_face_from_a(a_val, x, x_rest=-5):  # example: constant drift a_val; replace if drift depends on v
     # return array of face velocities B_{i+1/2}, length = Nx+1 (faces)

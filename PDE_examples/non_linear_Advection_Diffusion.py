@@ -9,7 +9,7 @@ matplotlib.use('TkAgg')
 
 solver = 'Hu-2021' # 'LW', 'Hu-2021'
 
-def M(x, a, alpha, x_L=-5):
+def M(x, a, alpha, x_L=0.2):
     """
     compute Scharfetter-Gummel flux functional
     :param x: x
@@ -19,35 +19,92 @@ def M(x, a, alpha, x_L=-5):
     :return: M: Scharfetter-Gummel flux functional
     """
     # U = ((1/2)*x - x_L - a)*(x/alpha)
-    U = ((1 / 2) * x) * (x / alpha)
-    # U = - a*x/alpha
+    # U = ((1 / 2) * x) * (x / alpha)
+    # U = (x**2/2 - x_L*x)/alpha
+    U = - a*x/alpha
     return np.exp(-U)
 
 def harm_mean(x1, x2):
     return 2/((1/x1)+(1/x2))
 
-dx = 0.1
-dt = 0.1
-T = 10
-x0 = -4
-sigma0 = 1.0
-# alpha = 0.08
-alpha = 1.0
-a = 1
-x = np.arange(-10, 15, dx)
-t = np.arange(0, T, dt)
+def SG(x, a, x_L, dx, alpha):
+    h = -(x-x_L) + a
+    sg = 1/(np.exp(-h*dx/alpha)-1)
+    return sg
 
-f_init = norm.pdf(x, x0, sigma0)
+dx_ = 0.1
+dt = 0.01
+T = 10
+x0 = -68
+sigma0 = 0.4
+# alpha = 0.08
+alpha = 0.3
+a = 50
+x_ = np.arange(-70, -55, dx_)
+t = np.arange(0, T, dt)
+x_rest_ = -65
+x_reset_ = -66
+
+# map x to 0,1
+x = np.linspace(0, 1, x_.shape[0])
+dx = np.diff(x)[0]
+x_rest_idx_orig = np.where(x_ > x_rest_)[0][0] - 1
+x_rest = x[x_rest_idx_orig]
+
+x_reset_idx_orig = np.where(x_ > x_reset_)[0][0] - 1
+x_reset = x[x_reset_idx_orig]
+reset_idx = np.where(x == x_reset)
+
+x_range_orig = x_.max() - x_.min()
+x_range_new = 1.0
+
+sigma0_new = sigma0 * (x_range_new/x_range_orig)
+x0_idx_original = np.where(x_ > x0)[0][0] - 1
+x0_new = x[x0_idx_original]
+
+f_init = norm.pdf(x, x0_new, sigma0_new)
 f_init[0] = f_init[-1] = 0
-f_init /= f_init.sum()
+f_init /= (f_init.sum())
 Nx = x.shape[0]
 Nt = t.shape[0]
 
-a = a * np.ones(Nt) + 1.5*np.sin(t)
+a = a * (2*np.ones(Nt) + 1.5*np.sin(t/3)) + 50 * np.exp(-(t - 1.2)**2/0.1)
+c_out = alpha * dt / dx
+alpha = np.ones(Nt)*alpha
+t_off = 50
+
+
+########################################################################################################################
+# Test version on (0, 1)
+########################################################################################################################
+
+# dx=0.005
+# x = np.arange(0, 1, dx)
+# x_ = x.copy()
+# x_reset = 0.2
+# x_rest = 0.2
+# f_init = norm.pdf(x, 0.3, 0.2)
+# f_init[0] = f_init[-1] = 0
+# f_init /= (f_init.sum())
+# T=30
+# t = np.arange(0, T, dt)
+# Nx = x.shape[0]
+# Nt = t.shape[0]
+# alpha = np.ones(Nt)*0.3
+# a = 50 * (2*np.ones(Nt) + 1.5*np.sin(t/3)) + 50 * np.exp(-(t - 1.2)**2/0.1)
+#
+# c_out = alpha[0] * dt / dx
+
+
+
+if T > t_off:
+    t_off_idx = np.where(t>50)[0][0] - 1
+    a[t_off_idx:] = 0
+# alpha[-100:] = 0
 
 start = time.time()
 if solver == 'LW':
-    if not (isinstance(a, np.ndarray) and not isinstance(alpha, np.ndarray)):
+    if not isinstance(a, np.ndarray) and not isinstance(alpha, np.ndarray):
 
         # Representation of sparse matrix and right-hand side
         main = np.zeros(Nx + 1)
@@ -129,11 +186,12 @@ if solver == 'LW':
         print(f'Cell Reynolds Number range: {R_c_min:.3f}, {R_c_min:.3f}')
         if R_c_max > 1.0 or R_c_min < 0.1:
             print(f"Stability with may not be guaranteed with Cell Reynolds Number outised range (0.1, 1.0)")
-
+        u = u[:, :-1]
 elif solver=='Hu-2021':
     u = np.zeros((Nt, Nx))
     # Set initial condition
     u[0] = f_init
+    r = np.zeros(Nt)
 
     if not isinstance(alpha, np.ndarray):
         alpha = alpha * np.ones(Nt)
@@ -141,44 +199,58 @@ elif solver=='Hu-2021':
 
     # run over time steps
     for i in tqdm(range(1, Nt), f'simulating {Nt} time steps'):
-        # Representation of sparse matrix and right-hand side
-        main = np.zeros(Nx - 1)
-        lower = np.zeros(Nx - 2)
-        upper = np.zeros(Nx - 2)
+        if alpha[i] > 0.001:
+            # Representation of sparse matrix and right-hand side
+            main = np.zeros(Nx)
+            lower = np.zeros(Nx - 1)
+            upper = np.zeros(Nx - 1)
 
-        # discretization for Hu-2021
-        c = alpha[i] * dt / dx**2  # alpha[i] * dt / dx
+            # discretization for Hu-2021
+            c = alpha[i] * dt / dx # alpha[i] * dt / dx
 
-        Ms = M(x, a[i], alpha[i])[:-1]
-        M_harm = np.zeros(Nx-2)  # idk
-        for j in range(Nx-2):
-            M_harm[j] = harm_mean(Ms[j], Ms[j+1])
+            Ms = M(x, a[i], alpha[i], x_L=x_rest)
+            M_harm = np.zeros(Nx-1)  # idk
+            for j in range(Nx-1):
+                M_harm[j] = harm_mean(Ms[j], Ms[j+1])
 
 
-        r1 = -c*M_harm[:-1]/Ms[:-2]
-        r2 = 1+c*(M_harm[1:] + M_harm[:-1])/Ms[1:-1]
-        r3 = -c*M_harm[1:]/Ms[2:]
+            r1 = -c*M_harm[:-1]/Ms[:-2]
+            r2 = 1+c*(M_harm[1:] + M_harm[:-1])/Ms[1:-1]
+            r3 = -c*M_harm[1:]/Ms[2:]
 
-        # Precompute sparse matrix with boundary conditions
-        main[1:-1] = r2
-        lower[1:] = r1
-        upper[:-1] = r3
-        main[0] = main[-1] = 1
-        A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx - 1, Nx - 1), format='csr')
+            # Precompute sparse matrix with boundary conditions
+            main[1:-1] = r2
+            lower[:-1] = r1
+            upper[1:] = r3
+            # von Neumann Boundary conditions?
+            # main[0] = main[1]
+            # main[-1] = main[-2]
+            main[0] = 1
+            main[-1] = 1
+            A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx, Nx), format='csr')
 
-        b = u[i - 1, :-1]
-        # b[0] = b[-1] = 0.0  # boundary conditions
-        u[i, :-1] = scipy.sparse.linalg.spsolve(A, b)
+            b = u[i - 1]
+            b[0] = b[-1] = 0.0  # boundary conditions
+
+            # firing rate / outgoing flux
+            r[i] = (alpha[i] / dx) * (u[i - 1, -2])
+            J_out = r[i] * (np.heaviside((x + dx) - x_reset, 1) - np.heaviside((x - dx) - x_reset, 1)) / (1+alpha[i])**2
+            # J_out *= -SG(x+dx, x_L=x_rest, a=a[i], dx=dx, alpha=alpha[i])
+            if J_out.sum() > 1e-2:
+                v=1
+            u[i] = scipy.sparse.linalg.spsolve(A, b)
+            u[i] += (dt)*J_out
 
     end = time.time()
-
+print(f'grid coeff c: {c_out:.4f}')
 print(f"computation time: {end-start:2f}s")
+print(f"initial volume: {u[0].sum():.2f}")
 print(f"Part of initial volume left: {u[-1].sum():.2f}")
 def plot_sol(u, t, x, alpha=1):
     u_plot = u[:].T
     fig = plt.figure(figsize=(10, 4.25))
     x_mesh, y_mesh = np.meshgrid(t, x)
-    ax = fig.add_subplot(1, 1, 1)
+    ax = fig.add_subplot(1, 2, 1)
     z_min, z_max = u.min(), u.max()
     c = ax.pcolormesh(x_mesh, y_mesh, u_plot, cmap='viridis', vmin=z_min, vmax=z_max)
     fig.colorbar(c, ax=ax)
@@ -186,7 +258,13 @@ def plot_sol(u, t, x, alpha=1):
         ax.set_title(f"Time evolution of the diffusion equation for alpha = {alpha:.2f} and a = {a:.2f}")
     ax.set_xlabel("t")
     ax.set_ylabel("x")
+    ax = fig.add_subplot(1, 2, 2)
+    a_plot = a /a.max() * r.max()
+    ax.plot(t, r)
+    ax.plot(t, a_plot)
+    ax.legend(['firing rate (AU)', 'input current (AU)'])
+    ax.set_xlabel('t')
     plt.tight_layout()
     plt.show()
 
-plot_sol(u=u, t=t, x=x, alpha=alpha)
+plot_sol(u=u, t=t, x=x_, alpha=alpha)
