@@ -442,3 +442,13 @@ def t_format(time):
             else:
                 t_d = t_h / 24
                 return t_d, "d"
+
+
+def harm_mean(x1, x2):
+    """
+    Compute the harmonic mean
+    :param x1: np.ndaarray, array 1
+    :param x2: np.ndaarray, array 2
+    :return: np.ndarray, harmonic mean of x1 and x2
+    """
+    return 2/((1/x1)+(1/x2))

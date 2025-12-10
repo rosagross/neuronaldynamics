@@ -7,6 +7,8 @@ import matplotlib
 import time
 matplotlib.use('TkAgg')
 
+from Utils import harm_mean
+
 solver = 'Hu-2021' # 'LW', 'Hu-2021'
 
 def M(x, a, alpha, x_L=0.2):
@@ -24,8 +26,7 @@ def M(x, a, alpha, x_L=0.2):
     U = - a*x/alpha
     return np.exp(-U)
 
-def harm_mean(x1, x2):
-    return 2/((1/x1)+(1/x2))
+
 
 def SG(x, a, x_L, dx, alpha):
     h = -(x-x_L) + a
@@ -34,13 +35,14 @@ def SG(x, a, x_L, dx, alpha):
 
 dx_ = 0.002
 dt = 0.02
-T = 20
-x0 = -66
+T = 12
+x0 = -64
 sigma0 = 0.01
 tau = 20
 # alpha = 0.3
 alpha = 0.1/tau
-a = 8e4/tau
+# a = 8e4/tau
+a = 2e4/tau
 # x_ = np.arange(-70, -55, dx_)
 x_ = np.arange(-70, -55, dx_)
 t = np.arange(0, T, dt)
@@ -64,7 +66,12 @@ sigma0_new = sigma0 * (x_range_new/x_range_orig)
 x0_idx_original = np.where(x_ > x0)[0][0] - 1
 x0_new = x[x0_idx_original]
 
-f_init = norm.pdf(x, x0_new, sigma0_new)
+f_init_2 = norm.pdf(x, x0_new, sigma0_new)/5
+
+f_init_1 = np.ones_like(x)
+f_init_1[np.where(x < x_rest)] = 0
+
+f_init = f_init_1 + f_init_2
 f_init[0] = f_init[-1] = 0
 f_init /= (f_init.sum())
 Nx = x.shape[0]
@@ -72,10 +79,10 @@ Nt = t.shape[0]
 
 # a = np.zeros(Nt)
 # a = 5 * (2*np.ones(Nt) + 1.5*np.sin(t/50)) + 5 * np.exp(-(t - 1.2)**2/0.1)
-# a = a * ((2*np.ones(Nt) + 1.5*np.sin(t/3)) + np.exp(-(t - 1.2)**2/0.1))
+a = a * ((2*np.ones(Nt) + 1.5*np.sin(t/3)) + np.exp(-(t - 1.2)**2/0.1))
 c_out = alpha * dt / dx
 alpha = np.ones(Nt)*alpha
-t_off = 10
+t_off = 20
 
 
 ########################################################################################################################
@@ -286,11 +293,12 @@ def plot_sol(u, t, x, alpha=1):
     ax.set_xlabel("t")
     ax.set_ylabel("x")
     ax = fig.add_subplot(1, 2, 2)
-    a_plot = a /a.max() * r.max()
+    a_plot = a /a.max() * r[50:].max()
     ax.plot(t, r)
     ax.plot(t, a_plot)
     ax.legend(['firing rate (AU)', 'input current (AU)'])
     ax.set_xlabel('t')
+    ax.set_ylim(0, 1.2*r[50:].max())
     plt.tight_layout()
     plt.show()
 
