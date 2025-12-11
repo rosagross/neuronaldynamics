@@ -779,7 +779,7 @@ class Nykamp_Model_1():
 
         self.init_pdf_weight = 1
         self.thr_idx = -1
-
+        self.verbose = 0
 
         # input current
         self.input_type = 'rate'
@@ -832,7 +832,6 @@ class Nykamp_Model_1():
         else:
             self.init_pdf_sigma = 1
         self.simulation_done = False
-        self.verbose = 0
 
         if not self.input_type in ['rate', 'current', 'current-2', 'stochastic-current']:
             raise NotImplementedError(f"Input type {self.input_type} not implemented! Please chose from "
@@ -912,7 +911,7 @@ class Nykamp_Model_1():
                 rho[i, -1, 0] = 0
 
         # transform to v = (0, 1) range if Hu- Solver is used which cannot handle negative u_rest values
-        if self.solver == 'hu-2021':
+        if self.solver.lower() == 'hu-2021':
             v_ = np.linspace(0, 1,self.v.shape[0])
             dv_ = np.diff(v_)[0]
 
@@ -1084,7 +1083,7 @@ class Nykamp_Model_1():
                     # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
                     #  check if this is correct
                     # if self.input_type in ['rate', 'current', 'current-2']:
-                    if self.solver == 'nykamp':
+                    if self.solver.lower() == 'nykamp':
                         f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
                                                 + np.sum(v_in[inh_idxs, j, i]) * c1ei_v - self.c1eext_v)
                         f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest - current_2_val*v_ext) / self.tau_mem[0] +
@@ -1200,72 +1199,75 @@ class Nykamp_Model_1():
                         if i == 180:
                             l=20
 
-                    elif self.solver == 'hu-2021':
+                    elif self.solver.lower() == 'hu-2021':
 
                         if self.c1eext_v !=0 or self.c2eext_v !=0:
                             print(f'WARNING!: v-derivatives of coefficients are non-zero, but will be ignored!')
+                        if i > 0:
+                            Nx = v_.shape[0]
+                            main = np.zeros(Nx)
+                            lower = np.zeros(Nx - 1)
+                            upper = np.zeros(Nx - 1)
 
-                        Nx = self.v.shape[0]
-                        main = np.zeros(Nx + 1)
-                        lower = np.zeros(Nx)
-                        upper = np.zeros(Nx)
+                            # conversion of coefficients from Nykamp to Hu-formulation
+                            drift_coeff_vec = np.sum(- v_in[exc_idxs, j, i]) * c1ee_v + np.sum(v_in[inh_idxs, j, i]) * c1ei_v +\
+                                          self.c1eext
+                            drift_coeff = drift_coeff_vec[0]
+                            # TODO: find a way around this once voltage dependent components play a role
 
-                        # conversion of coefficients from Nykamp to Hu-formulation
-                        drift_coeff = np.sum(- v_in[exc_idxs, j, i]) * c1ee_v + np.sum(v_in[inh_idxs, j, i]) * c1ei_v +\
-                                      self.c1eext
+                            diffusion_coeff = + self.c2eext[0]
 
-                        diffusion_coeff = + self.c2eext
+                            # discretization for Hu-2021
+                            c = diffusion_coeff * self.dt / dv_
+                            critval = 1.5 * (drift_coeff / 5)
+                            if c < critval:
+                                c = critval
+                                diffusion_coeff_original = diffusion_coeff.copy()
+                                diffusion_coeff = c * dv_ / self.dt
+                                if c_count < 1:
+                                    c_count += 1
+                                    print(f'resetting diffusion_coeff from {diffusion_coeff_original} to'
+                                          f' {diffusion_coeff:.5f} to achieve numerical stability')
 
-                        # discretization for Hu-2021
-                        c = diffusion_coeff[i] * self.dt / dv_
-                        critval = 1.5 * (drift_coeff[i] / 5)
-                        if c < critval:
-                            c = critval
-                            diffusion_coeff_original = diffusion_coeff[i].copy()
-                            diffusion_coeff[i] = c * dv_ / self.dt
-                            if c_count < 1:
-                                c_count += 1
-                                print(f'resetting diffusion_coeff from {diffusion_coeff_original} to'
-                                      f' {diffusion_coeff[i]:.5f} to achieve numerical stability')
+                            Ms = self.SG_Flux(v_, drift_coeff, diffusion_coeff, x_rest=u_rest_)
 
-                        Ms = self.SG_Flux(v_, drift_coeff[i], diffusion_coeff[i], x_L=u_rest_)
+                            if len(np.where(Ms == np.inf)[0]) > 0:
+                                raise ValueError('Infinite flux detected!')
 
-                        if len(np.where(Ms == np.inf)[0]) > 0:
-                            raise ValueError('Infinite flux detected!')
+                            M_harm = np.zeros(Nx - 1)  # idk
+                            for k in range(Nx - 1):
+                                M_harm[k] = harm_mean(Ms[k], Ms[k + 1])
 
-                        M_harm = np.zeros(Nx - 1)  # idk
-                        for j in range(Nx - 1):
-                            M_harm[j] = harm_mean(Ms[j], Ms[j + 1])
+                            r1 = -c * M_harm[:-1] / Ms[:-2]
+                            r2 = 1 + c * (M_harm[1:] + M_harm[:-1]) / Ms[1:-1]
+                            r3 = -c * M_harm[1:] / Ms[2:]
 
-                        r1 = -c * M_harm[:-1] / Ms[:-2]
-                        r2 = 1 + c * (M_harm[1:] + M_harm[:-1]) / Ms[1:-1]
-                        r3 = -c * M_harm[1:] / Ms[2:]
+                            # Precompute sparse matrix with boundary conditions
+                            main[1:-1] = r2
+                            lower[:-1] = r1
+                            upper[1:] = r3
+                            # Boundary Conditions
+                            main[0] = 1
+                            main[-1] = 1
+                            A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx, Nx),
+                                                   format='csr')
 
-                        # Precompute sparse matrix with boundary conditions
-                        main[1:-1] = r2
-                        lower[:-1] = r1
-                        upper[1:] = r3
-                        # Boundary Conditions
-                        main[0] = 1
-                        main[-1] = 1
-                        A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx, Nx),
-                                               format='csr')
+                            b = rho[j,:,  i - 1]
+                            b[0] = b[-1] = 0.0  # boundary conditions
 
-                        b = rho[j, i - 1]
-                        b[0] = b[-1] = 0.0  # boundary conditions
+                            # firing rate / outgoing flux
+                            # if i > 1:
+                            #     r[i] = (u[i-2].sum() - u[i-1].sum())
+                            r[j, i] = ((diffusion_coeff / dv_) * (rho[j, -2, i-1]) +
+                                    ((v_[self.thr_idx] - u_rest_) + drift_coeff) * rho[j,self.thr_idx, i - 1])
 
-                        # firing rate / outgoing flux
-                        # if i > 1:
-                        #     r[i] = (u[i-2].sum() - u[i-1].sum())
-                        r[i] = (diffusion_coeff[i] / dv_) * (rho[j, i - 1, -2]) + ((v_[-2] - u_rest_) + drift_coeff[i]) * rho[j, i - 1, self.thr_idx]
-
-                        rho[j, i] = scipy.sparse.linalg.spsolve(A, b)
-                        J_out = r[i] * (np.heaviside((v_ + dv_) - u_reset_, 1) - np.heaviside((v_ - dv_) - u_reset_,
-                                                                                           1))
-                        if J_out.max() != 0:
-                            J_out /= J_out.sum()
-                            J_out *= (1 - rho[j, i].sum())
-                        rho[j, i] += J_out
+                            rho[j, :, i] = scipy.sparse.linalg.spsolve(A, b)
+                            J_out = r[j, i] * (np.heaviside((v_ + dv_) - u_reset_, 1) - np.heaviside((v_ - dv_) - u_reset_,
+                                                                                               1))
+                            if J_out.max() != 0:
+                                J_out /= J_out.sum()
+                                J_out *= (1 - rho[j,:, i].sum())
+                            rho[j, i] += J_out
 
                 else:
                     # inhibitory population
@@ -1526,8 +1528,8 @@ class Nykamp_Model_1():
                     raise NotImplementedError(
                         f'Please choose from implemented pdf types: {self.implemented_pdf_types}!')
 
-                for i, v_ in enumerate(v):
-
+                for i, v_ in tqdm(enumerate(v), f'computing drift and diffusion coefficients for rates of'
+                                                f' inh population', disable=tqdm_disable_coeffs):
                     vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
                     int_c1ie = synapse_pdf_ie.sf((v_ - vpe) / (self.u_exc - vpe))
                     int_c2ie = int_c1ie * (v_ - vpe)
@@ -1766,7 +1768,7 @@ class Nykamp_Model_1():
     def gauss_func(self,x,  mu=0, sigma=1):
         return (1/np.sqrt(2*np.pi*sigma**2))*np.exp(-(x-mu)**2/(2*sigma**2))
 
-    def SG_Flux(self, x, a, alpha, x_L=0.2):
+    def SG_Flux(self, x, a, alpha, x_rest=0.2):
         """
         compute Scharfetter-Gummel flux functional
         :param x: x
@@ -1775,7 +1777,7 @@ class Nykamp_Model_1():
         :param x_L: resting point
         :return: M: Scharfetter-Gummel flux functional
         """
-        U = ((1 / 2) * x - x_L - a) * (x / alpha)
+        U = ((1 / 2) * x - x_rest - a) * (x / alpha)
         return np.exp(-U)
 
     def clean(self):

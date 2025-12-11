@@ -30,6 +30,7 @@ if plot_nykamp_basic:
     model_parameters['dt'] = dt
     model_parameters['dv'] = dv
     model_parameters['solver'] = 'Hu-2021'
+    model_parameters['verbose'] = 1
 
     nyk1D = Nykamp_Model_1(parameters=model_parameters, name='Hu_solver_test')
     nyk1D.simulate()
