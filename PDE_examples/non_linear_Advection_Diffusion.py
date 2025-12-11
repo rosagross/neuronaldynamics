@@ -20,10 +20,10 @@ def M(x, a, alpha, x_L=0.2):
     :param x_L: resting point
     :return: M: Scharfetter-Gummel flux functional
     """
-    # U = ((1/2)*x - x_L - a)*(x/alpha)
+    U = ((1/2)*x - x_L - a)*(x/alpha)
     # U = ((1 / 2) * x) * (x / alpha)
     # U = (x**2/2 - x_L*x)/alpha
-    U = - a*x/alpha
+    # U = - a*x/alpha
     return np.exp(-U)
 
 

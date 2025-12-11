@@ -37,8 +37,8 @@ if plot_di_model:
     drho = np.sum(rhos[0, :, 5]) - np.sum(rhos[0, :, -1])
     print(f"change in rho: {drho}")
     print(f'rho end: {np.sum(rhos[0, :, -1])}')
-    # di_model.plot_input_current()
-    # di_model.plot_validation()
+    di_model.plot_input_current()
+    di_model.plot_validation()
     di_model.mass_model.clean()
 
 
