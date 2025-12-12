@@ -94,10 +94,10 @@ class Nykamp_Model():
         self.get_alpha_kernel()
 
         # self.c1ee, self.c2ee, self.c1ei, self.c2ei,self.c1ie, self.c2ie, self.c1ii,\
-        #     self.c2ii = self.get_diffusion_coeffs_classic()
+        #     self.c2ii = self.get_coeffs_classic()
 
         # calculate diffusion coefficients
-        self.get_diffusion_coeffs()
+        self.get_coeffs()
         self.diffusion_coefficients_dv = np.gradient(self.diffusion_coefficients, self.dv, axis=-1)
 
         self.c1ee = self.diffusion_coefficients[0]
@@ -293,7 +293,7 @@ class Nykamp_Model():
             h5file.create_dataset('rho_plot_inh', data=rho_plot_inh)
 
         # loop version of code
-        self.get_diffusion_coeffs_1()
+        self.get_coeffs_1()
 
         # first init all arrays
         v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
@@ -491,7 +491,7 @@ class Nykamp_Model():
                 b[i, j] = np.convolve(x[i, j], kernel)
         return b
 
-    def get_diffusion_coeffs(self):
+    def get_coeffs(self):
 
         # TODO: make these matrix operations, get all diffusion coeffs at once?
         v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
@@ -613,7 +613,7 @@ class Nykamp_Model():
             else:
                 raise NotImplementedError('population types must be "exc" or "inh"!')
 
-    def get_diffusion_coeffs_1(self):
+    def get_coeffs_1(self):
 
         # TODO: make these matrix operations, get all diffusion coeffs at once?
         v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
@@ -772,6 +772,8 @@ class Nykamp_Model_1():
         self.solver = 'nykamp'
         self.implemented_pdf_types = ['gamma', 'normal', 'log-normal']
         self.current_sigma = 0.1
+        self.init_pdf_offset = 0
+        self.init_pdf_sigma = 0.1
 
         self.g_eext_factor = 1
         self.c_eext1_factor = 1
@@ -822,15 +824,6 @@ class Nykamp_Model_1():
         if type(self.connectivity_matrix) != np.ndarray:
             self.connectivity_matrix = np.array(self.connectivity_matrix)
 
-        if 'init_pdf_offset' in parameters:
-            self.init_pdf_offset = parameters['init_pdf_offset']
-        else:
-            self.init_pdf_offset = 0
-
-        if 'init_pdf_sigma' in parameters:
-            self.init_pdf_sigma = parameters['init_pdf_sigma']
-        else:
-            self.init_pdf_sigma = 1
         self.simulation_done = False
 
         if not self.input_type in ['rate', 'current', 'current-2', 'stochastic-current']:
@@ -870,7 +863,7 @@ class Nykamp_Model_1():
         if self.verbose > 1:
             t0_coeff = time.time()
 
-        self.get_diffusion_coeffs()
+        self.get_coeffs()
         self.r = None
 
         if self.verbose > 1:
@@ -1217,9 +1210,12 @@ class Nykamp_Model_1():
 
                             diffusion_coeff = + self.c2eext[0]
 
+                            # ensure minimal diffusion coeff for numerical stability, in case of no drift input
+                            diffusion_coeff = np.array(max(diffusion_coeff, 1e-3))
+
                             # discretization for Hu-2021
                             c = diffusion_coeff * self.dt / dv_
-                            critval = 1.5 * (drift_coeff / 5)
+                            critval = 1.5 * (drift_coeff / 5) / 3
                             if c < critval:
                                 c = critval
                                 diffusion_coeff_original = diffusion_coeff.copy()
@@ -1230,9 +1226,13 @@ class Nykamp_Model_1():
                                           f' {diffusion_coeff:.5f} to achieve numerical stability')
 
                             Ms = self.SG_Flux(v_, drift_coeff, diffusion_coeff, x_rest=u_rest_)
+                            if i == 400:
+                                print(f'{diffusion_coeff}, {drift_coeff}')
 
                             if len(np.where(Ms == np.inf)[0]) > 0:
                                 raise ValueError('Infinite flux detected!')
+                            if len(np.where(Ms == np.nan)[0]) > 0:
+                                raise ValueError('NaN values in flux detected!')
 
                             M_harm = np.zeros(Nx - 1)  # idk
                             for k in range(Nx - 1):
@@ -1267,8 +1267,8 @@ class Nykamp_Model_1():
                             if J_out.max() != 0:
                                 J_out /= J_out.sum()
                                 J_out *= (1 - rho[j,:, i].sum())
-                            rho[j, i] += J_out
-
+                            rho[j,:, i] += J_out
+                    rho[j, :, -1] = rho[j,:, -2]
                 else:
                     # inhibitory population
                     # ==================================================================================================
@@ -1340,7 +1340,7 @@ class Nykamp_Model_1():
             h5file.create_dataset('t', data=self.t)
             h5file.create_dataset('v', data=self.v)
             h5file.create_dataset('r', data=r)
-            if self.input_type == 'current':
+            if self.input_type in ['current', 'current-2', 'stochastic-current']:
                 h5file.create_dataset('in', data=self.i_ext)
             else:
                 h5file.create_dataset('in', data=self.input)
@@ -1426,7 +1426,7 @@ class Nykamp_Model_1():
                 b[i, j] = np.convolve(x[i, j], kernel)
         return b
 
-    def get_diffusion_coeffs(self):
+    def get_coeffs(self):
 
         v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
         n_v = v.shape[0]
@@ -1440,127 +1440,131 @@ class Nykamp_Model_1():
         self.c_v = np.zeros_like(self.c)
         self.dFdv = np.zeros([self.n_populations, 2, n_v])
 
-        self.synapse_pdf_funcs = []
-        for k in range(self.n_populations):
-            if self.population_type[k] == 'exc':
+        if (not np.allclose(self.connectivity_matrix, np.zeros_like(self.connectivity_matrix))
+                or self.input_type == 'rate'):
 
-                # init arrays for diffuson coeffs
-                c1ee = np.zeros(len(v))
-                c2ee = np.zeros(len(v))
-                c1ei = np.zeros(len(v))
-                c2ei = np.zeros(len(v))
 
-                # conductance jump distributions
-                # input synapse parameters into synapse dependent voltage jump distribution
+            self.synapse_pdf_funcs = []
+            for k in range(self.n_populations):
+                if self.population_type[k] == 'exc':
 
-                if self.synapse_pdf_type == 'gamma':
-                    synapse_pdf_ee = gamma(a=self.synapse_pdf_params[0, k, 0] ** (-2), loc=0,
-                                     scale=self.synapse_pdf_params[0, k, 0]**2*self.synapse_pdf_params[1, k, 0])
-                    synapse_pdf_ei = gamma(a=self.synapse_pdf_params[0, k, 1] ** (-2),
-                                     loc=0, scale=self.synapse_pdf_params[0, k, 1]**2*self.synapse_pdf_params[1, k, 1])
-                elif self.synapse_pdf_type == 'normal':
-                    synapse_pdf_ee = norm(loc=self.synapse_pdf_params[0, k, 0], scale=self.synapse_pdf_params[1, k, 0])
-                    synapse_pdf_ei = norm(loc=self.synapse_pdf_params[0, k, 1], scale=self.synapse_pdf_params[1, k, 1])
-                elif self.synapse_pdf_type == 'log-normal':
-                    synapse_pdf_ee = lognorm(scale=self.synapse_pdf_params[0, k, 0], s=self.synapse_pdf_params[1, k, 0])
-                    synapse_pdf_ei = lognorm(scale=self.synapse_pdf_params[0, k, 1], s=self.synapse_pdf_params[1, k, 1])
+                    # init arrays for diffuson coeffs
+                    c1ee = np.zeros(len(v))
+                    c2ee = np.zeros(len(v))
+                    c1ei = np.zeros(len(v))
+                    c2ei = np.zeros(len(v))
+
+                    # conductance jump distributions
+                    # input synapse parameters into synapse dependent voltage jump distribution
+
+                    if self.synapse_pdf_type == 'gamma':
+                        synapse_pdf_ee = gamma(a=self.synapse_pdf_params[0, k, 0] ** (-2), loc=0,
+                                         scale=self.synapse_pdf_params[0, k, 0]**2*self.synapse_pdf_params[1, k, 0])
+                        synapse_pdf_ei = gamma(a=self.synapse_pdf_params[0, k, 1] ** (-2),
+                                         loc=0, scale=self.synapse_pdf_params[0, k, 1]**2*self.synapse_pdf_params[1, k, 1])
+                    elif self.synapse_pdf_type == 'normal':
+                        synapse_pdf_ee = norm(loc=self.synapse_pdf_params[0, k, 0], scale=self.synapse_pdf_params[1, k, 0])
+                        synapse_pdf_ei = norm(loc=self.synapse_pdf_params[0, k, 1], scale=self.synapse_pdf_params[1, k, 1])
+                    elif self.synapse_pdf_type == 'log-normal':
+                        synapse_pdf_ee = lognorm(scale=self.synapse_pdf_params[0, k, 0], s=self.synapse_pdf_params[1, k, 0])
+                        synapse_pdf_ei = lognorm(scale=self.synapse_pdf_params[0, k, 1], s=self.synapse_pdf_params[1, k, 1])
+                    else:
+                        raise NotImplementedError(f'Please choose from implemented pdf types: {self.implemented_pdf_types}!')
+
+                    for i, v_ in tqdm(enumerate(v), f'computing drift and diffusion coefficients for rates of'
+                                                    f' exc population', disable=tqdm_disable_coeffs):
+
+                        vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
+                        int_c1ee = synapse_pdf_ee.sf((v_ - vpe) / (self.u_exc - vpe))
+                        int_c2ee = int_c1ee * (v_ - vpe)
+                        c1ee[i] = np.trapz(x=vpe, y=int_c1ee)
+                        c2ee[i] = np.trapz(x=vpe, y=int_c2ee)
+
+                        if i > 0:
+                            vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
+                            int_c1ei = synapse_pdf_ei.sf((v_ - vpi) / (self.u_inh - vpi))
+                            int_c2ei = int_c1ei * (vpi - v_)
+                            c1ei[i] = np.trapz(x=vpi, y=int_c1ei)
+                            c2ei[i] = np.trapz(x=vpi, y=int_c2ei)
+
+                    c1ei[0] = c1ei[1]
+                    c2ei[0] = 0
+
+                    self.c[k] = np.array([[[c1ee, c1ei], [c2ee, c2ei]]])
+                    c1ee_v = np.gradient(c1ee, self.v)
+                    c1ei_v = np.gradient(c1ei, self.v)
+                    c2ee_v = np.gradient(c2ee, self.v)
+                    c2ei_v = np.gradient(c2ei, self.v)
+                    self.c_v[k] = np.array([[[c1ee_v, c1ei_v], [c2ee_v, c2ei_v]]])
+                    self.synapse_pdf_funcs.append(synapse_pdf_ee)
+                    Fee_v = np.gradient(synapse_pdf_ee.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
+                            * np.heaviside(self.v - self.u_rest, 0.5)
+                    Fei_v = np.gradient(synapse_pdf_ei.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
+                            * np.heaviside(self.u_rest - self.v, 0.5)
+
+                    self.dFdv[k] = np.array([Fee_v, Fei_v])
+
+
+                elif self.population_type[k] == 'inh':
+
+
+                    # init arrays for diffusion coeffs
+                    c1ie = np.zeros(len(v))
+                    c2ie = np.zeros(len(v))
+                    c1ii = np.zeros(len(v))
+                    c2ii = np.zeros(len(v))
+
+                    # conductance jump distributions
+                    if self.synapse_pdf_type == 'gamma':
+                        synapse_pdf_ie = gamma(a=self.synapse_pdf_params[0, k, 0] ** (-2), loc=0,
+                                               scale=self.synapse_pdf_params[0, k, 0] ** 2 * self.synapse_pdf_params[
+                                                   1, k, 0])
+                        synapse_pdf_ii = gamma(a=self.synapse_pdf_params[0, k, 1] ** (-2),
+                                               loc=0, scale=self.synapse_pdf_params[0, k, 1] ** 2 * self.synapse_pdf_params[
+                                1, k, 1])
+                    elif self.synapse_pdf_type == 'normal':
+                        synapse_pdf_ie = norm(loc=self.synapse_pdf_params[0, k, 0], scale=self.synapse_pdf_params[1, k, 0])
+                        synapse_pdf_ii = norm(loc=self.synapse_pdf_params[0, k, 1], scale=self.synapse_pdf_params[1, k, 1])
+                    elif self.synapse_pdf_type == 'log-normal':
+                        synapse_pdf_ie = lognorm(scale=self.synapse_pdf_params[0, k, 0], s=self.synapse_pdf_params[1, k, 0])
+                        synapse_pdf_ii = lognorm(scale=self.synapse_pdf_params[0, k, 1], s=self.synapse_pdf_params[1, k, 1])
+                    else:
+                        raise NotImplementedError(
+                            f'Please choose from implemented pdf types: {self.implemented_pdf_types}!')
+
+                    for i, v_ in tqdm(enumerate(v), f'computing drift and diffusion coefficients for rates of'
+                                                    f' inh population', disable=tqdm_disable_coeffs):
+                        vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
+                        int_c1ie = synapse_pdf_ie.sf((v_ - vpe) / (self.u_exc - vpe))
+                        int_c2ie = int_c1ie * (v_ - vpe)
+                        c1ie[i] = np.trapz(x=vpe, y=int_c1ie)
+                        c2ie[i] = np.trapz(x=vpe, y=int_c2ie)
+
+                        if i > 0:
+                            vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
+                            int_c1ii = synapse_pdf_ii.sf((v_ - vpi) / (self.u_inh - vpi))
+                            int_c2ii = int_c1ii * (vpi - v_)
+                            c1ii[i] = np.trapz(x=vpi, y=int_c1ii)
+                            c2ii[i] = np.trapz(x=vpi, y=int_c2ii)
+
+                    c1ii[0] = c1ii[1]
+                    c2ii[0] = 0
+
+                    self.c[k] = np.array([[c1ie, c1ii], [c2ie, c2ii]])
+                    c1ie_v = np.gradient(c1ie, self.v)
+                    c1ii_v = np.gradient(c1ii, self.v)
+                    c2ie_v = np.gradient(c2ie, self.v)
+                    c2ii_v = np.gradient(c2ii, self.v)
+                    self.c_v[k] = np.array([[[c1ie_v, c1ii_v], [c2ie_v, c2ii_v]]])
+                    self.synapse_pdf_funcs.append(synapse_pdf_ie)
+                    Fie_v = np.gradient(synapse_pdf_ie.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
+                                       * np.heaviside(self.v - self.u_rest, 0.5)
+                    Fii_v = np.gradient(synapse_pdf_ii.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
+                                       * np.heaviside(self.u_rest - self.v, 0.5)
+                    self.dFdv[k] = np.array([Fie_v, Fii_v])
+
                 else:
-                    raise NotImplementedError(f'Please choose from implemented pdf types: {self.implemented_pdf_types}!')
-
-                for i, v_ in tqdm(enumerate(v), f'computing drift and diffusion coefficients for rates of'
-                                                f' exc population', disable=tqdm_disable_coeffs):
-
-                    vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
-                    int_c1ee = synapse_pdf_ee.sf((v_ - vpe) / (self.u_exc - vpe))
-                    int_c2ee = int_c1ee * (v_ - vpe)
-                    c1ee[i] = np.trapz(x=vpe, y=int_c1ee)
-                    c2ee[i] = np.trapz(x=vpe, y=int_c2ee)
-
-                    if i > 0:
-                        vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
-                        int_c1ei = synapse_pdf_ei.sf((v_ - vpi) / (self.u_inh - vpi))
-                        int_c2ei = int_c1ei * (vpi - v_)
-                        c1ei[i] = np.trapz(x=vpi, y=int_c1ei)
-                        c2ei[i] = np.trapz(x=vpi, y=int_c2ei)
-
-                c1ei[0] = c1ei[1]
-                c2ei[0] = 0
-
-                self.c[k] = np.array([[[c1ee, c1ei], [c2ee, c2ei]]])
-                c1ee_v = np.gradient(c1ee, self.v)
-                c1ei_v = np.gradient(c1ei, self.v)
-                c2ee_v = np.gradient(c2ee, self.v)
-                c2ei_v = np.gradient(c2ei, self.v)
-                self.c_v[k] = np.array([[[c1ee_v, c1ei_v], [c2ee_v, c2ei_v]]])
-                self.synapse_pdf_funcs.append(synapse_pdf_ee)
-                Fee_v = np.gradient(synapse_pdf_ee.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
-                        * np.heaviside(self.v - self.u_rest, 0.5)
-                Fei_v = np.gradient(synapse_pdf_ei.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
-                        * np.heaviside(self.u_rest - self.v, 0.5)
-
-                self.dFdv[k] = np.array([Fee_v, Fei_v])
-
-
-            elif self.population_type[k] == 'inh':
-
-
-                # init arrays for diffusion coeffs
-                c1ie = np.zeros(len(v))
-                c2ie = np.zeros(len(v))
-                c1ii = np.zeros(len(v))
-                c2ii = np.zeros(len(v))
-
-                # conductance jump distributions
-                if self.synapse_pdf_type == 'gamma':
-                    synapse_pdf_ie = gamma(a=self.synapse_pdf_params[0, k, 0] ** (-2), loc=0,
-                                           scale=self.synapse_pdf_params[0, k, 0] ** 2 * self.synapse_pdf_params[
-                                               1, k, 0])
-                    synapse_pdf_ii = gamma(a=self.synapse_pdf_params[0, k, 1] ** (-2),
-                                           loc=0, scale=self.synapse_pdf_params[0, k, 1] ** 2 * self.synapse_pdf_params[
-                            1, k, 1])
-                elif self.synapse_pdf_type == 'normal':
-                    synapse_pdf_ie = norm(loc=self.synapse_pdf_params[0, k, 0], scale=self.synapse_pdf_params[1, k, 0])
-                    synapse_pdf_ii = norm(loc=self.synapse_pdf_params[0, k, 1], scale=self.synapse_pdf_params[1, k, 1])
-                elif self.synapse_pdf_type == 'log-normal':
-                    synapse_pdf_ie = lognorm(scale=self.synapse_pdf_params[0, k, 0], s=self.synapse_pdf_params[1, k, 0])
-                    synapse_pdf_ii = lognorm(scale=self.synapse_pdf_params[0, k, 1], s=self.synapse_pdf_params[1, k, 1])
-                else:
-                    raise NotImplementedError(
-                        f'Please choose from implemented pdf types: {self.implemented_pdf_types}!')
-
-                for i, v_ in tqdm(enumerate(v), f'computing drift and diffusion coefficients for rates of'
-                                                f' inh population', disable=tqdm_disable_coeffs):
-                    vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
-                    int_c1ie = synapse_pdf_ie.sf((v_ - vpe) / (self.u_exc - vpe))
-                    int_c2ie = int_c1ie * (v_ - vpe)
-                    c1ie[i] = np.trapz(x=vpe, y=int_c1ie)
-                    c2ie[i] = np.trapz(x=vpe, y=int_c2ie)
-
-                    if i > 0:
-                        vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
-                        int_c1ii = synapse_pdf_ii.sf((v_ - vpi) / (self.u_inh - vpi))
-                        int_c2ii = int_c1ii * (vpi - v_)
-                        c1ii[i] = np.trapz(x=vpi, y=int_c1ii)
-                        c2ii[i] = np.trapz(x=vpi, y=int_c2ii)
-
-                c1ii[0] = c1ii[1]
-                c2ii[0] = 0
-
-                self.c[k] = np.array([[c1ie, c1ii], [c2ie, c2ii]])
-                c1ie_v = np.gradient(c1ie, self.v)
-                c1ii_v = np.gradient(c1ii, self.v)
-                c2ie_v = np.gradient(c2ie, self.v)
-                c2ii_v = np.gradient(c2ii, self.v)
-                self.c_v[k] = np.array([[[c1ie_v, c1ii_v], [c2ie_v, c2ii_v]]])
-                self.synapse_pdf_funcs.append(synapse_pdf_ie)
-                Fie_v = np.gradient(synapse_pdf_ie.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
-                                   * np.heaviside(self.v - self.u_rest, 0.5)
-                Fii_v = np.gradient(synapse_pdf_ii.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
-                                   * np.heaviside(self.u_rest - self.v, 0.5)
-                self.dFdv[k] = np.array([Fie_v, Fii_v])
-
-            else:
-                raise NotImplementedError('population types must be "exc" or "inh"!')
+                    raise NotImplementedError('population types must be "exc" or "inh"!')
 
     def get_delay_kernel(self):
         if self. delay_kernel_type == 'alpha':
@@ -1600,7 +1604,7 @@ class Nykamp_Model_1():
         plt.show()
 
     def plot(self, fname=None, heat_map=True, plot_idxs=None, savefig=False, plot_input=False, z_limit=None,
-             plot_combined=True, animate=False):
+             plot_combined=True, animate=False, crop_rate=False):
 
         if fname == None:
             fname = self.name
@@ -1659,8 +1663,10 @@ class Nykamp_Model_1():
                 ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
                 ax.set_ylabel("Firing rate (Hz)")
                 ax.set_xlabel("time (ms)")
+                if crop_rate:
+                    ax.set_ylim(0, np.max(1.2*r_plot[plot_idx, 50:] * 1000))
                 if plot_input:
-                    rate_height = np.max(r_plot[plot_idx] * 1000)
+                    rate_height = np.max(r_plot[plot_idx, 50:] * 1000)
                     i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
                     ax.plot(t_plot, i_in_plot)
                     ax.legend(['rate', 'input'])
@@ -1735,7 +1741,7 @@ class Nykamp_Model_1():
                 bbox = dict(boxstyle='round', fc='blanchedalmond', ec='orange', alpha=0.5)
                 text = ax.text(0.95, 0.9, f't = {t_plot[0]:.2f}ms', fontsize=9, bbox=bbox,
                         transform=ax.transAxes, horizontalalignment='right')
-                ax.set(xlim=[v.min(), v.max()], ylim=[0, rho_animation.max()*0.5], xlabel='v (mV)', ylabel='rho')  # rho_animation.max()*0.5
+                ax.set(xlim=[v.min(), v.max()], ylim=[0, rho_animation.mean()*3], xlabel='v (mV)', ylabel='rho')  # rho_animation.max()*0.5
                 def update(frame):
                     # for each frame, update the data stored on each artist.
                     rho_frame = rho_animation[plot_idx, :, frame]
