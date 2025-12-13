@@ -10,7 +10,7 @@ plot_di_model = True
 
 dt = 0.01
 dv = 0.01
-T = 8
+T = 12
 
 t = np.arange(0, T, dt)
 Nt = t.shape[0]
@@ -71,20 +71,20 @@ if plot_nykamp_basic:
     plt.show()
 
 if plot_di_model:
-    # fn_session = '/home/erik/Downloads/gpc.pkl'
-    fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+    fn_session = '/home/erik/Downloads/gpc.pkl'
+    # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
     # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
     simulation_name = 'diw_Hu_solver_test'
-    parameters = {'intensity': 230, 'fraction_nmda': 0.72, 'fraction_gaba_a': 0.91, 'fraction_ex': 0.68, 'plot_align': False,
+    parameters = {'intensity': 368, 'fraction_nmda': 0.42, 'fraction_gaba_a': 0.91, 'fraction_ex': 0.70, 'plot_align': False,
                   'test_func_intensity': 2.5, 'test_func_t0': 0.35,
-                  'test_signal_from_file': False, 'i_scale': 5.148136e-9*350,
+                  'test_signal_from_file': False, 'i_scale': 5.148136e-9*300,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt,
-                  'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
+                  'nykamp_parameters': {'connectivity_matrix': np.array([[20]]),
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
                                         'input_type': 'stochastic-current',
-                                        'init_pdf_sigma': 1,
-                                        'init_pdf_weight': 1,
+                                        'init_pdf_sigma': 0.17,
+                                        'init_pdf_weight': 13,
                                         'delay_kernel_type': 'alpha',
                                         'delay_kernel_parameters': {'n_alpha': 9, 'tau_alpha': 1/3},
                                         'dv': dv,

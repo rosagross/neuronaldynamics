@@ -47,6 +47,9 @@ class DI_wave_simulation():
         self.test_signal_from_file = False
         self.error_mode = 'non-zero'
         self.mass_model_connectivity_matrix = None
+        self.pdf_offset = 0
+        self.pdf_sigma = 1
+        self.pdf_weight = 1
         self.g_eext_factor = 1
         self.c_eext1_factor = 1
         self.c_eext2_factor = 1
@@ -75,7 +78,9 @@ class DI_wave_simulation():
                                   'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
                                   'input_type': 'current', 'input_function_idx': [0, 0], 'name': self.name,
                                   'dt': self.dt, 'T': self.T, 'sparse_mat': True, 'g_eext_factor': self.g_eext_factor,
-                                  'c_eext1_factor': self.c_eext1_factor, 'c_eext2_factor': self.c_eext2_factor,}
+                                  'c_eext1_factor': self.c_eext1_factor, 'c_eext2_factor': self.c_eext2_factor,
+                                  'init_pdf_offset': self.pdf_offset, 'init_pdf_sigma': self.pdf_sigma,
+                                  'init_pdf_weight': self.pdf_weight}
 
         self.create_coords()
         self.update_gpc_time()
