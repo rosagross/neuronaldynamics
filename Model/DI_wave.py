@@ -50,6 +50,7 @@ class DI_wave_simulation():
         self.pdf_offset = 0
         self.pdf_sigma = 1
         self.pdf_weight = 1
+        self.current_sigma = 10
         self.g_eext_factor = 1
         self.c_eext1_factor = 1
         self.c_eext2_factor = 1
@@ -80,7 +81,7 @@ class DI_wave_simulation():
                                   'dt': self.dt, 'T': self.T, 'sparse_mat': True, 'g_eext_factor': self.g_eext_factor,
                                   'c_eext1_factor': self.c_eext1_factor, 'c_eext2_factor': self.c_eext2_factor,
                                   'init_pdf_offset': self.pdf_offset, 'init_pdf_sigma': self.pdf_sigma,
-                                  'init_pdf_weight': self.pdf_weight}
+                                  'init_pdf_weight': self.pdf_weight, 'current_sigma': self.current_sigma}
 
         self.create_coords()
         self.update_gpc_time()
@@ -115,13 +116,15 @@ class DI_wave_simulation():
         nmm_potential_out = nmm_potential[:nmm_shape]
 
         if self.enable_high_pass:
-            v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.3, fps=int(1 / self.dt))
-            hp_mean = v_out_hp.mean()
-            if hp_mean > 1:
-                v_out_hp -= hp_mean
-            else:
-                v_out_hp += hp_mean
-            v_out_hp[v_out_hp < 0] = 0
+            v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.05, fps=int(1 / self.dt))  # very small cutoff
+            v_out_mean = nmm_potential_out.mean()
+            # hp_mean = v_out_hp.mean()  # reset mean to 0
+            # if hp_mean > 1:
+            #     v_out_hp -= hp_mean
+            # else:
+            #     v_out_hp += hp_mean
+            v_out_hp += v_out_mean/2  # rescale to original height (a bit?)
+            # v_out_hp[v_out_hp < 0] = 0
             nmm_potential_out = v_out_hp
 
         self.get_test_signal(from_file=self.test_signal_from_file)
@@ -236,9 +239,13 @@ class DI_wave_simulation():
             plt.close()
         else:
             plt.show()
-    def save_log(self, plot=True):
+
+    def save_log(self, plot=True, log_name=None):
         log_dict = self.parameters
-        log_file_name = self.name + '_log.yaml'
+        if log_name == None:
+            log_file_name = self.name + '_log.yaml'
+        else:
+            log_file_name = log_name + '_log.yaml'
         log_name = log_file_name.split('.')[0]
         if os.path.exists(log_file_name):
             if log_name[-3:] == 'log':

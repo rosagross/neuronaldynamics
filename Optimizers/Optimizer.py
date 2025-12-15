@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 import sympy as sy
+import os
 from scipy.integrate import odeint
 from Utils import get_stability_2D, nrmse, t_format
 import matplotlib.pyplot as plt
@@ -94,6 +95,16 @@ class Hierarchical_Random(Optimizer):
                 else:
                     #TODO: extend to other fit functions
                     self.error[i, k] = nrmse(self.y, x)
+
+                orig_name = self.simulation_class.mass_model.name
+                run_name = os.path.join('optimization_temp', f'diw_sim_opt_hu_{i}_{k}')
+                # self.simulation_class.save_log(log_name=run_name)
+                self.simulation_class.name = run_name
+                self.simulation_class.plot_validation(save_fig=True)
+                self.simulation_class.mass_model.name = run_name
+                self.simulation_class.mass_model.plot(savefig=True, plot_input=True, z_limit=0.001,
+                                                      fname=orig_name)
+
             min_error = np.nanmin(self.error[i])
 
             min_error_idx = (i, np.nanargmin(self.error[i]))
@@ -105,6 +116,7 @@ class Hierarchical_Random(Optimizer):
             print(f'{param_values[:, min_error_idx[1]]}')
             print('#########################################################################')
 
+            print(f'plotted results for diw_sim_opt_hu_{i}')
             if min_error < self.eps:
                 print(f'error: {min_error:.4f}')
                 self.optimum = param_values[:, min_error_idx[1]]

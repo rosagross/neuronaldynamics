@@ -416,6 +416,7 @@ def butter_highpass(cutoff, fs, order=5):
     normal_cutoff = min(cutoff / nyq, 0.9)
     b, a = scipy.signal.butter(order, normal_cutoff, btype='high', analog=False)
     return b, a
+
 def butter_highpass_filter(data, cutoff, fps, order=5):
     b, a = butter_highpass(cutoff, fps, order=order)
     y = scipy.signal.filtfilt(b, a, data)

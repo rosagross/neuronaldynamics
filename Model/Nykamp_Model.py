@@ -1203,9 +1203,10 @@ class Nykamp_Model_1():
                             upper = np.zeros(Nx - 1)
 
                             # conversion of coefficients from Nykamp to Hu-formulation
-                            drift_coeff_vec = np.sum(- v_in[exc_idxs, j, i]) * c1ee_v + np.sum(v_in[inh_idxs, j, i]) * c1ei_v +\
+                            drift_coeff_vec = -np.sum(- v_in[exc_idxs, j, i]) * c1ee_v + np.sum(v_in[inh_idxs, j, i]) * c1ei_v +\
                                           self.c1eext
                             drift_coeff = drift_coeff_vec[0]
+
                             # TODO: find a way around this once voltage dependent components play a role
 
                             diffusion_coeff = + self.c2eext[0]
@@ -1220,14 +1221,12 @@ class Nykamp_Model_1():
                                 c = critval
                                 diffusion_coeff_original = diffusion_coeff.copy()
                                 diffusion_coeff = c * dv_ / self.dt
-                                if c_count < 1:
+                                if c_count < 1 & self.verbose > 0:
                                     c_count += 1
                                     print(f'resetting diffusion_coeff from {diffusion_coeff_original} to'
                                           f' {diffusion_coeff:.5f} to achieve numerical stability')
 
                             Ms = self.SG_Flux(v_, drift_coeff, diffusion_coeff, x_rest=u_rest_)
-                            if i == 400:
-                                print(f'{diffusion_coeff}, {drift_coeff}')
 
                             if len(np.where(Ms == np.inf)[0]) > 0:
                                 raise ValueError('Infinite flux detected!')

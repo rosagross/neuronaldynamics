@@ -10,7 +10,7 @@ plot_di_model = True
 
 dt = 0.01
 dv = 0.01
-T = 12
+T = 8
 
 t = np.arange(0, T, dt)
 Nt = t.shape[0]
@@ -71,26 +71,34 @@ if plot_nykamp_basic:
     plt.show()
 
 if plot_di_model:
-    fn_session = '/home/erik/Downloads/gpc.pkl'
-    # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+    # fn_session = '/home/erik/Downloads/gpc.pkl'
+    fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
     # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
     simulation_name = 'diw_Hu_solver_test'
-    parameters = {'intensity': 368, 'fraction_nmda': 0.42, 'fraction_gaba_a': 0.91, 'fraction_ex': 0.70, 'plot_align': False,
-                  'test_func_intensity': 2.5, 'test_func_t0': 0.35,
-                  'test_signal_from_file': False, 'i_scale': 5.148136e-9*300,
+
+    # [3.80187468e+02 6.24947346e-01 9.15432571e-01 6.77733943e-01
+    #  5.89647134e-03 2.89137701e-01 3.55730239e+00 1.71540732e-06
+    #  8.49486711e+01]
+    # ['intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex',
+    # 'pdf_offset', 'pdf_sigma', 'pdf_weight', 'i_scale',
+    #  'current_sigma']
+    parameters = {'intensity': 380, 'fraction_nmda': 0.62, 'fraction_gaba_a': 0.92, 'fraction_ex': 0.68, 'plot_align': False,
+                  'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': False,
+                  'test_signal_from_file': True, 'i_scale': 1.71540732e-06,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt,
-                  'nykamp_parameters': {'connectivity_matrix': np.array([[20]]),
+                  'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
                                         'input_type': 'stochastic-current',
-                                        'init_pdf_sigma': 0.17,
-                                        'init_pdf_weight': 13,
+                                        'init_pdf_sigma': 0.3,
+                                        'init_pdf_weight': 3.56,
                                         'delay_kernel_type': 'alpha',
                                         'delay_kernel_parameters': {'n_alpha': 9, 'tau_alpha': 1/3},
                                         'dv': dv,
                                         'dt': dt,
                                         'solver': 'Hu-2021',
-                                        'current_sigma': 10}}
+                                        'current_sigma': 85,
+                                        'verbose': 1}}
 
     di_model = DI_wave_simulation(parameters=parameters, logname=None)
     di_model.simulate()
