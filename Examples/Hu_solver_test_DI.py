@@ -10,7 +10,7 @@ plot_di_model = True
 
 dt = 0.01
 dv = 0.01
-T = 10
+T = 14
 
 t = np.arange(0, T, dt)
 Nt = t.shape[0]
@@ -88,23 +88,23 @@ if plot_di_model:
     # ['intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex',
     # 'pdf_offset', 'pdf_sigma', 'pdf_weight', 'i_scale',
     #  'current_sigma']
-    parameters = {'intensity': 309, 'fraction_nmda': 0.59, 'fraction_gaba_a': 0.99, 'fraction_ex': 0.65, 'plot_align': False,
-                  'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': True,
-                  'test_signal_from_file': True, 'i_scale': 1.29366546e-06,
+    parameters = {'intensity': 250, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.94, 'fraction_ex': 0.57, 'plot_align': False,
+                  'test_func_intensity': 1.5, 'test_func_t0': 0.35, 'enable_high_pass': True,
+                  'test_signal_from_file': False, 'i_scale': 5e-07,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt,
-                  'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
+                  'nykamp_parameters': {'connectivity_matrix': np.array([[1400]]),
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
                                         'input_type': 'stochastic-current',
-                                        'init_pdf_offset': 1.1,
-                                        'init_pdf_sigma': 0.5,
-                                        'init_pdf_weight': 0.52,
+                                        'init_pdf_offset': 0,
+                                        'init_pdf_sigma': 0.01,
+                                        'init_pdf_weight': 20,
                                         'delay_kernel_type': 'alpha',
                                         'delay_kernel_parameters': {'n_alpha': 9, 'tau_alpha': 1/3},
                                         'dv': dv,
                                         'dt': dt,
                                         'solver': 'Hu-2021',
-                                        'current_sigma': 57,
+                                        'current_sigma': 50,
                                         'verbose': 1}}
 
     di_model = DI_wave_simulation(parameters=parameters, logname=None)

@@ -16,6 +16,8 @@ class Optimizer():
     def __init__(self, parameters):
         self.opt_parameters = np.zeros((2))
         self.optimum = None
+        self.results_folder = 'optimization_temp'
+        self.save_results = False
         # self.simulate = lambda self.opt_paramters[0]: x
 
 class Hierarchical_Random(Optimizer):
@@ -97,13 +99,14 @@ class Hierarchical_Random(Optimizer):
                     self.error[i, k] = nrmse(self.y, x)
 
                 orig_name = self.simulation_class.mass_model.name
-                run_name = os.path.join('optimization_temp', f'diw_sim_opt_hu_{i}_{k}')
-                # self.simulation_class.save_log(log_name=run_name)
-                self.simulation_class.name = run_name
-                self.simulation_class.plot_validation(save_fig=True)
-                self.simulation_class.mass_model.name = run_name
-                self.simulation_class.mass_model.plot(savefig=True, plot_input=True, z_limit=0.001,
-                                                      fname=orig_name)
+                if self.save_results:
+                    run_name = os.path.join(self.results_folder, f'diw_sim_opt_hu_{i}_{k}')
+                    # self.simulation_class.save_log(log_name=run_name)
+                    self.simulation_class.name = run_name
+                    self.simulation_class.plot_validation(save_fig=True)
+                    self.simulation_class.mass_model.name = run_name
+                    self.simulation_class.mass_model.plot(savefig=True, plot_input=True, z_limit=0.001,
+                                                          fname=orig_name)
 
             min_error = np.nanmin(self.error[i])
 

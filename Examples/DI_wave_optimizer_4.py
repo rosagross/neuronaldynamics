@@ -14,7 +14,7 @@ if __name__ == "__main__":
     simulation_name = 'diw_opt_hu_12_12_25'
     parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.25,
-                  'test_signal_from_file': True, 'i_scale': 5.148136e-9*300, 'error_mode': 'a',
+                  'test_signal_from_file': False, 'i_scale': 5.148136e-9*300, 'error_mode': 'a',
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'enable_high_pass': True,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0],
@@ -52,7 +52,7 @@ if __name__ == "__main__":
                       'pdf_weight': opt_params[6], 'i_scale': opt_params[7],'current_sigma': opt_params[8],
                       'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.25,
-                  'test_signal_from_file': True,
+                  'test_signal_from_file': False,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'enable_high_pass': True,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0],

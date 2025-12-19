@@ -123,7 +123,7 @@ class DI_wave_simulation():
             #     v_out_hp -= hp_mean
             # else:
             #     v_out_hp += hp_mean
-            v_out_hp += v_out_mean/2  # rescale to original height (a bit?)
+            v_out_hp += v_out_mean/8  # rescale to original height (a bit?)
             # v_out_hp[v_out_hp < 0] = 0
             nmm_potential_out = v_out_hp
 
