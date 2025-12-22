@@ -89,7 +89,7 @@ class DI_wave_simulation():
         if self.use_gpc:
             self.load_gpc_session()
             self.grid = pygpc.RandomGrid(parameters_random=self.session.parameters_random, coords=self.coords)
-            self.input_current = self.session.gpc[0].get_approximation(self.coeffs, self.grid.coords_norm) * self.i_scale
+            self.input_current = self.session.gpc[0].get_approximation(self.gpc_coeffs, self.grid.coords_norm) * self.i_scale
             self.input_current = self.input_current.flatten()
             self.input_current *= 1e6 # convert to µA from A
             self.input_current[np.where(self.input_current < 0)[0]] = 0
@@ -165,7 +165,7 @@ class DI_wave_simulation():
         assert self.fn_session != None, 'Please provide a filename for the gpc-model!'
         self.session = pygpc.read_session(fname=self.fn_session)
         with h5py.File(os.path.splitext(self.fn_session)[0] + ".hdf5", "r") as f:
-            self.coeffs = f["coeffs"][:]
+            self.gpc_coeffs = f["coeffs"][:]
 
     def create_coords(self):
         self.coords = np.array([[self.theta, self.gradient, self.intensity, self.fraction_nmda, self.fraction_gaba_a,
@@ -265,7 +265,8 @@ class DI_wave_simulation():
         :param log_name: str, default: None, optional name of the log_file, if this needs to be different from the
         name of the simulation object
         """
-        log_dict = self.parameters
+        log_dict = self.parameters.copy()
+        log_dict['simulate'] = None
         if log_name == None:
             log_file_name = self.name + '_log.yaml'
         else:

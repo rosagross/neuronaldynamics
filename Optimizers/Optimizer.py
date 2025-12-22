@@ -80,6 +80,7 @@ class Hierarchical_Random(Optimizer):
                 # keywords['nykamp_parameters']['connectivity_matrix'] = np.array([[param_values[-1, k]]])  # hotfix!
                 keywords['y'] = self.y
                 keywords['idx'] = f'{i}_{k}'
+                keywords['simulation_class'] = None  # prevent this from copying over and over again
                 # keywords.update(...)
                 if self.simulation_class == None:
                     x = self.simulate(**keywords)
@@ -101,7 +102,7 @@ class Hierarchical_Random(Optimizer):
                 orig_name = self.simulation_class.mass_model.name
                 if self.save_results:
                     run_name = os.path.join(self.results_folder, f'diw_sim_opt_hu_{i}_{k}')
-                    self.simulation_class.save_log(log_name=run_name)
+                    # self.simulation_class.save_log(log_name=run_name)
                     self.simulation_class.name = run_name
                     self.simulation_class.plot_validation(save_fig=True)
                     self.simulation_class.mass_model.name = run_name

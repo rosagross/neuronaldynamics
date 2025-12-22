@@ -9,8 +9,8 @@ if __name__ == "__main__":
     dt = 0.01
     dv = 0.01
     # fn_session = '/home/erik/Downloads/gpc.pkl'
-    # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-    fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+    fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+    # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
     simulation_name = 'diw_opt_hu_12_12_25'
     parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.25,
@@ -48,26 +48,6 @@ if __name__ == "__main__":
     di_model.optimize(opt_params=opt_parameters)
     opt_params = di_model.optimimization_algorithm.optimum
     print(f'optimal params recovered: {opt_params}')
-    opt_parameters = {'intensity': opt_params[0], 'fraction_nmda': opt_params[1], 'fraction_gaba_a': opt_params[2],
-                      'fraction_ex': opt_params[3], 'pdf_offset': opt_params[4], 'pdf_sigma' : opt_params[5],
-                      'pdf_weight': opt_params[6], 'i_scale': opt_params[7],'current_sigma': opt_params[8],
-                      'plot_align': False,
-                  'test_func_intensity': 2.0, 'test_func_t0': 0.25,
-                  'test_signal_from_file': False,
-                  'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'enable_high_pass': True,
-                  'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
-                                        'tau_ref': [0],
-                                        'tau_mem': [12],
-                                        'dv': dv,
-                                        'delay_kernel_type': 'alpha',
-                                        'delay_kernel_parameters': {'n_alpha': 9, 'tau_alpha': 1 / 3},
-                                        'input_type': 'stochastic-current',
-                                        'solver': 'hu-2021'
-                                        }}
-    di_model_2 = DI_wave_simulation(parameters=opt_parameters, logname=None)
-    di_model_2.simulate()
-    di_model_2.mass_model.plot()
-    di_model_2.plot_validation()
 
     errors = di_model.optimimization_algorithm.error
     min_error = errors.min()
@@ -75,7 +55,7 @@ if __name__ == "__main__":
     min_error_idx = np.unravel_index(np.argmin(errors, axis=None), errors.shape)
     best_x = di_model.optimimization_algorithm.x_vals[min_error_idx]
     # plt.plot(best_x)
-    di_model_2.mass_model_v_out = best_x
-    di_model_2.validate()
-    di_model_2.plot_validation()
+    di_model.mass_model_v_out = best_x
+    di_model.validate()
+    di_model.plot_validation()
     error_test = di_model.error
