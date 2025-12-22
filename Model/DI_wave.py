@@ -46,6 +46,7 @@ class DI_wave_simulation():
         self.enable_high_pass = False
         self.test_signal_from_file = False
         self.error_mode = 'non-zero'
+        self.min_delay = None
         self.mass_model_connectivity_matrix = None
         self.pdf_offset = 0
         self.pdf_sigma = 1
@@ -123,19 +124,32 @@ class DI_wave_simulation():
             #     v_out_hp -= hp_mean
             # else:
             #     v_out_hp += hp_mean
-            v_out_hp += v_out_mean/8  # rescale to original height (a bit?)
+            t_4ms_idx = np.where(self.t>4)[0][0]
+            v_out_hp_after_4ms = v_out_hp[t_4ms_idx:]
+            peaks = scipy.signal.find_peaks(-v_out_hp_after_4ms)[0]
+            peaks_v = v_out_hp_after_4ms[peaks]
+            v_out_hp -= np.mean(peaks_v)
+            # v_out_hp += v_out_mean/8  # rescale to original height (a bit?)
             # v_out_hp[v_out_hp < 0] = 0
             nmm_potential_out = v_out_hp
 
         self.get_test_signal(from_file=self.test_signal_from_file)
         di_max = np.max(self.target)
         I1_time = np.argmax(mass_model_rate) * self.dt
+        if isinstance(self.min_delay, (float, int)):
+            t_idx_delay = np.where(self.t > self.min_delay)[0][0]
+            potential_max = nmm_potential_out[t_idx_delay:].max()
+            nmm_potential_scaled = nmm_potential_out / potential_max * di_max
+        else:
+            nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
+
+        # previous version to cut out large spikes after 4ms
         # if np.max(mass_model_rate) > 0.1 and I1_time < 4:  # only scale to normalize if rate is sufficiently large
         # if I1_time < 4:
         #     nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
         # else:
         #     nmm_potential_scaled = nmm_potential_out
-        nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
+
         self.mass_model_v_out = nmm_potential_scaled
         # self.plot_nmm_out()
         # self.plot_convolution()
@@ -211,7 +225,7 @@ class DI_wave_simulation():
     def plot_nmm_out(self, heat_map=True, plot_input=True, save_fig=False):
         self.mass_model.plot(heat_map=heat_map, plot_input=plot_input, savefig=save_fig)
 
-    def plot_validation(self, labels=None, save_fig=False):
+    def plot_validation(self, labels=None, save_fig=False, fixed_ylim=False):
 
         if labels == None:
             label1 = 'NMM Potential'
@@ -232,6 +246,8 @@ class DI_wave_simulation():
         ax.grid()
         ax.set_xlabel('t in ms')
         ax.legend([label1, label2])
+        if fixed_ylim:
+            ax.set_ylim(-0.2*self.target.max(), 1.2*self.target.max())
         # plt.legend(['nykamp rate', 'nykamp_potential', 'D-I-wave test function'])
         ax.set_title(f'nrmse: {self.error:.4f}')
         if save_fig:
@@ -241,6 +257,14 @@ class DI_wave_simulation():
             plt.show()
 
     def save_log(self, plot=True, log_name=None):
+        """
+        Function to save a log of simulation. This loc can be used to read out parameter values and internal values,
+        or to recreate the simulation from the input parameters saved in the log with the from_log option in __init__
+        :param plot: Bool, default True, if plots need to be saved too (no options being carried to the plot function
+        as of now)
+        :param log_name: str, default: None, optional name of the log_file, if this needs to be different from the
+        name of the simulation object
+        """
         log_dict = self.parameters
         if log_name == None:
             log_file_name = self.name + '_log.yaml'

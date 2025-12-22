@@ -72,8 +72,8 @@ if plot_nykamp_basic:
 
 if plot_di_model:
     # fn_session = '/home/erik/Downloads/gpc.pkl'
-    fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-    # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+    # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+    fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
     simulation_name = 'diw_Hu_solver_test'
 
     # [3.80187468e+02 6.24947346e-01 9.15432571e-01 6.77733943e-01
@@ -88,23 +88,23 @@ if plot_di_model:
     # ['intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex',
     # 'pdf_offset', 'pdf_sigma', 'pdf_weight', 'i_scale',
     #  'current_sigma']
-    parameters = {'intensity': 250, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.94, 'fraction_ex': 0.57, 'plot_align': False,
-                  'test_func_intensity': 1.5, 'test_func_t0': 0.35, 'enable_high_pass': True,
-                  'test_signal_from_file': False, 'i_scale': 5e-07,
+    parameters = {'intensity': 220, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.94, 'fraction_ex': 0.57, 'plot_align': False,
+                  'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': True, 'min_delay': 5,
+                  'test_signal_from_file': False, 'i_scale': 4e-07,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt,
-                  'nykamp_parameters': {'connectivity_matrix': np.array([[1400]]),
+                  'nykamp_parameters': {'connectivity_matrix': np.array([[2000]]),
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
                                         'input_type': 'stochastic-current',
                                         'init_pdf_offset': 0,
-                                        'init_pdf_sigma': 0.01,
-                                        'init_pdf_weight': 20,
+                                        'init_pdf_sigma': 0.1,
+                                        'init_pdf_weight': 50,
                                         'delay_kernel_type': 'alpha',
                                         'delay_kernel_parameters': {'n_alpha': 9, 'tau_alpha': 1/3},
                                         'dv': dv,
                                         'dt': dt,
                                         'solver': 'Hu-2021',
-                                        'current_sigma': 50,
+                                        'current_sigma': 120,
                                         'verbose': 1}}
 
     di_model = DI_wave_simulation(parameters=parameters, logname=None)
@@ -115,5 +115,5 @@ if plot_di_model:
     drho = np.sum(rhos[0, :, 5]) - np.sum(rhos[0, :, -1])
     print(f"change in rho: {drho}")
     print(f'rho end: {np.sum(rhos[0, :, -1])}')
-    di_model.plot_validation()
+    di_model.plot_validation(fixed_ylim=False)
     di_model.mass_model.clean()

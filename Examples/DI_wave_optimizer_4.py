@@ -9,8 +9,8 @@ if __name__ == "__main__":
     dt = 0.01
     dv = 0.01
     # fn_session = '/home/erik/Downloads/gpc.pkl'
-    fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-    # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+    # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+    fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
     simulation_name = 'diw_opt_hu_12_12_25'
     parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.25,
@@ -31,18 +31,19 @@ if __name__ == "__main__":
 
     model_parameters = ['intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex', 'pdf_offset', 'pdf_sigma',
                         'pdf_weight', 'i_scale', 'current_sigma', 'mass_model_connectivity_matrix']
-    model_parameter_bounds = [[200, 400], [0.25, 0.75], [0.9, 1.0], [0.5, 0.8], [0, 12], [0.1, 1], [0.1, 10],
-                              [5.148136e-9*200, 5.148136e-9*400], [10, 100], [0, 500]]
+    model_parameter_bounds = [[200, 400], [0.25, 0.75], [0.9, 1.0], [0.5, 0.8], [0, 12], [0.01, 5], [0.01, 100],
+                              [5.148136e-9*200, 5.148136e-9*400], [0, 100], [0, 2000]]
 
     opt_parameters = parameters.copy()
     opt_parameters['optimizer'] = 'hierarchical'
     opt_parameters['eps'] = 0.05
     opt_parameters['max_iter'] = 3
-    opt_parameters['n_grid'] = 500
+    opt_parameters['n_grid'] = 5
     opt_parameters['model_parameters'] = model_parameters
     opt_parameters['bounds'] = model_parameter_bounds
     opt_parameters['x_out'] = 'mass_model_v_out'
     opt_parameters['nykamp_parameters']['tqdm_disable'] = True
+    opt_parameters['save_results'] = True
 
     di_model.optimize(opt_params=opt_parameters)
     opt_params = di_model.optimimization_algorithm.optimum
