@@ -256,7 +256,7 @@ def plot_rates(solutions, x=None, save_fname=None, titles = ['Plot1', 'Plot2']):
     else:
         plt.savefig(save_fname)
 
-def compare_firing_rate(fname1, fname2, idx=0, n_neurons=1000, dt=0.1, smooth = True, save_fname=None):
+def compare_firing_rate(fname1, fname2, idx=0, n_neurons=1000, dt=0.1, smooth=True, save_fname=None):
     """
     Function specifically for comparing the firing rate between a NMM that produces r as output and a LIF network
      that needs some formatting and filtering to get the output into the proper firing rate shape

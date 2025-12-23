@@ -17,6 +17,7 @@ from tqdm import tqdm
 from Utils import *
 from scipy.ndimage import gaussian_filter1d
 import time
+import os
 
 class Neuron_population():
     # general class for Neuron populations
@@ -264,7 +265,7 @@ class Neuron_population():
         plt.show()
 
     def plot_populations(self, plot_idxs=None, bins=100, cutoff=None, smoothing=False, sigma=2, hide_refractory=True,
-                         size=1):
+                         size=1, ylims=None):
 
         with h5py.File(self.fname + '.hdf5', 'r') as h5file:
 
@@ -319,6 +320,8 @@ class Neuron_population():
             ax.set_title(f"Membrane potential histogram ({str(p_types[plot_idx])})")
             ax.set_xlabel("time (ms)")
             ax.set_ylabel("membrane potential (mv)")
+            if isinstance(ylims, tuple) or isinstance(ylims, np.ndarray):
+                ax.set_ylim(ylims)
             # ax.set_ylim([self.V_reset * 1.1, self.V_th*1.1])
 
             ax = fig.add_subplot(n_plots, 2, plot_loc_2)
@@ -327,6 +330,7 @@ class Neuron_population():
             ax.set_ylabel("Firing rate (Hz)")
             ax.set_xlabel("time (ms)")
             ax.grid()
+
         plt.tight_layout()
         plt.show()
 
@@ -372,7 +376,10 @@ class Conductance_LIF(Neuron_population):
         self.mu_ii = 0.66
         self.n_neurons = 1
         self.spike_type = 0
+        self.init_pdf_sigma = 1
+        self.noise_sigma = 0
         self.verbose = 0
+        self.simulation_done = False
 
         # update self variables if they are in parameters
         self.__dict__.update(parameters)
@@ -380,7 +387,8 @@ class Conductance_LIF(Neuron_population):
         self.t = np.arange(0, self.T, self.dt)
         self.time_steps = self.t.shape[0]
         if type(self.Iinj) is np.ndarray:
-            self.Vinj = self.Iinj / self.g_r
+            self.Vinj = (self.Iinj + np.random.normal(0, self.noise_sigma, self.Iinj.shape)) / self.g_r
+
         if not 'type_mask' in parameters:
             self.type_mask = np.zeros(self.n_neurons)
         self.n_populations = len(self.population_type)
@@ -421,8 +429,13 @@ class Conductance_LIF(Neuron_population):
                     self.__dict__[key] = np.array(self.__dict__[key]).repeat(self.n_populations)
                 self.__dict__[key] = self.__dict__[key][self.type_mask]
 
+        if not isinstance(self.weights, np.ndarray):
+            self.compute_connections()
 
     def run(self):
+        """
+        Run the simulation of the network
+        """
 
         # init global input current
         if self.Iext is not None:
@@ -436,7 +449,8 @@ class Conductance_LIF(Neuron_population):
         Iin = np.zeros_like(self.v)
 
         # randomization hard coded here
-        self.v[:, 0] = np.random.normal(self.V_init, 1, self.v.shape[0])
+        self.v[:, 0] = np.random.normal(self.V_init, self.init_pdf_sigma, self.v.shape[0])
+        self.v[self.v[:, 0] > self.V_th -0.1, 0] =  self.V_th - 0.1  # reset values above V_th back below it
         t_ref_counter = np.zeros(self.n_neurons)  # the count for refractory duration
         t_last_spike = np.zeros(self.n_neurons)
         self.r = np.zeros_like(self.v)
@@ -580,8 +594,12 @@ class Conductance_LIF(Neuron_population):
             h5file.create_dataset('r', data=spike_sum)
             h5file.create_dataset('p_types', data=self.population_type)
             h5file.create_dataset('Iinj', data=self.Iinj)
+        self.simulation_done = True
 
     def init_alpha_pdf(self):
+        """
+        Build the alpha_pdf function from self.tau_alpha and self.n_alpha giving in __init__
+        """
         t_alpha = self.t[self.t < 10]
         alpha_func = np.exp(-t_alpha / self.tau_alpha) / (self.tau_alpha * factorial(self.n_alpha - 1)) * \
                      (t_alpha / self.tau_alpha) ** (self.n_alpha - 1)
@@ -635,6 +653,10 @@ class Conductance_LIF(Neuron_population):
             else:
                 coeff_of_var = coeff_of_var[time_frame[0], time_frame[1]]
         return coeff_of_var
+
+    def clean(self):
+        if self.simulation_done:
+            os.remove(self.name + '.hdf5')
 
 
 class LIF_population(Neuron_population):

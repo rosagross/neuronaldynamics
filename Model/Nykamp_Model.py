@@ -774,10 +774,12 @@ class Nykamp_Model_1():
         self.current_sigma = 0.1
         self.init_pdf_offset = 0
         self.init_pdf_sigma = 0.1
+        self.static_noise = False
 
         self.g_eext_factor = 1
         self.c_eext1_factor = 1
         self.c_eext2_factor = 1
+        self.current_factor = 1
 
         self.init_pdf_weight = 1
         self.thr_idx = -1
@@ -855,9 +857,12 @@ class Nykamp_Model_1():
                 except:
                     self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
         elif self.input_type in ['current', 'current-2', 'stochastic-current']:
-            self.i_ext[self.input_function_idx] = self.input_function(self.t)
+            self.i_ext[self.input_function_idx] = self.input_function(self.t) * self.current_factor
             if not isinstance(self.current_sigma, np.ndarray):
-                self.current_sigma = self.current_sigma*self.i_ext
+                if self.static_noise:
+                    self.current_sigma = np.tile(self.current_sigma, (self.n_populations, self.t.shape[0]))
+                else:
+                    self.current_sigma = self.current_sigma*self.i_ext
 
 
         if self.verbose > 1:
@@ -940,6 +945,7 @@ class Nykamp_Model_1():
                 rho[i, -1, 0] = 0
 
         c_count = 0
+        c_v_warn_count = 0
 
         # Determine population dynamics (diffusion approximation)
         for i, t_ in enumerate(tqdm(self.t[:-1], f"simulating {self.population_type} neuron populations for"
@@ -1194,8 +1200,13 @@ class Nykamp_Model_1():
 
                     elif self.solver.lower() == 'hu-2021':
 
-                        if self.c1eext_v !=0 or self.c2eext_v !=0:
-                            print(f'WARNING!: v-derivatives of coefficients are non-zero, but will be ignored!')
+                        if isinstance(self.c1eext_v, np.ndarray) and isinstance(self.c2eext_v, np.ndarray):
+                            if ((not np.allclose(self.c1eext_v, np.zeros_like(self.c1eext_v)) and
+                                    not np.allclose(self.c2eext_v, np.zeros_like(self.c2eext_v))) and
+                                    c_v_warn_count < 1):
+                                print(f'WARNING!: v-derivatives of coefficients are non-zero, but will be ignored!')
+                                c_v_warn_count +=1
+
                         if i > 0:
                             Nx = v_.shape[0]
                             main = np.zeros(Nx)
@@ -1206,6 +1217,10 @@ class Nykamp_Model_1():
                             drift_coeff_vec = -np.sum(- v_in[exc_idxs, j, i]) * c1ee_v + np.sum(v_in[inh_idxs, j, i]) * c1ei_v +\
                                           self.c1eext
                             drift_coeff = drift_coeff_vec[0]
+
+                            if i == 4:
+                                print(f'drift coeff: {drift_coeff}')
+                                print(f'vext: {v_ext}')
 
                             # TODO: find a way around this once voltage dependent components play a role
 
@@ -1334,18 +1349,7 @@ class Nykamp_Model_1():
             rho_plot[k, :] = rho[k, :]
             rho_plot[k, v_reset_idx, :] = rho[k, v_reset_idx, :] + rho_delta[k, :]
 
-
-        with h5py.File(self.name + '.hdf5', 'w') as h5file:
-            h5file.create_dataset('t', data=self.t)
-            h5file.create_dataset('v', data=self.v)
-            h5file.create_dataset('r', data=r)
-            if self.input_type in ['current', 'current-2', 'stochastic-current']:
-                h5file.create_dataset('in', data=self.i_ext)
-            else:
-                h5file.create_dataset('in', data=self.input)
-            h5file.create_dataset('rho', data=rho)
-            h5file.create_dataset('rho_plot', data=rho_plot)
-            h5file.create_dataset('p_types', data=self.population_type)
+        self.save_sim_results(r=r, rho=rho, rho_plot=rho_plot)
         self.simulation_done = True
 
     def get_A(self, f0, f1, f2):
@@ -1601,6 +1605,19 @@ class Nykamp_Model_1():
         plt.xlabel('t (ms)')
         plt.ylabel(f'{self.delay_kernel_type} delay kernel')
         plt.show()
+
+    def save_sim_results(self, r, rho, rho_plot):
+        with h5py.File(self.name + '.hdf5', 'w') as h5file:
+            h5file.create_dataset('t', data=self.t)
+            h5file.create_dataset('v', data=self.v)
+            h5file.create_dataset('r', data=r)
+            if self.input_type in ['current', 'current-2', 'stochastic-current']:
+                h5file.create_dataset('in', data=self.i_ext)
+            else:
+                h5file.create_dataset('in', data=self.input)
+            h5file.create_dataset('rho', data=rho)
+            h5file.create_dataset('rho_plot', data=rho_plot)
+            h5file.create_dataset('p_types', data=self.population_type)
 
     def plot(self, fname=None, heat_map=True, plot_idxs=None, savefig=False, plot_input=False, z_limit=None,
              plot_combined=True, animate=False, crop_rate=False):
