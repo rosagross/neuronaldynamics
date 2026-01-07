@@ -654,7 +654,7 @@ class Conductance_LIF(Neuron_population):
                 coeff_of_var = coeff_of_var[time_frame[0], time_frame[1]]
         return coeff_of_var
 
-    def clean(self):
+    def clean(self, opt=None):
         if self.simulation_done:
             os.remove(self.name + '.hdf5')
 

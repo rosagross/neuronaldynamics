@@ -802,12 +802,14 @@ class Nykamp_Model_1():
             self.neuron_size = 3.0 * np.ones(self.n_populations)  # unit is mm average is here for l5pt cells
 
         if not 'g_leak' in parameters:
-            avg_c_mem_per_mm = 0.1  # generally accepted avg
-            self.c_mem = self.neuron_size * avg_c_mem_per_mm
+            # avg_c_mem_per_mm = 0.1  # generally accepted avg
+            # self.c_mem = self.neuron_size * avg_c_mem_per_mm
+            self.c_mem = 1.1e-9
 
-            # compute g_leak from tau and average length
-            self.g_leak = [1e-5]*self.n_populations
-            self.g_leak = self.c_mem/self.tau_mem * 1e-3  # (conversion to mS from µS)
+            # compute g_leak from tau and capacitance
+            # self.g_leak = [1e-5]*self.n_populations
+            # self.g_leak = self.c_mem/self.tau_mem * 1e-3  # (conversion to mS from µS)
+            self.g_leak = self.c_mem/(np.array(self.tau_mem)*1e-3)  # (conversion from ms t s for tau_mem)
 
         if self.synapse_pdf_type == 'gamma':
             self.synapse_pdf_params = np.array([self.var_coeff_gamma, self.mu_gamma])
@@ -1053,7 +1055,7 @@ class Nykamp_Model_1():
 
                     current_2_val = 0
                     if self.input_type == 'current-2':
-                        v_ext = self.i_ext[j, i] / self.g_leak[j]
+                        v_ext = self.i_ext[j, i] / self.g_leak[j] * 1e3  # conversion from V to mV
                         current_2_val = 1
                     elif self.input_type == 'stochastic-current':
                         ################################################################################################
@@ -1061,7 +1063,7 @@ class Nykamp_Model_1():
                         # Additional external coefficients and pdfs to handle constant current input as dirac
                         # distributed in voltage space
                         ################################################################################################
-                        v_ext = self.i_ext[j, i] / self.g_leak[j]
+                        v_ext = self.i_ext[j, i] / self.g_leak[j] * 1e3  # conversion from V to mV
                         sigma = self.current_sigma[j, i]**2/self.tau_mem[j]
                         v_shape = self.v.shape[0]
                         self.c1eext = np.repeat(v_ext /self.tau_mem[j], v_shape)
@@ -1199,7 +1201,9 @@ class Nykamp_Model_1():
                             l=20
 
                     elif self.solver.lower() == 'hu-2021':
-
+                    ####################################################################################################
+                    # Hu-solver 2021
+                    ####################################################################################################
                         if isinstance(self.c1eext_v, np.ndarray) and isinstance(self.c2eext_v, np.ndarray):
                             if ((not np.allclose(self.c1eext_v, np.zeros_like(self.c1eext_v)) and
                                     not np.allclose(self.c2eext_v, np.zeros_like(self.c2eext_v))) and
@@ -1241,6 +1245,7 @@ class Nykamp_Model_1():
                                     print(f'resetting diffusion_coeff from {diffusion_coeff_original} to'
                                           f' {diffusion_coeff:.5f} to achieve numerical stability')
 
+                            # Scharfetter-Gummel Flux
                             Ms = self.SG_Flux(v_, drift_coeff, diffusion_coeff, x_rest=u_rest_)
 
                             if len(np.where(Ms == np.inf)[0]) > 0:
@@ -1248,26 +1253,30 @@ class Nykamp_Model_1():
                             if len(np.where(Ms == np.nan)[0]) > 0:
                                 raise ValueError('NaN values in flux detected!')
 
-                            M_harm = np.zeros(Nx - 1)  # idk
+                            # Calculate harmonic means
+                            M_harm = np.zeros(Nx - 1)
                             for k in range(Nx - 1):
                                 M_harm[k] = harm_mean(Ms[k], Ms[k + 1])
 
+                            # compute matrix terms
                             r1 = -c * M_harm[:-1] / Ms[:-2]
                             r2 = 1 + c * (M_harm[1:] + M_harm[:-1]) / Ms[1:-1]
                             r3 = -c * M_harm[1:] / Ms[2:]
 
-                            # Precompute sparse matrix with boundary conditions
                             main[1:-1] = r2
                             lower[:-1] = r1
                             upper[1:] = r3
+
                             # Boundary Conditions
                             main[0] = 1
                             main[-1] = 1
+                            b = rho[j,:,  i - 1]
+                            b[0] = b[-1] = 0.0
                             A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx, Nx),
                                                    format='csr')
+                            # solve for rho
+                            rho[j, :, i] = scipy.sparse.linalg.spsolve(A, b)
 
-                            b = rho[j,:,  i - 1]
-                            b[0] = b[-1] = 0.0  # boundary conditions
 
                             # firing rate / outgoing flux
                             # if i > 1:
@@ -1275,7 +1284,6 @@ class Nykamp_Model_1():
                             r[j, i] = ((diffusion_coeff / dv_) * (rho[j, -2, i-1]) +
                                     ((v_[self.thr_idx] - u_rest_) + drift_coeff) * rho[j,self.thr_idx, i - 1])
 
-                            rho[j, :, i] = scipy.sparse.linalg.spsolve(A, b)
                             J_out = r[j, i] * (np.heaviside((v_ + dv_) - u_reset_, 1) - np.heaviside((v_ - dv_) - u_reset_,
                                                                                                1))
                             if J_out.max() != 0:

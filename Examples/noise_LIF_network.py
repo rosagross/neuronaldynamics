@@ -56,14 +56,15 @@ lif.run()
 
 t_NMM = np.arange(0, T, 0.01)
 input_current = step(t_NMM)
-nmm_parameters = {'T': T, 'dt': 0.01, 'dv': 0.01, 'tau_mem': [20], 'tau_ref': [0], 'current_sigma': 8,
+# good fit: 'current_factor': 0.605e-6, 'current_sigma': 4
+nmm_parameters = {'T': T, 'dt': 0.01, 'dv': 0.01, 'tau_mem': [20], 'tau_ref': [0], 'current_sigma': 0.4,
                   'input_function': input_current, 'input_type': 'stochastic-current', 'solver': 'hu-2021',
-                  'current_factor': 1.7e-1, 'static_noise': True, 'connectivity_matrix': np.array([[0]]),
-                  'init_pdf_weight': 0, 'init_pdf_sigma': 1, 'init_pdf_offset': 5}
+                  'current_factor': 0.605e-6, 'static_noise': True, 'connectivity_matrix': np.array([[0]]),
+                  'init_pdf_weight': 0, 'init_pdf_sigma': 3, 'init_pdf_offset': 5}
 
 NMM = Nykamp_Model_1(parameters=nmm_parameters, name='Nykamp')
 NMM.simulate()
-NMM.plot(heat_map=True, z_limit=0.004)
+NMM.plot(heat_map=True, z_limit=0.003)
 r_LIF_time = np.interp(t_LIF, t_NMM, NMM.r[0])
 NMM.r = [r_LIF_time]
 NMM.clean()
