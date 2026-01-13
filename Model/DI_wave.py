@@ -91,7 +91,7 @@ class DI_wave_simulation():
             self.grid = pygpc.RandomGrid(parameters_random=self.session.parameters_random, coords=self.coords)
             self.input_current = self.session.gpc[0].get_approximation(self.gpc_coeffs, self.grid.coords_norm) * self.i_scale
             self.input_current = self.input_current.flatten()
-            self.input_current *= 1e6 # convert to µA from A
+            # self.input_current *= 1e6 # convert to µA from A
             self.input_current[np.where(self.input_current < 0)[0]] = 0
             self.input_current = np.interp(self.t, self.t_gpc, self.input_current)  # interpolate to desired time
         init_nykamp_parameters.update(self.nykamp_parameters)
@@ -101,6 +101,14 @@ class DI_wave_simulation():
 
 
     def simulate(self):
+        """
+        Simulation function that calls the neural mass model simulation function
+        It then also convolves the result from the NMM, which is a rate into a voltage
+        This voltage can then be filtered by a high-pass filter
+        Eventually the voltage signal is stored in self.mass_model_v_out
+        Finally the signal is validated against a test signal with self.validate, where an error is calculated and
+        stored in self.error
+        """
         self.mass_model.simulate()
         if self.save_plots:
             self.mass_model.plot(heat_map=True, plot_input=True)
@@ -294,6 +302,7 @@ class DI_wave_simulation():
     def load_from_file(self, logname):
         with open(logname, 'r') as stream:
             self.parameters = yaml.load(stream, Loader=yaml.Loader)
+
     def optimize(self, optimizer='hierarchical', opt_params={}):
 
         if optimizer == 'hierarchical':

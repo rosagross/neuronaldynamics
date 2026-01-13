@@ -72,9 +72,9 @@ if plot_nykamp_basic:
 
 if plot_di_model:
     # fn_session = '/home/erik/Downloads/gpc.pkl'
-    # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-    fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-    simulation_name = 'diw_Hu_solver_test'
+    fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+    # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+    simulation_name = 'diw_Hu_solver_test_26'
 
     # [3.80187468e+02 6.24947346e-01 9.15432571e-01 6.77733943e-01
     #  5.89647134e-03 2.89137701e-01 3.55730239e+00 1.71540732e-06
@@ -90,21 +90,21 @@ if plot_di_model:
     #  'current_sigma']
     parameters = {'intensity': 220, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.94, 'fraction_ex': 0.57, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': True, 'min_delay': 5,
-                  'test_signal_from_file': False, 'i_scale': 4e-07,
+                  'test_signal_from_file': False, 'i_scale': 5.148136e-6,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt,
-                  'nykamp_parameters': {'connectivity_matrix': np.array([[2000]]),
+                  'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
                                         'input_type': 'stochastic-current',
                                         'init_pdf_offset': 0,
-                                        'init_pdf_sigma': 0.1,
-                                        'init_pdf_weight': 50,
+                                        'init_pdf_sigma': 0.5,
+                                        'init_pdf_weight': 0,
                                         'delay_kernel_type': 'alpha',
                                         'delay_kernel_parameters': {'n_alpha': 9, 'tau_alpha': 1/3},
                                         'dv': dv,
                                         'dt': dt,
                                         'solver': 'Hu-2021',
-                                        'current_sigma': 120,
+                                        'current_sigma': 0.1,
                                         'verbose': 1}}
 
     di_model = DI_wave_simulation(parameters=parameters, logname=None)

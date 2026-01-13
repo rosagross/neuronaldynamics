@@ -1222,10 +1222,6 @@ class Nykamp_Model_1():
                                           self.c1eext
                             drift_coeff = drift_coeff_vec[0]
 
-                            if i == 4:
-                                print(f'drift coeff: {drift_coeff}')
-                                print(f'vext: {v_ext}')
-
                             # TODO: find a way around this once voltage dependent components play a role
 
                             diffusion_coeff = + self.c2eext[0]
