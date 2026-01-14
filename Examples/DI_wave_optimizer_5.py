@@ -11,15 +11,17 @@ if __name__ == "__main__":
     # fn_session = '/home/erik/Downloads/gpc.pkl'
     fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
     # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-    simulation_name = 'diw_opt_hu_12_12_25'
+    simulation_name = 'diw_opt_hu_14_01_26'
     parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
-                  'test_func_intensity': 2.0, 'test_func_t0': 0.25,
+                  'test_func_intensity': 2.0, 'test_func_t0': 0.25, 'max_shift_validation': 2,
                   'test_signal_from_file': False, 'i_scale': 5.148136e-6, 'error_mode': 'a',
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'enable_high_pass': True,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0],
                                         'tau_mem': [12],
                                         'dv': dv,
+                                        'init_pdf_weight': 0,
+                                        'static_noise': True,
                                         'delay_kernel_type': 'alpha',
                                         'delay_kernel_parameters': {'n_alpha': 9, 'tau_alpha': 1/3},
                                         'input_type': 'stochastic-current',
@@ -35,7 +37,7 @@ if __name__ == "__main__":
     opt_parameters['optimizer'] = 'hierarchical'
     opt_parameters['eps'] = 0.05
     opt_parameters['max_iter'] = 3
-    opt_parameters['n_grid'] = 500
+    opt_parameters['n_grid'] = 300
     opt_parameters['model_parameters'] = model_parameters
     opt_parameters['bounds'] = model_parameter_bounds
     opt_parameters['x_out'] = 'mass_model_v_out'

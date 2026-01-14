@@ -36,6 +36,7 @@ class DI_wave_simulation():
         self.test_func_t0 = 0.2
         self.test_func_dt = 1.5
         self.test_func_width = 0.3
+        self.max_shift_validation = 3 # defalut of 3ms max shift for comparing DI wave
 
         self.create_convolution_plot = False
         self.save_plots = False
@@ -227,7 +228,8 @@ class DI_wave_simulation():
         x1 = self.mass_model_v_out
         x2 = self.target
         self.error, self.difference, self.target_aligned = cross_correlation_align(x1, x2, plot=self.plot_align,
-                                                                                   mode=self.error_mode)
+                                                                                   mode=self.error_mode,
+                                                                                   max_shift=int(self.max_shift_validation/self.dt))
 
 
     def plot_nmm_out(self, heat_map=True, plot_input=True, save_fig=False):

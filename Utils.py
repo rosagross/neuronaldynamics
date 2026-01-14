@@ -366,7 +366,7 @@ def DI_wave_test_function(t, intensity, t0=5, dt=1.4, width=0.25):
 
     return y
 
-def cross_correlation_align(x1, x2, plot=False, mode='default'):
+def cross_correlation_align(x1, x2, plot=False, mode='default', max_shift=int(1e12)):
     """
     Function that aligns two signals and computes the nrmse and difference between the two signals after alignment.
     Alignment is done by calculating the maximal cross correlation and then moving the second signal 2 times in the
@@ -384,6 +384,8 @@ def cross_correlation_align(x1, x2, plot=False, mode='default'):
     corr_idx = int(np.argmax(correlation) / 2)  # same for correlation idx, mapping from 2*len(x1) to len(x1)
     lags = np.arange(-lag_length_1 + 1, lag_length_2)
     best_lag = lags[corr_idx] * 2  # shift two times in direction of best fit, fit is probably middle way to x1
+    if abs(best_lag) > max_shift: # check if lag is within the boundary
+        best_lag = max_shift * np.sign(best_lag)
     if best_lag > 0:
         aligned_signal = np.pad(x2, (best_lag, 0), mode='constant')
     elif best_lag < 0:
