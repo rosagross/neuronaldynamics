@@ -9,6 +9,20 @@ nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modelin
 # nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
 
 ########################################################################################################################
+# Di Lazarro DATA 2004 2ch #1
+########################################################################################################################
+
+data_fname = os.path.join(nextcloud_path, 's2004_epid001.mat')
+data_2004_1 = scipy.io.loadmat(data_fname)
+rmt_names_5 = ['f001_wave_data', 'f002_wave_data', 'f003_wave_data', 'f003_wave_data']
+titles_5 = ['Ch1: EMG (mV)', 'Ch2: Epidural potential (µV)']
+yaxis_5 = ['PA 150% RMT', 'PA 155% RMT', 'LM 80% MSO (=140% RMT approx.)', 'LM 82% MSO (=140% RMT approx.)']
+alphas_5 = [0.3, 0.1, 0.1]
+title_5 = 'Di Lazarro 2004 PA & LM'
+plot_DI_wave_data(data_2004_1, rmt_names_5, titles_5, yaxis_5, alphas_5, filter=True, main_title=title_5, n_channels=2,
+                  emg_peak_height=200, sample_frequency=[5e3, 25e3, 5e3, 5e3], do_detrend=True, switch_channel_order=True)
+
+########################################################################################################################
 # Di Lazarro DATA 2007 2ch
 ########################################################################################################################
 
@@ -17,7 +31,7 @@ data_2007 = scipy.io.loadmat(data_fname)
 rmt_names_4 = ['f001_wave_data', 'f002_wave_data', 'f003_wave_data']
 titles_4 = ['Ch1: EMG (mV)', 'Ch2: Epidural potential (µV)']
 yaxis_4 = ['120% RMT - PA', '150% RMT - PA', '120% RMT - LM']
-alphas_4 = [0.2, 0.05, 0.05]
+alphas_4 = [0.2, 0.2, 0.2]
 title_4 = 'Di Lazarro 2007 PA & LM'
 plot_DI_wave_data(data_2007, rmt_names_4, titles_4, yaxis_4, alphas_4, filter=True, main_title=title_4, n_channels=2,
                   emg_peak_height=20)
@@ -60,13 +74,3 @@ alphas_3 = [0.2, 0.05, 0.05]
 title_3 = 'Di Lazarro 2013 PA & LM'
 plot_DI_wave_data(data_2013, rmt_names_3, titles_3, yaxis_3, alphas_3, filter=True, main_title=title_3)
 
-
-
-
-########################################################################################################################
-# Di Lazarro DATA 2004 2ch #1
-########################################################################################################################
-
-########################################################################################################################
-# Di Lazarro DATA 2004 2ch #2
-########################################################################################################################

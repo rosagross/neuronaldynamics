@@ -487,23 +487,39 @@ def detrend(x, y, find_peaks_args=dict(threshold=0.05, distance=1), plot=False, 
     return y_detrend
 
 def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_detrend=True, sample_frequency=1e4,
-                      n_channels=3, main_title='DI-wave data', emg_peak_height=200):
+                      n_channels=3, main_title='DI-wave data', emg_peak_height=200, custom_DI_wave_ylims=None,
+                      switch_channel_order=False):
     fig = plt.figure(figsize=(12, 8))
     fig.suptitle(main_title, fontsize=16)
     n_rmts = len(rmt_names)
+    if isinstance(sample_frequency, (float, int)):
+        sample_frequency = [sample_frequency]*n_rmts
+
     n_plots = n_rmts*n_channels
     for k in range(n_rmts):
         rmt_k_data = data[rmt_names[k]][0][0][9].T
+        if n_channels == 2 and switch_channel_order:
+            # Manual reasigning of channels to have EMG on first and then Epidural
+            rmt_k_data_new = np.zeros_like(rmt_k_data)
+            rmt_k_data_new[:, 0, :] = rmt_k_data[:, 1, :]
+            rmt_k_data_new[:, 1, :] = rmt_k_data[:, 0, :]
+            rmt_k_data = rmt_k_data_new
         # channel 1 EMG, channel 2 & 3: EPIDURAL
-        t_ch1 = np.linspace(0, rmt_k_data.shape[2]/sample_frequency, rmt_k_data.shape[2]) * 1e3
+        t_ch1 = np.linspace(0, rmt_k_data.shape[2]/sample_frequency[k], rmt_k_data.shape[2]) * 1e3
         mean_ch2 = rmt_k_data[:, 1, :].mean(axis=0)
         tms_peak_idx, tms_peaks = find_peaks(mean_ch2, height=emg_peak_height)
-        t_peak = t_ch1[tms_peak_idx]
+        if len(tms_peak_idx) == 0:
+            tms_peak_idx, tms_peaks = find_peaks(-mean_ch2, height=emg_peak_height)
+        if len(tms_peak_idx) == 0:
+            raise ValueError(f'No peak corresponding to TMS detected in ch2 data of {rmt_names[k]}')
+        t_peak = t_ch1[tms_peak_idx[0]]
         t_ch1 -= t_peak
         dt = np.diff(t_ch1)[0]
-        t_1ms = int(t_peak + 1/dt)
+        t_2ms_idx = int(tms_peak_idx + 2 / dt)
+        t_8ms_idx = int(tms_peak_idx + 8 / dt)
+        t_1ms_idx = int(t_peak + 1/dt)
         for j in range(n_channels):
-            ax = fig.add_subplot(n_channels, n_rmts, (3*k)+j+1)
+            ax = fig.add_subplot(n_rmts, n_channels , (n_channels*k)+j+1)
             for i in range(rmt_k_data.shape[0]):
                 if j > 0 and do_detrend:
                     data_i = detrend(t_ch1, rmt_k_data[i, j], find_peaks_args=dict(threshold=0.05, distance=1))
@@ -528,20 +544,19 @@ def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_de
                 ax.set_xticklabels(['-20', '0', '20', ' ', '30', ' ', '40', ' ', '50', ' ', '60', ' '])
             # ax.tick_params(axis='x', which='major', labelsize=7)
             if j < 1:
-                if k < 1:
-                    ax.set_ylim(-0.1, 0.1)
-                else:
-                    ax.set_ylim(-0.5, 0.5)
+                ax.set_ylim(ax_mean[t_8ms_idx:].min()*1.5, ax_mean[t_8ms_idx:].max()*1.5)
                 ax.set_ylabel(yaxis[k], fontsize=12)
             else:
                 if do_detrend:
-                    t_2ms_idx = int(tms_peak_idx + 2/dt)
-                    t_8ms_idx = int(tms_peak_idx + 8/dt)
+
                     max_DI_wave = ax_mean[t_2ms_idx:t_8ms_idx].max()
                     ax.set_ylim(-0.5, max_DI_wave*1.2)
                 else:
+                    # ax.set_ylim(-0.2, 1)
                     ax.set_ylim(-5, 8)
-                ax.set_xlim(0, 12)
+                if custom_DI_wave_ylims != None:
+                    ax.set_ylim(custom_DI_wave_ylims)
+                ax.set_xlim(-1, 12)
                 ax.vlines([5], -10, 100, color='k')
             if k < 1:
                 ax.set_title(titles[j])
