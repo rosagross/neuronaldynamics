@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import scipy.signal
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import correlate, find_peaks
-
+matplotlib.use('TkAgg')
 
 def get_stability_2D(eigvals):
     """function to test the stability of a 2D system by evaluating common cases of its eigenvalues """
@@ -488,7 +488,7 @@ def detrend(x, y, find_peaks_args=dict(threshold=0.05, distance=1), plot=False, 
 
 def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_detrend=True, sample_frequency=1e4,
                       n_channels=3, main_title='DI-wave data', emg_peak_height=200, custom_DI_wave_ylims=None,
-                      switch_channel_order=False):
+                      switch_channel_order=False, find_peaks_args=dict(threshold=0.05, distance=1)):
     fig = plt.figure(figsize=(12, 8))
     fig.suptitle(main_title, fontsize=16)
     n_rmts = len(rmt_names)
@@ -516,22 +516,21 @@ def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_de
         t_ch1 -= t_peak
         dt = np.diff(t_ch1)[0]
         t_2ms_idx = int(tms_peak_idx + 2 / dt)
-        t_8ms_idx = int(tms_peak_idx + 8 / dt)
+        t_12ms_idx = int(tms_peak_idx + 12 / dt)
         t_1ms_idx = int(t_peak + 1/dt)
         for j in range(n_channels):
             ax = fig.add_subplot(n_rmts, n_channels , (n_channels*k)+j+1)
             for i in range(rmt_k_data.shape[0]):
                 if j > 0 and do_detrend:
-                    data_i = detrend(t_ch1, rmt_k_data[i, j], find_peaks_args=dict(threshold=0.05, distance=1))
+                    # TODO: eventually detrend them by the mean, to have a coherent plot here
+                    data_i = detrend(t_ch1, rmt_k_data[i, j], find_peaks_args=find_peaks_args)
                 else:
                     data_i = rmt_k_data[i, j]
                 plt.plot(t_ch1, data_i, c='k', alpha=alphas[j])
             ax_mean = rmt_k_data[:, j].mean(axis=0)
-            # test gaussian filter, highpass filter, centering to zero
-
             if j > 0:
                 if do_detrend:
-                    ax_mean = detrend(t_ch1, ax_mean, find_peaks_args=dict(threshold=0.05, distance=1))
+                    ax_mean = detrend(t_ch1, ax_mean, find_peaks_args=find_peaks_args)
                 # ax_mean_filtered = butter_highpass_filter(ax_mean, cutoff=0.1, fps=int(1 / dt))
                 if filter:
                     ax_mean = gaussian_filter1d(ax_mean, sigma=1)
@@ -544,12 +543,12 @@ def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_de
                 ax.set_xticklabels(['-20', '0', '20', ' ', '30', ' ', '40', ' ', '50', ' ', '60', ' '])
             # ax.tick_params(axis='x', which='major', labelsize=7)
             if j < 1:
-                ax.set_ylim(ax_mean[t_8ms_idx:].min()*1.5, ax_mean[t_8ms_idx:].max()*1.5)
+                ax.set_ylim(ax_mean[t_12ms_idx:].min()*1.5, ax_mean[t_12ms_idx:].max()*1.5)
                 ax.set_ylabel(yaxis[k], fontsize=12)
             else:
                 if do_detrend:
 
-                    max_DI_wave = ax_mean[t_2ms_idx:t_8ms_idx].max()
+                    max_DI_wave = ax_mean[t_2ms_idx:t_12ms_idx].max()
                     ax.set_ylim(-0.5, max_DI_wave*1.2)
                 else:
                     # ax.set_ylim(-0.2, 1)
@@ -565,3 +564,67 @@ def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_de
             ax.grid()
 
     plt.show()
+
+def get_di_wave_data(data, rmt_names, epidural_channel_idxs, sample_frequency=1e4, n_channels=3, emg_peak_height=200,
+                     switch_channel_order=False, find_peaks_args=dict(threshold=0.05, distance=1), meta_data=None,
+                     filter_sigma=1, filter=False):
+
+    n_rmts = len(rmt_names)
+    if isinstance(sample_frequency, (float, int)):
+        sample_frequency = [sample_frequency] * n_rmts
+
+    if isinstance(meta_data, dict):
+        di_wave_data = meta_data
+        if not 'name' in meta_data.keys():
+            di_wave_data['name'] = 'di_wave_data'
+    else:
+        di_wave_data = dict(name='di_wave_data')
+
+    di_wave_data['times'] = []
+    for k in range(n_rmts):
+        rmt_k_data = data[rmt_names[k]][0][0][9].T
+        if n_channels == 2 and switch_channel_order:
+            # Manual reasigning of channels to have EMG on first and then Epidural
+            rmt_k_data_new = np.zeros_like(rmt_k_data)
+            rmt_k_data_new[:, 0, :] = rmt_k_data[:, 1, :]
+            rmt_k_data_new[:, 1, :] = rmt_k_data[:, 0, :]
+            rmt_k_data = rmt_k_data_new
+        # channel 1 EMG, channel 2 & 3: EPIDURAL
+        t_ch1 = np.linspace(0, rmt_k_data.shape[2] / sample_frequency[k], rmt_k_data.shape[2]) * 1e3
+        if epidural_channel_idxs[0] == 0:
+            mean_ch2 = rmt_k_data[:, 0, :].mean(axis=0)
+        else:
+            mean_ch2 = rmt_k_data[:, 1, :].mean(axis=0)
+        tms_peak_idx, tms_peaks = find_peaks(mean_ch2, height=emg_peak_height)
+        if len(tms_peak_idx) == 0:
+            tms_peak_idx, tms_peaks = find_peaks(-mean_ch2, height=emg_peak_height)
+        if len(tms_peak_idx) == 0:
+            plt.close()
+            plt.plot(mean_ch2)
+            plt.title(f'emg peak height of +/- {emg_peak_height}mV not detected')
+            plt.show()
+            raise ValueError(f'No peak corresponding to TMS detected in ch2 data of {rmt_names[k]}')
+        t_peak = t_ch1[tms_peak_idx[0]]
+        t_ch1 -= t_peak
+        dt = np.diff(t_ch1)[0]
+        t_2ms_idx = int(tms_peak_idx + 2 / dt)
+        t_12ms_idx = int(tms_peak_idx + 12 / dt)
+        t_window = t_ch1[t_2ms_idx: t_12ms_idx]
+        di_wave_data[rmt_names[k]] = np.zeros((len(epidural_channel_idxs), t_window.shape[0]))
+        di_wave_data['times'].append(t_window)
+        for i_idx, idx in enumerate(epidural_channel_idxs):
+            ax_mean = rmt_k_data[:, idx].mean(axis=0)
+            ax_mean = ax_mean[t_2ms_idx: t_12ms_idx]
+            ax_mean = detrend(t_window, ax_mean, find_peaks_args=find_peaks_args)
+            # ax_mean_filtered = butter_highpass_filter(ax_mean, cutoff=0.1, fps=int(1 / dt))
+            if filter:
+                ax_mean = gaussian_filter1d(ax_mean, sigma=filter_sigma)
+            di_wave_data[rmt_names[k]][i_idx] = ax_mean
+            plt.plot(t_window, ax_mean)
+            if 'rmt_values' in di_wave_data:
+                rmt_val = di_wave_data["rmt_values"][k]
+            else:
+                rmt_val = rmt_names[k]
+            plt.title(f'{di_wave_data["name"]}--{rmt_val}--channel {idx}')
+            plt.show()
+    return di_wave_data
