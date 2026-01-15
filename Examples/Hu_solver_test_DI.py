@@ -88,6 +88,7 @@ if plot_di_model:
     # ['intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex',
     # 'pdf_offset', 'pdf_sigma', 'pdf_weight', 'i_scale',
     #  'current_sigma']
+    #TODO: make effort to load from logs of optimization
     parameters = {'intensity': 350, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.94, 'fraction_ex': 0.57, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': False, 'min_delay': 5,
                   'test_signal_from_file': False, 'i_scale': 5.148136e-6, 'detrend': True, 'plot_detrend': True,
@@ -96,6 +97,7 @@ if plot_di_model:
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
                                         'input_type': 'stochastic-current',
+                                        'static_noise': True,
                                         'init_pdf_offset': 0,
                                         'init_pdf_sigma': 0.5,
                                         'init_pdf_weight': 0,
