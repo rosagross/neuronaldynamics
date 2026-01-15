@@ -10,7 +10,7 @@ import scipy
 import scipy.io
 import yaml
 from tqdm import tqdm
-from Utils import DI_wave_test_function, nrmse, cross_correlation_align, butter_highpass_filter
+from Utils import DI_wave_test_function, nrmse, cross_correlation_align, butter_highpass_filter, detrend
 import Model.Nykamp_Model
 from Optimizers.Optimizer import *
 matplotlib.use('TkAgg')
@@ -36,7 +36,7 @@ class DI_wave_simulation():
         self.test_func_t0 = 0.2
         self.test_func_dt = 1.5
         self.test_func_width = 0.3
-        self.max_shift_validation = 3 # defalut of 3ms max shift for comparing DI wave
+        self.max_shift_validation = 3 # default of 3ms max shift for comparing DI wave
 
         self.create_convolution_plot = False
         self.save_plots = False
@@ -44,7 +44,9 @@ class DI_wave_simulation():
         self.fn_session = None
         self.t_gpc = np.linspace(0, 99.81, 500)
         self.plot_align = False
+        self.plot_detrend = False
         self.enable_high_pass = False
+        self.detrend = False
         self.test_signal_from_file = False
         self.error_mode = 'non-zero'
         self.min_delay = None
@@ -141,6 +143,10 @@ class DI_wave_simulation():
             # v_out_hp += v_out_mean/8  # rescale to original height (a bit?)
             # v_out_hp[v_out_hp < 0] = 0
             nmm_potential_out = v_out_hp
+        if self.detrend:
+            # for find peaks in detrend: distance should be about 2ms, int(2/self.dt) as index
+            nmm_potential_out = detrend(self.t, nmm_potential_out, find_peaks_args=dict(distance=int(2/self.dt)),
+                                        plot=self.plot_detrend)
 
         self.get_test_signal(from_file=self.test_signal_from_file)
         di_max = np.max(self.target)

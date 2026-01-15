@@ -5,7 +5,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import scipy.signal
 from scipy.ndimage import gaussian_filter1d
-from scipy.signal import correlate
+from scipy.signal import correlate, find_peaks
 
 
 def get_stability_2D(eigvals):
@@ -455,3 +455,27 @@ def harm_mean(x1, x2):
     :return: np.ndarray, harmonic mean of x1 and x2
     """
     return 2/((1/x1)+(1/x2))
+
+def detrend(x, y, find_peaks_args=dict(threshold=0.05, distance=1), plot=False):
+    """
+    Function that does detrending by finding the peaks of the negative signal and
+    interpolating a line for the lower bound of the signal over time. This lower bound
+    is then subtracted from the original signal to detrend it. If peaks are not found, this returns the
+    original signal
+    :param x: np.ndarray, gird (i.e. time) of the original signal
+    :param y: np.ndarray, original signal
+    :return: y_detrend, np.ndarray, same shape as y: detrended version of the original signal
+    """
+    find_peaks_args['x'] = -y
+    neg_peaks_idxs = find_peaks(**find_peaks_args)[0]
+    if len(neg_peaks_idxs)>0:
+        y_low = np.interp(x, x[neg_peaks_idxs], y[neg_peaks_idxs])
+        y_detrend = y - y_low
+    else:
+        y_detrend = y
+    if plot:
+        plt.plot(x, y)
+        plt.plot(x, y_detrend)
+        plt.scatter(x[neg_peaks_idxs], y[neg_peaks_idxs])
+        plt.legend(['original', 'detrended'])
+    return y_detrend

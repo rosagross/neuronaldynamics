@@ -90,7 +90,7 @@ if plot_di_model:
     #  'current_sigma']
     parameters = {'intensity': 350, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.94, 'fraction_ex': 0.57, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': False, 'min_delay': 5,
-                  'test_signal_from_file': False, 'i_scale': 5.148136e-6,
+                  'test_signal_from_file': False, 'i_scale': 5.148136e-6, 'detrend': True, 'plot_detrend': True,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0], #1.5

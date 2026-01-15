@@ -1236,10 +1236,12 @@ class Nykamp_Model_1():
                                 c = critval
                                 diffusion_coeff_original = diffusion_coeff.copy()
                                 diffusion_coeff = c * dv_ / self.dt
+                                sigma_orig = np.sqrt(diffusion_coeff_original * 2 * self.tau_mem[j])
+                                sigma_new = np.sqrt(diffusion_coeff * 2 * self.tau_mem[j])
                                 if c_count < 1 & self.verbose > 0:
                                     c_count += 1
                                     print(f'resetting diffusion_coeff from {diffusion_coeff_original} to'
-                                          f' {diffusion_coeff:.5f} to achieve numerical stability')
+                                          f' {diffusion_coeff:.5f} (sigma_v from {sigma_orig:.5f} to {sigma_new:.5f}) to achieve numerical stability')
 
                             # Scharfetter-Gummel Flux
                             Ms = self.SG_Flux(v_, drift_coeff, diffusion_coeff, x_rest=u_rest_)

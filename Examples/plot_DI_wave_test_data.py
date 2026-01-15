@@ -3,27 +3,10 @@ import scipy
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from Utils import butter_highpass_filter
+from Utils import butter_highpass_filter, detrend
 matplotlib.use('TkAgg')
 
-def detrend(x, y, mean_cutoff_idx=0):
-    neg_peaks_idxs = scipy.signal.find_peaks(-y, threshold=0.05, distance=1)[0]
-    if len(neg_peaks_idxs)>0:
-        y_low = np.interp(x, x[neg_peaks_idxs], y[neg_peaks_idxs])
-        y_detrend = y - y_low
-    else:
-        y_detrend = y
-    # y_detrend -= y_low[mean_cutoff_idx:].mean()
-    # plt.close()
-    # plt.plot(x, y)
-    # plt.plot(x, y_low)
-    # plt.plot(x, y_detrend)
-    # plt.xlim(0, 12)
-    # plt.ylim(-4, 8)
-    # plt.legend(['original', 'lower_bound', 'detrended'])
-    # plt.scatter(x[neg_peaks_idxs], y[neg_peaks_idxs], marker='x', color='red')
-    # plt.show()
-    return y_detrend
+
 
 ########################################################################################################################
 # UNPROCESSED DATA 2020 3ch
