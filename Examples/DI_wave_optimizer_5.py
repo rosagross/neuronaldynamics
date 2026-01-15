@@ -13,9 +13,10 @@ if __name__ == "__main__":
     # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
     simulation_name = 'diw_opt_hu_14_01_26'
     parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
-                  'test_func_intensity': 2.0, 'test_func_t0': 0.25, 'max_shift_validation': 2,
+                  'test_func_intensity': 2.0, 'test_func_t0': 0.25, 'max_shift_validation': 4,
                   'test_signal_from_file': False, 'i_scale': 5.148136e-6, 'error_mode': 'a',
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'enable_high_pass': True,
+                  'detrend': True,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0],
                                         'tau_mem': [12],

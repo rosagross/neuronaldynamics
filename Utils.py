@@ -456,7 +456,7 @@ def harm_mean(x1, x2):
     """
     return 2/((1/x1)+(1/x2))
 
-def detrend(x, y, find_peaks_args=dict(threshold=0.05, distance=1), plot=False):
+def detrend(x, y, find_peaks_args=dict(threshold=0.05, distance=1), plot=False, start_from_first_peak=False):
     """
     Function that does detrending by finding the peaks of the negative signal and
     interpolating a line for the lower bound of the signal over time. This lower bound
@@ -470,12 +470,18 @@ def detrend(x, y, find_peaks_args=dict(threshold=0.05, distance=1), plot=False):
     neg_peaks_idxs = find_peaks(**find_peaks_args)[0]
     if len(neg_peaks_idxs)>0:
         y_low = np.interp(x, x[neg_peaks_idxs], y[neg_peaks_idxs])
-        y_detrend = y - y_low
+        if start_from_first_peak:
+            start_idx = neg_peaks_idxs[0]
+        else:
+            start_idx = 0
+        y_detrend = y.copy()
+        y_detrend[start_idx:] = y[start_idx:] - y_low[start_idx:]
     else:
         y_detrend = y
     if plot:
         plt.plot(x, y)
         plt.plot(x, y_detrend)
-        plt.scatter(x[neg_peaks_idxs], y[neg_peaks_idxs])
+        plt.scatter(x[neg_peaks_idxs], y[neg_peaks_idxs], color='red', marker='x')
         plt.legend(['original', 'detrended'])
+        plt.show()
     return y_detrend

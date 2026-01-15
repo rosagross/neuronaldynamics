@@ -32,10 +32,10 @@ class DI_wave_simulation():
         self.fraction_gaba_a = 0.95  # fraction of gaba_a synapses [0.9, 1.0]
         self.fraction_ex = 0.5  # fraction of exc/ihn synapses [0.2, 0.8]
 
-        self.test_func_intensity = 1.5
-        self.test_func_t0 = 0.2
-        self.test_func_dt = 1.5
-        self.test_func_width = 0.3
+        self.test_func_intensity = 1.5  # intensity (electric field magnitude) for test function
+        self.test_func_t0 = 0.2  # start time of test function in ms
+        self.test_func_dt = 1.5  # inter-peak time interval set in test function in ms
+        self.test_func_width = 0.3  # width of peaks set in test function in ms
         self.max_shift_validation = 3 # default of 3ms max shift for comparing DI wave
 
         self.create_convolution_plot = False
@@ -47,6 +47,7 @@ class DI_wave_simulation():
         self.plot_detrend = False
         self.enable_high_pass = False
         self.detrend = False
+        self.detrend_distance = 1  # distance in ms for peaks to be considered in detrending
         self.test_signal_from_file = False
         self.error_mode = 'non-zero'
         self.min_delay = None
@@ -144,9 +145,10 @@ class DI_wave_simulation():
             # v_out_hp[v_out_hp < 0] = 0
             nmm_potential_out = v_out_hp
         if self.detrend:
-            # for find peaks in detrend: distance should be about 2ms, int(2/self.dt) as index
-            nmm_potential_out = detrend(self.t, nmm_potential_out, find_peaks_args=dict(distance=int(2/self.dt)),
-                                        plot=self.plot_detrend)
+            # for find peaks in detrend: distance should be about 1ms, int(2/self.dt) as index
+            nmm_potential_out = detrend(self.t, nmm_potential_out,
+                                        find_peaks_args=dict(distance=int(self.detrend_distance/self.dt)),
+                                        plot=self.plot_detrend, start_from_first_peak=True)
 
         self.get_test_signal(from_file=self.test_signal_from_file)
         di_max = np.max(self.target)
