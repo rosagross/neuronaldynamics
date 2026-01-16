@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 from Utils import plot_DI_wave_data, get_di_wave_data
 matplotlib.use('TkAgg')
-# nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
-nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+# nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
 plot = False
 detrend = True
 
@@ -106,10 +106,10 @@ meta_data_2013 = dict(channel_names=titles_3, rmt_values=yaxis, emg_location='le
 meta_data_2020_PA = dict(channel_names=titles, rmt_values=yaxis, emg_location='left FDI muscle', name=title)
 meta_data_2020_LM = dict(channel_names=title_2, rmt_values=yaxis_2, emg_location='left FDI muscle', name=title_2)
 
-di_wave_data_collection['s2004_epid001'] = get_di_wave_data(data_2004_1, rmt_names_5, epidural_channel_idxs=[0],
-                                                            find_peaks_args=dict(threshold=0.005, distance=1),
-                                                            meta_data=meta_data_2004_1,
-                                                            sample_frequency=[5e3, 25e3, 5e3, 5e3])
+# di_wave_data_collection['s2004_epid001'] = get_di_wave_data(data_2004_1, rmt_names_5, epidural_channel_idxs=[0],
+#                                                             find_peaks_args=dict(threshold=0.005, distance=1),
+#                                                             meta_data=meta_data_2004_1,
+#                                                             sample_frequency=[5e3, 25e3, 5e3, 5e3])
 # TODO: sth wrong with this channel here, I believe it does find the epidural channel instead of the EMG
 #  for the peak detection
 di_wave_data_collection['s2004_epid002'] = get_di_wave_data(data_2013, rmt_names_6, epidural_channel_idxs=[0],
