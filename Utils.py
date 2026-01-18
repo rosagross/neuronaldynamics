@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import re
 import h5py
 import matplotlib
 import matplotlib.pyplot as plt
@@ -565,7 +566,7 @@ def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_de
 
     plt.show()
 
-def get_di_wave_data(data, rmt_names, epidural_channel_idxs, sample_frequency=1e4, n_channels=3, emg_peak_height=200,
+def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_frequency=1e4, n_channels=3, emg_peak_height=200,
                      switch_channel_order=False, find_peaks_args=dict(threshold=0.05, distance=1), meta_data=None,
                      filter_sigma=1, filter=False):
 
@@ -582,28 +583,23 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, sample_frequency=1e
 
     di_wave_data['times'] = []
     for k in range(n_rmts):
-        rmt_k_data = data[rmt_names[k]][0][0][9].T
-        if n_channels == 2 and switch_channel_order:
-            # Manual reasigning of channels to have EMG on first and then Epidural
-            rmt_k_data_new = np.zeros_like(rmt_k_data)
-            rmt_k_data_new[:, 0, :] = rmt_k_data[:, 1, :]
-            rmt_k_data_new[:, 1, :] = rmt_k_data[:, 0, :]
-            rmt_k_data = rmt_k_data_new
-        # channel 1 EMG, channel 2 & 3: EPIDURAL
-        t_ch1 = np.linspace(0, rmt_k_data.shape[2] / sample_frequency[k], rmt_k_data.shape[2]) * 1e3
+        rmt_k_data = data[rmt_names[k]][0][0][9]
+        t_ch1 = np.linspace(0, rmt_k_data.shape[0] / sample_frequency[k], rmt_k_data.shape[0]) * 1e3
+        # find emg channel and detect large spike related to TMS
         if epidural_channel_idxs[0] == 0:
-            mean_ch2 = rmt_k_data[:, 0, :].mean(axis=0)
+            mean_ch_emg = rmt_k_data[:, 1, :].mean(axis=1)
         else:
-            mean_ch2 = rmt_k_data[:, 1, :].mean(axis=0)
-        tms_peak_idx, tms_peaks = find_peaks(mean_ch2, height=emg_peak_height)
+            mean_ch_emg = rmt_k_data[:, 0, :].mean(axis=1)
+        tms_peak_idx, tms_peaks = find_peaks(mean_ch_emg, height=emg_peak_height)
         if len(tms_peak_idx) == 0:
-            tms_peak_idx, tms_peaks = find_peaks(-mean_ch2, height=emg_peak_height)
+            tms_peak_idx, tms_peaks = find_peaks(-mean_ch_emg, height=emg_peak_height)
         if len(tms_peak_idx) == 0:
             plt.close()
-            plt.plot(mean_ch2)
+            plt.plot(mean_ch_emg)
             plt.title(f'emg peak height of +/- {emg_peak_height}mV not detected')
             plt.show()
             raise ValueError(f'No peak corresponding to TMS detected in ch2 data of {rmt_names[k]}')
+
         t_peak = t_ch1[tms_peak_idx[0]]
         t_ch1 -= t_peak
         dt = np.diff(t_ch1)[0]
@@ -612,19 +608,47 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, sample_frequency=1e
         t_window = t_ch1[t_2ms_idx: t_12ms_idx]
         di_wave_data[rmt_names[k]] = np.zeros((len(epidural_channel_idxs), t_window.shape[0]))
         di_wave_data['times'].append(t_window)
+        # search for orientation in rmt_names
+        if 'LM' in rmt_values[k]:
+            orientation = 'LM'
+        elif 'PA' in rmt_values[k]:
+            orientation = 'LM'
+        else:
+            raise ValueError(f'Orientation not found in rmt_names: {rmt_values[k]}')
+        # search for threshold type in rmt_names
+        if 'RMT' in rmt_values[k]:
+            threshold_type = 'RMT'
+        elif 'MSO' in rmt_values[k]:
+            threshold_type = 'MSO'
+        else:
+            raise ValueError(f'Threshold type not found in rmt_names: {rmt_values[k]}')
+
+        # crazy re-magic to extract the string of the percentage
+        RMT_digit = [int(match.group(1)) for s in rmt_values[k].split(' ') if (match := re.search(r'(\d+)%', s))]
+
         for i_idx, idx in enumerate(epidural_channel_idxs):
-            ax_mean = rmt_k_data[:, idx].mean(axis=0)
+            ax_mean = rmt_k_data[:, idx, k].mean(axis=2)
+            plt.plot(ax_mean)
+            plt.ylim(-10, 10)
+            plt.xlim(-2, 12)
+            plt.show()
             ax_mean = ax_mean[t_2ms_idx: t_12ms_idx]
             ax_mean = detrend(t_window, ax_mean, find_peaks_args=find_peaks_args)
             # ax_mean_filtered = butter_highpass_filter(ax_mean, cutoff=0.1, fps=int(1 / dt))
             if filter:
                 ax_mean = gaussian_filter1d(ax_mean, sigma=filter_sigma)
             di_wave_data[rmt_names[k]][i_idx] = ax_mean
+            di_wave_full_name = f'{di_wave_data["name"]}--{rmt_val}--channel {idx}'
+            di_wave_data[di_wave_full_name] = ax_mean
+            di_wave_data['orientation'] = ax_mean
+            di_wave_data['threshold_type'] = threshold_type
+            di_wave_data['threshold_value'] = RMT_digit[0]
             plt.plot(t_window, ax_mean)
+            plt.title(di_wave_full_name)
             if 'rmt_values' in di_wave_data:
                 rmt_val = di_wave_data["rmt_values"][k]
             else:
                 rmt_val = rmt_names[k]
-            plt.title(f'{di_wave_data["name"]}--{rmt_val}--channel {idx}')
+            plt.title()
             plt.show()
     return di_wave_data
