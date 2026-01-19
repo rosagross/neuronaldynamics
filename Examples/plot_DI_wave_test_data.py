@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 from Utils import plot_DI_wave_data, get_di_wave_data
 matplotlib.use('TkAgg')
-# nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
-nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+# nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
 plot = False
 detrend = True
 
@@ -19,7 +19,7 @@ data_fname = os.path.join(nextcloud_path, 's2020_043_3ch.mat')
 data_2020 = scipy.io.loadmat(data_fname)
 rmt_names = ['f002_wave_data', 'f000_wave_data', 'f001_wave_data']
 titles = ['Ch1: EMG (mV)', 'Ch3: Epidural potential (µV)', 'Ch4: Epidural potential (µV)']
-yaxis = ['100% RMT', '120% RMT', '140% RMT']
+yaxis = ['100% RMT PA', '120% RMT PA', '140% RMT PA']
 alphas = [0.2, 0.05, 0.05]
 title = 'Di Lazarro 2020 PA'
 if plot:
@@ -30,7 +30,7 @@ if plot:
 ########################################################################################################################
 
 rmt_names_2 = ['f013_wave_data', 'f011_wave_data', 'f012_wave_data']
-yaxis_2 = ['80% RMT', '100% RMT', '120% RMT']
+yaxis_2 = ['80% RMT LM', '100% RMT LM', '120% RMT LM']
 alphas_2 = [0.2, 0.05, 0.05]
 title_2 = 'Di Lazarro 2020 LM'
 if plot:
@@ -113,23 +113,30 @@ meta_data_2020_LM = dict(channel_names=title_2, emg_location='left FDI muscle', 
 #                                                             rmt_values=yaxis_5)
 # TODO: sth wrong with this channel here, I believe it does find the epidural channel instead of the EMG
 #  for the peak detection
-di_wave_data_collection['s2004_epid002'] = get_di_wave_data(data_2013, rmt_names_6, epidural_channel_idxs=[0],
-                                                            find_peaks_args=dict(threshold=0.005, distance=1),
-                                                            meta_data=meta_data_2004_2,
-                                                            emg_peak_height=40,
-                                                            sample_frequency=5e3,
-                                                            rmt_values=yaxis_6)
-di_wave_data_collection['s2007_epid001'] = get_di_wave_data(data_2007, rmt_names_4, epidural_channel_idxs=[1],
-                                                            emg_peak_height=20, find_peaks_args=dict(threshold=0.01, distance=1),
-                                                            meta_data=meta_data_2007, rmt_values=yaxis_4)
-di_wave_data_collection['s2013_031_3ch'] = get_di_wave_data(data_2013, rmt_names_3, epidural_channel_idxs=[1, 2],
-                                                            meta_data=meta_data_2013, rmt_values=yaxis_3)
-di_wave_data_collection['s2020_043_3ch_PA'] = get_di_wave_data(data_2020, rmt_names, epidural_channel_idxs=[1, 2],
-                                                               meta_data=meta_data_2020_PA, rmt_values=yaxis)
+# di_wave_data_collection['s2004_epid002'] = get_di_wave_data(data_2004_2, rmt_names_6, epidural_channel_idxs=[0],
+#                                                             find_peaks_args=dict(threshold=0.005, distance=1),
+#                                                             meta_data=meta_data_2004_2,
+#                                                             emg_peak_height=1.5,
+#                                                             sample_frequency=5e3,
+#                                                             rmt_values=yaxis_6)
+# di_wave_data_collection['s2007_epid001'] = get_di_wave_data(data_2007, rmt_names_4, epidural_channel_idxs=[1],
+#                                                             emg_peak_height=0.4, find_peaks_args=dict(threshold=0.01, distance=1),
+#                                                             meta_data=meta_data_2007, rmt_values=yaxis_4)
+# di_wave_data_collection['s2013_031_3ch'] = get_di_wave_data(data_2013, rmt_names_3, epidural_channel_idxs=[1, 2],
+#                                                             meta_data=meta_data_2013, rmt_values=yaxis_3,
+#                                                             emg_peak_height=0.3)
+# di_wave_data_collection['s2020_043_3ch_PA'] = get_di_wave_data(data_2020, rmt_names, epidural_channel_idxs=[1, 2],
+#                                                                meta_data=meta_data_2020_PA, rmt_values=yaxis,
+#                                                                emg_peak_height=1.0)
 di_wave_data_collection['s2020_043_3ch_LM'] = get_di_wave_data(data_2020, rmt_names_2, epidural_channel_idxs=[1, 2],
-                                                               meta_data=meta_data_2020_LM, rmt_values=yaxis_2)
+                                                               meta_data=meta_data_2020_LM, rmt_values=yaxis_2,
+                                                               emg_peak_height=2.0)
 
-# TODO: structure LM/PM - threshold - year
-
+# TODO: structure LM/PM - threshold - year - subject_ID - Channel
+# TODO: structure from file: year + subject_ID - channel -
+#  [data_DI-waves, data_DI-waves_short, threshold_type, threshold, orientation, time, time_short, data_name]
+# bad channels 2004_2, 2020 - PA/LM - Ch4
+#
+a=1
 # for k, v in d.items():
 #     h.create_dataset(k, data=np.array(v))

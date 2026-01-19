@@ -570,6 +570,9 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
                      switch_channel_order=False, find_peaks_args=dict(threshold=0.05, distance=1), meta_data=None,
                      filter_sigma=1, filter=False):
 
+    # year + subject_ID + time - threshold -  channel -
+    #  [data_DI-waves, data_DI-waves_short, threshold_type, threshold, orientation, data_name]
+
     n_rmts = len(rmt_names)
     if isinstance(sample_frequency, (float, int)):
         sample_frequency = [sample_frequency] * n_rmts
@@ -581,7 +584,7 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
     else:
         di_wave_data = dict(name='di_wave_data')
 
-    di_wave_data['times'] = []
+
     for k in range(n_rmts):
         rmt_k_data = data[rmt_names[k]][0][0][9]
         t_ch1 = np.linspace(0, rmt_k_data.shape[0] / sample_frequency[k], rmt_k_data.shape[0]) * 1e3
@@ -601,13 +604,21 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
             raise ValueError(f'No peak corresponding to TMS detected in ch2 data of {rmt_names[k]}')
 
         t_peak = t_ch1[tms_peak_idx[0]]
+        if isinstance(tms_peak_idx, (list, np.ndarray)) and len(tms_peak_idx) > 1:
+            plt.plot(mean_ch_emg)
+            plt.title(f'multiple emg peaks of +/- {emg_peak_height}mV detected, choosing #1')
+            plt.show()
+            tms_peak_idx = tms_peak_idx[0]
         t_ch1 -= t_peak
         dt = np.diff(t_ch1)[0]
-        t_2ms_idx = int(tms_peak_idx + 2 / dt)
+        try:
+            t_2ms_idx = int(tms_peak_idx + 2 / dt)
+        except:
+            print(tms_peak_idx)
         t_12ms_idx = int(tms_peak_idx + 12 / dt)
         t_window = t_ch1[t_2ms_idx: t_12ms_idx]
         di_wave_data[rmt_names[k]] = np.zeros((len(epidural_channel_idxs), t_window.shape[0]))
-        di_wave_data['times'].append(t_window)
+
         # search for orientation in rmt_names
         if 'LM' in rmt_values[k]:
             orientation = 'LM'
@@ -626,18 +637,31 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
         # crazy re-magic to extract the string of the percentage
         RMT_digit = [int(match.group(1)) for s in rmt_values[k].split(' ') if (match := re.search(r'(\d+)%', s))]
 
+        di_wave_data[f'{rmt_values[k]}'] = dict(time=t_ch1, time_short=t_window, RMT_digit=RMT_digit,
+                                                threshold_type=threshold_type, orientation=orientation,
+                                                channel=dict())
+
         for i_idx, idx in enumerate(epidural_channel_idxs):
-            ax_mean = rmt_k_data[:, idx, k].mean(axis=2)
-            plt.plot(ax_mean)
-            plt.ylim(-10, 10)
-            plt.xlim(-2, 12)
-            plt.show()
+            ax_mean = rmt_k_data[:, idx, :].mean(axis=1)
+            ax_mean_full = ax_mean.copy()
+            # plt.plot(t_ch1, ax_mean)
+            # plt.ylim(-10, 10)
+            # plt.xlim(-2, 12)
+            # plt.show()
             ax_mean = ax_mean[t_2ms_idx: t_12ms_idx]
             ax_mean = detrend(t_window, ax_mean, find_peaks_args=find_peaks_args)
             # ax_mean_filtered = butter_highpass_filter(ax_mean, cutoff=0.1, fps=int(1 / dt))
             if filter:
                 ax_mean = gaussian_filter1d(ax_mean, sigma=filter_sigma)
-            di_wave_data[rmt_names[k]][i_idx] = ax_mean
+
+            if 'rmt_values' in di_wave_data:
+                rmt_val = di_wave_data["rmt_values"][k]
+            else:
+                rmt_val = rmt_names[k]
+            di_wave_data_name_temp = di_wave_data[f'{di_wave_data["channel_names"][idx][k]}']
+            di_wave_data[f'{rmt_values[k]}'][di_wave_data_name_temp]['mean_full'] = ax_mean_full
+            # di_wave_data[f'{rmt_values[k]}'][di_wave_data_name_temp]['mean_window'] = ax_mean
+            di_wave_data[rmt_names[k]][i_idx] = ax_mean_full
             di_wave_full_name = f'{di_wave_data["name"]}--{rmt_val}--channel {idx}'
             di_wave_data[di_wave_full_name] = ax_mean
             di_wave_data['orientation'] = ax_mean
@@ -645,10 +669,5 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
             di_wave_data['threshold_value'] = RMT_digit[0]
             plt.plot(t_window, ax_mean)
             plt.title(di_wave_full_name)
-            if 'rmt_values' in di_wave_data:
-                rmt_val = di_wave_data["rmt_values"][k]
-            else:
-                rmt_val = rmt_names[k]
-            plt.title()
             plt.show()
     return di_wave_data
