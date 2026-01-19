@@ -622,7 +622,7 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
         if 'LM' in rmt_values[k]:
             orientation = 'LM'
         elif 'PA' in rmt_values[k]:
-            orientation = 'LM'
+            orientation = 'PA'
         else:
             raise ValueError(f'Orientation not found in rmt_names: {rmt_values[k]}')
         # search for threshold type in rmt_names
@@ -640,8 +640,8 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
                                                 threshold_type=threshold_type, orientation=orientation)
 
         for i_idx, idx in enumerate(epidural_channel_idxs):
+            signals_full = rmt_k_data[:, idx, :]
             ax_mean = rmt_k_data[:, idx, :].mean(axis=1)
-            ax_mean_full = ax_mean.copy()
             # plt.plot(t_ch1, ax_mean)
             # plt.ylim(-10, 10)
             # plt.xlim(-2, 12)
@@ -657,7 +657,7 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
             else:
                 rmt_val = rmt_names[k]
             channel_name = di_wave_data['channel_names'][idx]
-            di_wave_data[rmt_values[k]][channel_name] = dict(signal_full=ax_mean_full, signal_short=ax_mean,
+            di_wave_data[rmt_values[k]][channel_name] = dict(signal_full=signals_full, signal_short=ax_mean,
                                                              data_name=rmt_names[k])
             # di_wave_data[f'{rmt_values[k]}'][di_wave_data_name_temp]['mean_window'] = ax_mean
             di_wave_full_name = f'{di_wave_data["name"]}--{rmt_val}--{channel_name}'
