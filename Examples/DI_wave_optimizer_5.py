@@ -11,7 +11,7 @@ if __name__ == "__main__":
     # fn_session = '/home/erik/Downloads/gpc.pkl'
     fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
     # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-    simulation_name = 'diw_opt_hu_14_01_26'
+    simulation_name = 'diw_opt_hu_19_01_26'
     parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.25, 'max_shift_validation': 4,
                   'test_signal_from_file': False, 'i_scale': 5.148136e-6, 'error_mode': 'a',

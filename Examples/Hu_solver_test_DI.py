@@ -72,8 +72,8 @@ if plot_nykamp_basic:
 
 if plot_di_model:
     # fn_session = '/home/erik/Downloads/gpc.pkl'
-    fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-    # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+    # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+    fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
     simulation_name = 'diw_Hu_solver_test_26'
 
     # [3.80187468e+02 6.24947346e-01 9.15432571e-01 6.77733943e-01
@@ -89,10 +89,10 @@ if plot_di_model:
     # 'pdf_offset', 'pdf_sigma', 'pdf_weight', 'i_scale',
     #  'current_sigma']
     #TODO: make effort to load from logs of optimization
-    parameters = {'intensity': 350, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.94, 'fraction_ex': 0.57, 'plot_align': False,
+    parameters = {'intensity': 350, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.94, 'fraction_ex': 0.64, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': False, 'min_delay': 5,
                   'test_signal_from_file': False, 'i_scale': 5.148136e-6, 'detrend': True, 'plot_detrend': True,
-                  'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt,
+                  'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'mind_delay':0,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
@@ -109,13 +109,15 @@ if plot_di_model:
                                         'current_sigma': 4,
                                         'verbose': 1}}
 
+
     di_model = DI_wave_simulation(parameters=parameters, logname=None)
+    di_model.get_test_signal(plot=True)
     di_model.simulate()
     di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.001, animate=False, savefig=False)
     rhos = di_model.mass_model.rho
     # change in rho area
-    drho = np.sum(rhos[0, :, 5]) - np.sum(rhos[0, :, -1])
-    print(f"change in rho: {drho}")
-    print(f'rho end: {np.sum(rhos[0, :, -1])}')
+    # drho = np.sum(rhos[0, :, 5]) - np.sum(rhos[0, :, -1])
+    # print(f"change in rho: {drho}")
+    # print(f'rho end: {np.sum(rhos[0, :, -1])}')
     di_model.plot_validation(fixed_ylim=False)
     di_model.mass_model.clean()

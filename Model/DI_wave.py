@@ -60,6 +60,7 @@ class DI_wave_simulation():
         self.c_eext1_factor = 1
         self.c_eext2_factor = 1
         self.nykamp_parameters = {}
+        self.file_args = None
 
         if logname != None:
             self.load_from_file(logname=logname)
@@ -150,12 +151,12 @@ class DI_wave_simulation():
                                         find_peaks_args=dict(distance=int(self.detrend_distance/self.dt)),
                                         plot=self.plot_detrend, start_from_first_peak=True)
 
-        self.get_test_signal(from_file=self.test_signal_from_file)
+        self.get_test_signal(from_file=self.test_signal_from_file, hdf5_args=self.file_args)
         di_max = np.max(self.target)
         I1_time = np.argmax(mass_model_rate) * self.dt
         if isinstance(self.min_delay, (float, int)):
             t_idx_delay = np.where(self.t > self.min_delay)[0][0]
-            potential_max = nmm_potential_out[t_idx_delay:].max()
+            potential_max = nmm_potential_out[:].max()
             nmm_potential_scaled = nmm_potential_out / potential_max * di_max
         else:
             nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
@@ -193,7 +194,7 @@ class DI_wave_simulation():
         plt.ylabel('Iext in nA', fontsize=15)
         plt.show()
 
-    def get_test_signal(self, plot=False, from_file=False):
+    def get_test_signal(self, plot=False, from_file=False, fname='s2020_043_CNS2023.mat', hdf5_args=None):
         #TODO: extend this to different test function types eventually
         if not from_file:
             self.target = DI_wave_test_function(self.t,
@@ -201,15 +202,23 @@ class DI_wave_simulation():
                                                 t0=self.test_func_t0,
                                                 dt=self.test_func_dt,
                                                 width=self.test_func_width)
-        else:
+        elif fname.split('.')[1] == 'mat':
             current_directory = os.path.dirname(__file__)
-            data_fname = os.path.join(current_directory, 's2020_043_CNS2023.mat')
+            data_fname = os.path.join(current_directory, fname)
             data = scipy.io.loadmat(data_fname)
             mean_DI_waves_detrend = data['meanDIwaves_detrend']
             mean_DI_waves = data['meanDIwaves']
             t = np.array(data['times'])[0]
             self.target = np.interp(self.t, t, mean_DI_waves_detrend[:, 0])
             # plt.plot(t, mean_DI_waves_detrend[:, 0])
+        elif fname.split('.')[1] == 'hdf5' or fname.split('.')[1] == 'h5':
+            current_directory = os.path.dirname(__file__)
+            data_fname = os.path.join(current_directory, fname)
+            data = scipy.io.loadmat(data_fname)
+            mean_DI_waves_detrend = data['meanDIwaves_detrend']
+            mean_DI_waves = data['meanDIwaves']
+            t = np.array(data['times'])[0]
+            self.target = np.interp(self.t, t, mean_DI_waves_detrend[:, 0])
         if plot:
             plt.plot(self.t, self.target)
             plt.xlabel('time in ms')
