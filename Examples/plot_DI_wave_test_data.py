@@ -5,10 +5,36 @@ import matplotlib.pyplot as plt
 import matplotlib
 from Utils import plot_DI_wave_data, get_di_wave_data
 matplotlib.use('TkAgg')
-nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
-# nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+# nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
 plot = False
 detrend = True
+
+
+def add_entry(dict_target, dict_source, orientation, threshold_type, rmt_digit, recording, rmt_value, year, name):
+    if isinstance(rmt_digit, list):
+        rmt_digit = rmt_digit[0]
+    # init dict if necessary
+    if not orientation in dict_target.keys():
+        dict_target[orientation] = {}
+    if not threshold_type in dict_target[orientation].keys():
+        dict_target[orientation][threshold_type] = {}
+    if not str(rmt_digit) in dict_target[orientation][threshold_type].keys():
+        dict_target[orientation][threshold_type][str(rmt_digit)] = {}
+    if not year in dict_target[orientation][threshold_type][str(rmt_digit)].keys():
+        dict_target[orientation][threshold_type][str(rmt_digit)][year] = {}
+
+    dict_target[orientation][threshold_type][str(rmt_digit)][year][name] = {}
+    channel_names = dict_source[recording][rmt_value].keys()
+    dict_target[orientation][threshold_type][str(rmt_digit)][year][name] = \
+        dict(time=dict_source[recording][rmt_value]['time'],
+             time_short=dict_source[recording][rmt_value]['time_short'],
+
+             emg_location=dict_source[recording]['emg_location'])
+    for channel in channel_names:
+        signal = dict_source[recording][rmt_value]['signal'],
+        signal_short = dict_source[recording][rmt_value]['signal_short'],
+
 
 di_wave_data_collection = dict()
 ########################################################################################################################
@@ -104,7 +130,7 @@ meta_data_2004_2 = dict(channel_names=titles_6, emg_location='left FDI muscle', 
 meta_data_2007 = dict(channel_names=titles_4, emg_location='left FDI muscle', name=title_4, year='2007')
 meta_data_2013 = dict(channel_names=titles_3, emg_location='left APB muscle', name=title_3, year='20013')
 meta_data_2020_PA = dict(channel_names=titles, emg_location='left FDI muscle', name=title, year='2020')
-meta_data_2020_LM = dict(channel_names=title_2, emg_location='left FDI muscle', name=title_2, year='2020')
+meta_data_2020_LM = dict(channel_names=titles, emg_location='left FDI muscle', name=title_2, year='2020')
 
 # di_wave_data_collection['s2004_epid001'] = get_di_wave_data(data_2004_1, rmt_names_5, epidural_channel_idxs=[0],
 #                                                             find_peaks_args=dict(threshold=0.005, distance=1),
@@ -136,7 +162,31 @@ di_wave_data_collection['s2020_043_3ch_LM'] = get_di_wave_data(data_2020, rmt_na
 # TODO: structure from file: year + subject_ID - channel -
 #  [data_DI-waves, data_DI-waves_short, threshold_type, threshold, orientation, time, time_short, data_name]
 # bad channels 2004_2, 2020 - PA/LM - Ch4
+
+# create newly structured hdf5
 #
+di_wave_dict = {}
+for recording in di_wave_data_collection.keys():
+    name = di_wave_data_collection[recording]['name']
+    year = di_wave_data_collection[recording]['year']
+    emg_location = di_wave_data_collection[recording]['emg_location']
+    for rmt_value in di_wave_data_collection[recording].keys():
+        if rmt_value not in ['channel_names', 'emg_location', 'name', 'year']:  # try to exclude non_data keys
+            orientation = di_wave_data_collection[recording][rmt_value]['orientation']
+            threshold_type = di_wave_data_collection[recording][rmt_value]['threshold_type']
+            rmt_digit = di_wave_data_collection[recording][rmt_value]['RMT_digit']
+            add_entry(dict_target=di_wave_dict,
+                      dict_source=di_wave_data_collection,
+                      orientation=orientation,
+                      threshold_type=threshold_type,
+                      rmt_digit=rmt_digit,
+                      recording=recording,
+                      rmt_value=rmt_value,
+                      year=year,
+                      name=name)
+
+
+
 a=1
 # for k, v in d.items():
 #     h.create_dataset(k, data=np.array(v))

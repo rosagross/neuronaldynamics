@@ -617,7 +617,6 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
             print(tms_peak_idx)
         t_12ms_idx = int(tms_peak_idx + 12 / dt)
         t_window = t_ch1[t_2ms_idx: t_12ms_idx]
-        di_wave_data[rmt_names[k]] = np.zeros((len(epidural_channel_idxs), t_window.shape[0]))
 
         # search for orientation in rmt_names
         if 'LM' in rmt_values[k]:
@@ -638,8 +637,7 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
         RMT_digit = [int(match.group(1)) for s in rmt_values[k].split(' ') if (match := re.search(r'(\d+)%', s))]
 
         di_wave_data[f'{rmt_values[k]}'] = dict(time=t_ch1, time_short=t_window, RMT_digit=RMT_digit,
-                                                threshold_type=threshold_type, orientation=orientation,
-                                                channel=dict())
+                                                threshold_type=threshold_type, orientation=orientation)
 
         for i_idx, idx in enumerate(epidural_channel_idxs):
             ax_mean = rmt_k_data[:, idx, :].mean(axis=1)
@@ -658,16 +656,12 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
                 rmt_val = di_wave_data["rmt_values"][k]
             else:
                 rmt_val = rmt_names[k]
-            di_wave_data_name_temp = di_wave_data[f'{di_wave_data["channel_names"][idx][k]}']
-            di_wave_data[f'{rmt_values[k]}'][di_wave_data_name_temp]['mean_full'] = ax_mean_full
+            channel_name = di_wave_data['channel_names'][idx]
+            di_wave_data[rmt_values[k]][channel_name] = dict(signal_full=ax_mean_full, signal_short=ax_mean,
+                                                             data_name=rmt_names[k])
             # di_wave_data[f'{rmt_values[k]}'][di_wave_data_name_temp]['mean_window'] = ax_mean
-            di_wave_data[rmt_names[k]][i_idx] = ax_mean_full
-            di_wave_full_name = f'{di_wave_data["name"]}--{rmt_val}--channel {idx}'
-            di_wave_data[di_wave_full_name] = ax_mean
-            di_wave_data['orientation'] = ax_mean
-            di_wave_data['threshold_type'] = threshold_type
-            di_wave_data['threshold_value'] = RMT_digit[0]
-            plt.plot(t_window, ax_mean)
-            plt.title(di_wave_full_name)
-            plt.show()
+            di_wave_full_name = f'{di_wave_data["name"]}--{rmt_val}--{channel_name}'
+            # plt.plot(t_window, ax_mean)
+            # plt.title(di_wave_full_name)
+            # plt.show()
     return di_wave_data
