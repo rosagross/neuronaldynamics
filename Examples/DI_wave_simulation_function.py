@@ -5,7 +5,7 @@ from Model.DI_wave import DI_wave_simulation
 
 matplotlib.use('TkAgg')
 
-# fn_session = 'vgpc.pkl'
+# fn_session = '/home/erik/Downloads/gpc.pkl'
 # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
 fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 simulation_name = 'diw_2025_11_04_5'
