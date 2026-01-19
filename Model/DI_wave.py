@@ -212,12 +212,14 @@ class DI_wave_simulation():
             self.target = np.interp(self.t, t, mean_DI_waves_detrend[:, 0])
             # plt.plot(t, mean_DI_waves_detrend[:, 0])
         elif fname.split('.')[1] == 'hdf5' or fname.split('.')[1] == 'h5':
-            current_directory = os.path.dirname(__file__)
-            data_fname = os.path.join(current_directory, fname)
-            data = scipy.io.loadmat(data_fname)
-            mean_DI_waves_detrend = data['meanDIwaves_detrend']
-            mean_DI_waves = data['meanDIwaves']
-            t = np.array(data['times'])[0]
+            hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+            data_dict = dict(orientation='PM', threshold=100, year=2020, threshold_type='RMT', channel=0, subject=0,
+                             hdf5_path=hdf5_path)
+            data_dict.update(self.file_args)
+            with h5py.File('.hdf5', 'r') as h5file:
+                name_keys = h5py[data_dict['orientation']][data_dict['threshold_type']][data_dict['threshold']][data_dict['year']].keys()
+                di_waves = h5py[data_dict['orientation']][data_dict['threshold_type']][data_dict['threshold']][data_dict['year']][name_keys[data_dict['subject']]]
+
             self.target = np.interp(self.t, t, mean_DI_waves_detrend[:, 0])
         if plot:
             plt.plot(self.t, self.target)
