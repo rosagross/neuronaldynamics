@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 from Utils import plot_DI_wave_data, get_di_wave_data
 matplotlib.use('TkAgg')
-# nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
-nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+# nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
 # nextcloud_path = '/home/erik/Downloads/DI_wave_data/DIwaves_Di_Lazzaro'
 plot = False
 detrend = True
@@ -87,7 +87,7 @@ def save_entry(dict_source, orientation, threshold_type, rmt_digit, recording, r
     di_wave_df = pd.DataFrame.from_dict(di_wave_dict)
     file_path = os.path.abspath(__file__)
     dict_path = file_path[:-26]
-    print(f'saved di-wave data to {dict_path}\{fname}')
+    print(f'saved di-wave data to {dict_path}\\{fname}')
 
 di_wave_data_collection = dict()
 ########################################################################################################################
@@ -207,7 +207,7 @@ di_wave_data_collection['s2013_031_3ch'] = get_di_wave_data(data_2013, rmt_names
                                                             emg_peak_height=0.3)
 di_wave_data_collection['s2020_043_3ch_PA'] = get_di_wave_data(data_2020, rmt_names, epidural_channel_idxs=[1, 2],
                                                                meta_data=meta_data_2020_PA, rmt_values=yaxis,
-                                                               emg_peak_height=1.5)
+                                                               emg_peak_height=1.0)
 di_wave_data_collection['s2020_043_3ch_LM'] = get_di_wave_data(data_2020, rmt_names_2, epidural_channel_idxs=[1, 2],
                                                                meta_data=meta_data_2020_LM, rmt_values=yaxis_2,
                                                                emg_peak_height=2.0)

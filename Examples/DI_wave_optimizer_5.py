@@ -11,12 +11,19 @@ if __name__ == "__main__":
     # fn_session = '/home/erik/Downloads/gpc.pkl'
     fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
     # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-    simulation_name = 'diw_opt_hu_19_01_26'
+
+    # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    simulation_name = 'diw_opt_hu_20_01_26'
+    measurement_dict_2020_140_PA_ch3 = dict(orientation='PA', threshold=140, year=2020, hdf5_path=hdf5_path, sigma=1.0)
+    measurement_dict_2020_100_PA_ch3 = dict(orientation='PA', threshold=100, year=2020, hdf5_path=hdf5_path, sigma=1.0)
+
     parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.25, 'max_shift_validation': 4,
-                  'test_signal_from_file': False, 'i_scale': 5.148136e-6, 'error_mode': 'a',
-                  'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'enable_high_pass': True,
+                  'test_signal_from_file': True, 'i_scale': 5.148136e-6, 'error_mode': 'a',
+                  'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'enable_high_pass': False,
                   'detrend': True,
+                  'file_args': measurement_dict_2020_140_PA_ch3,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0],
                                         'tau_mem': [12],

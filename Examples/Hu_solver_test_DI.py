@@ -72,10 +72,12 @@ if plot_nykamp_basic:
 
 if plot_di_model:
     # fn_session = '/home/erik/Downloads/gpc.pkl'
-    # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-    fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+    fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+    # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 
-    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+
     simulation_name = 'diw_Hu_solver_test_26'
 
     # [3.80187468e+02 6.24947346e-01 9.15432571e-01 6.77733943e-01
@@ -91,12 +93,21 @@ if plot_di_model:
     # 'pdf_offset', 'pdf_sigma', 'pdf_weight', 'i_scale',
     #  'current_sigma']
     #TODO: make effort to load from logs of optimization
-    measurment_dict = dict(orientation='PM', threshold=120, year=2013, hdf5_path=hdf5_path)
+    # check PA-140%-2020-ch_idx_0
+    measurement_dict_2020_140_PA_ch3 = dict(orientation='PA', threshold=140, year=2020, hdf5_path=hdf5_path, sigma=1.0)
+    measurement_dict_2020_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2020, hdf5_path=hdf5_path, sigma=1.0)
+    measurement_dict_2020_100_PA_ch3 = dict(orientation='PA', threshold=100, year=2020, hdf5_path=hdf5_path, sigma=1.0)
+    measurement_dict_2013_110_PA_ch2 = dict(orientation='PA', threshold=110, year=2013, hdf5_path=hdf5_path, sigma=1.0, channel=0)
+    measurement_dict_2013_110_PA_ch3 = dict(orientation='PA', threshold=110, year=2013, hdf5_path=hdf5_path, sigma=1.0, channel=1)
+    measurement_dict_207_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2007, hdf5_path=hdf5_path, sigma=1.0)
+    measurement_dict_207_150_PA_ch3 = dict(orientation='PA', threshold=150, year=2007, hdf5_path=hdf5_path, sigma=1.0)
+
+    measurement_dict = dict(orientation='PA', threshold=120, year=2013, hdf5_path=hdf5_path, sigma=1.0, channel=0)
     parameters = {'intensity': 350, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.94, 'fraction_ex': 0.64, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': False, 'min_delay': 5,
-                  'test_signal_from_file': False, 'i_scale': 5.148136e-6, 'detrend': True, 'plot_detrend': True,
+                  'test_signal_from_file': True, 'i_scale': 5.148136e-6, 'detrend': True, 'plot_detrend': False,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'mind_delay': 0,
-                  'file_args': measurment_dict,
+                  'file_args': measurement_dict_2020_120_PA_ch3,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
@@ -115,7 +126,7 @@ if plot_di_model:
 
 
     di_model = DI_wave_simulation(parameters=parameters, logname=None)
-    di_model.get_test_signal(plot=True)
+    di_model.get_test_signal(plot=True, from_file=True, hdf5_args=di_model.file_args)
     di_model.simulate()
     di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.001, animate=False, savefig=False)
     rhos = di_model.mass_model.rho
@@ -123,5 +134,5 @@ if plot_di_model:
     # drho = np.sum(rhos[0, :, 5]) - np.sum(rhos[0, :, -1])
     # print(f"change in rho: {drho}")
     # print(f'rho end: {np.sum(rhos[0, :, -1])}')
-    di_model.plot_validation(fixed_ylim=False)
+    di_model.plot_validation(fixed_ylim=False, save_fig=True)
     di_model.mass_model.clean()

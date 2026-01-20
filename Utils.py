@@ -646,6 +646,8 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
             # plt.ylim(-10, 10)
             # plt.xlim(-2, 12)
             # plt.show()
+            # plt.plot(t_ch1, ax_mean)
+            # plt.show()
             ax_mean = ax_mean[t_2ms_idx: t_12ms_idx]
             ax_mean = detrend(t_window, ax_mean, find_peaks_args=find_peaks_args)
             # ax_mean_filtered = butter_highpass_filter(ax_mean, cutoff=0.1, fps=int(1 / dt))

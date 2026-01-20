@@ -196,6 +196,8 @@ class DI_wave_simulation():
 
     def get_test_signal(self, plot=False, from_file=False, fname='s2020_043_CNS2023.mat', hdf5_args=None):
         #TODO: extend this to different test function types eventually
+        if "hdf5_path" in self.file_args.keys():
+            fname = self.file_args['hdf5_path']
         if not from_file:
             self.target = DI_wave_test_function(self.t,
                                                 intensity=self.test_func_intensity,
@@ -214,13 +216,103 @@ class DI_wave_simulation():
         elif fname.split('.')[1] == 'hdf5' or fname.split('.')[1] == 'h5':
             hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
             data_dict = dict(orientation='PM', threshold=100, year=2020, threshold_type='RMT', channel=0, subject=0,
-                             hdf5_path=hdf5_path)
+                             hdf5_path=hdf5_path, sigma=1)
             data_dict.update(self.file_args)
-            with h5py.File('.hdf5', 'r') as h5file:
-                name_keys = h5py[data_dict['orientation']][data_dict['threshold_type']][data_dict['threshold']][data_dict['year']].keys()
-                di_waves = h5py[data_dict['orientation']][data_dict['threshold_type']][data_dict['threshold']][data_dict['year']][name_keys[data_dict['subject']]]
+            with h5py.File(data_dict['hdf5_path'], 'r') as h5file:
+                name_h5group = h5file[data_dict['orientation']][data_dict['threshold_type']][str(data_dict['threshold'])][str(data_dict['year'])]
+                name_dict = dict(name_h5group)
+                name_keys = name_dict.keys()
 
-            self.target = np.interp(self.t, t, mean_DI_waves_detrend[:, 0])
+                di_signals = []
+                times = []
+
+                subjects = []
+                subject = data_dict['subject']
+                if not isinstance(subject, list):
+                    subject = [subject]
+                for i_key, key in enumerate(name_keys):
+                    if i_key in subject:
+                        subject_i = name_h5group[key]
+
+                        subjects.append(subject_i)
+
+                        times.append(np.array(subject_i['time_short']))
+                        channel_h5subgroup = subject_i
+                        channel_keys = dict(subject_i).keys()
+                        single_channels = []
+                        channel = data_dict['channel']
+                        if not isinstance(channel, list):
+                            channel = [channel]
+                        for i_key, key in enumerate(channel_keys):
+                            if i_key in channel:
+                                single_channels.append(channel_h5subgroup[key])
+                        di_signals.append(single_channels)
+                measurement_data_original = np.array(di_signals[0][0]['signal_short'])
+
+            # TODO: procedure to find end and start of signal, get rid of D-wave and unwanted peaks still WIP
+            # please extend this to other signals for the full dictionary
+            t = times[0]
+            detrend_thr = 0.001
+            if (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 140 and
+                    data_dict['channel'] == 0):
+                idx_start = 0
+                idx_end = 87
+                height_d_wave = 3
+                dentrending = False
+            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 120 and
+                    data_dict['channel'] == 0):
+                idx_start = 0
+                idx_end = t.shape[0]
+                height_d_wave = 3
+                dentrending = True
+            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 100 and
+                    data_dict['channel'] == 0):
+                idx_start = 0
+                idx_end = 90
+                height_d_wave = 2
+                dentrending = False
+            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2007 and data_dict['threshold'] == 120 and
+                    data_dict['channel'] == 0):
+                idx_start = 0
+                idx_end = t.shape[0]
+                height_d_wave = 0.5
+                dentrending = False
+            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2007 and data_dict['threshold'] == 150 and
+                    data_dict['channel'] == 0):
+                idx_start = 0
+                idx_end = t.shape[0]
+                height_d_wave = 1.0
+                dentrending = True
+                detrend_thr = 0.0002
+            else:
+                idx_start = 0
+                idx_end = t.shape[0]
+                height_d_wave = 3
+                dentrending = False
+
+            measurement_data = measurement_data_original[idx_start:idx_end]
+
+            t = t[idx_start:idx_end]
+            d_wave_idx = scipy.signal.find_peaks(measurement_data, height=height_d_wave)[0][0]
+            t_d_wave = t[d_wave_idx]
+            d_wave_start_idx = np.where(t>t_d_wave)[0][0]
+            # d_wave_peak = measurement_data[d_wave_start_idx]
+            # d_wave_start_idx = np.where(t>t_d_wave-0.85)[0][0]
+            d_wave_end_idx = np.where(t>t_d_wave+0.75)[0][0]
+            # measurement_data[d_wave_start_idx:d_wave_end_idx] = d_wave_peak*0.05
+            measurement_data[:d_wave_end_idx] = 0
+            measurement_data_filtered = scipy.ndimage.gaussian_filter1d(measurement_data, sigma=data_dict['sigma'])
+            if dentrending:
+                measurement_data_filtered = detrend(t, measurement_data_filtered, find_peaks_args=dict(threshold=detrend_thr))
+                measurement_data_filtered[measurement_data_filtered<0] = 0
+            measurement_data_filtered[-1] = 0
+            # plt.plot(t[idx_start:idx_end], measurement_data)
+            # plt.scatter(t[d_wave_idx], measurement_data[d_wave_idx], marker='x')
+            self.target = np.interp(self.t, t, measurement_data_filtered)
+            # take caution when using this detrending
+
+
+
         if plot:
             plt.plot(self.t, self.target)
             plt.xlabel('time in ms')
