@@ -284,11 +284,23 @@ class DI_wave_simulation():
                 height_d_wave = 1.0
                 dentrending = True
                 detrend_thr = 0.0002
+            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2004 and data_dict['threshold'] == 154):
+                idx_start = 0
+                idx_end = t.shape[0]
+                height_d_wave = 0.4
+                dentrending = False
+            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2004 and data_dict['threshold'] == 146):
+                idx_start = 0
+                idx_end = t.shape[0]
+                height_d_wave = 0.4
+                dentrending = True
+                detrend_thr = 1e-4
             else:
                 idx_start = 0
                 idx_end = t.shape[0]
                 height_d_wave = 3
                 dentrending = False
+
 
             measurement_data = measurement_data_original[idx_start:idx_end]
 
@@ -303,7 +315,8 @@ class DI_wave_simulation():
             measurement_data[:d_wave_end_idx] = 0
             measurement_data_filtered = scipy.ndimage.gaussian_filter1d(measurement_data, sigma=data_dict['sigma'])
             if dentrending:
-                measurement_data_filtered = detrend(t, measurement_data_filtered, find_peaks_args=dict(threshold=detrend_thr))
+                measurement_data_filtered = detrend(t, measurement_data_filtered,
+                                                    find_peaks_args=dict(threshold=detrend_thr), plot=False)
                 measurement_data_filtered[measurement_data_filtered<0] = 0
             measurement_data_filtered[-1] = 0
             # plt.plot(t[idx_start:idx_end], measurement_data)

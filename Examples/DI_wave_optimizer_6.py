@@ -22,16 +22,16 @@ if __name__ == "__main__":
                                             channel=0)
     measurement_dict_2013_110_PA_ch3 = dict(orientation='PA', threshold=110, year=2013, hdf5_path=hdf5_path, sigma=1.0,
                                             channel=1)
-    measurement_dict_207_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2007, hdf5_path=hdf5_path, sigma=1.0)
-    measurement_dict_207_150_PA_ch3 = dict(orientation='PA', threshold=150, year=2007, hdf5_path=hdf5_path, sigma=1.0)
+    measurement_dict_2007_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2007, hdf5_path=hdf5_path, sigma=1.0)
+    measurement_dict_2007_150_PA_ch3 = dict(orientation='PA', threshold=150, year=2007, hdf5_path=hdf5_path, sigma=1.0)
 
     data_dicts = [measurement_dict_2020_140_PA_ch3,
                   measurement_dict_2020_100_PA_ch3,
                   measurement_dict_2020_120_PA_ch3,
                   measurement_dict_2013_110_PA_ch2,
                   measurement_dict_2013_110_PA_ch3,
-                  measurement_dict_207_120_PA_ch3,
-                  measurement_dict_207_150_PA_ch3]
+                  measurement_dict_2007_120_PA_ch3,
+                  measurement_dict_2007_150_PA_ch3]
     for i_dict, dict in enumerate(data_dicts):
         print('###################################################################### \n'
               '###################################################################### \n'
