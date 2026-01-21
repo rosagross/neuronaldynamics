@@ -7,7 +7,8 @@ from Utils import get_stability_2D, nrmse, t_format
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
 import time
-from tqdm import tqdm
+from tqdm.contrib import itertools
+# from tqdm import tqdm
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -66,82 +67,92 @@ class Hierarchical_Random(Optimizer):
 
     def run(self):
         previous_min_error = 1
-        for i in tqdm(range(self.max_iter)):
-            param_values = np.zeros((self.n_param, self.n_grid))
-            keywords = self.parameters
-            for j in range(self.n_param):
-                param_values[j] = np.random.uniform(self.lower_bound[j], self.upper_bound[j], self.n_grid)
+        i_count = -1
 
-            for k in range(self.n_grid):
-                self.opt_parameters[i, k] = param_values[:, k]
+        for i, k in itertools.product(range(self.max_iter), range(self.n_grid)):
 
-                for l in range(self.n_param):
-                    keywords[self.model_parameters[l]] = param_values[l, k]
-                # keywords['nykamp_parameters']['connectivity_matrix'] = np.array([[param_values[-1, k]]])  # hotfix!
-                keywords['y'] = self.y
-                keywords['idx'] = f'{i}_{k}'
-                keywords['simulation_class'] = None  # prevent this from copying over and over again
-                # keywords.update(...)
-                if self.simulation_class == None:
-                    x = self.simulate(**keywords)
-                elif self.x_out == None:
-                    self.simulation_class.__init__(parameters=keywords)
-                    self.simulate()
-                else:
-                    self.simulation_class.__init__(parameters=keywords)
-                    self.simulate()
-                    x = eval(f'self.simulation_class.{self.x_out}')
-                self.x_vals[i, k] = x
-                # self.error[i, k] = nrmse(self.y, x)
-                if hasattr(self.simulation_class, 'error'):
-                    self.error[i, k] = self.simulation_class.error
-                else:
-                    #TODO: extend to other fit functions
-                    self.error[i, k] = nrmse(self.y, x)
+        # for i in tqdm(range(self.max_iter)):
 
-                orig_name = self.simulation_class.mass_model.name
-                if self.save_results:
-                    run_name = os.path.join(self.results_folder, f'diw_sim_opt_hu_{i}_{k}')
-                    # self.simulation_class.save_log(log_name=run_name)
-                    self.simulation_class.name = run_name
-                    self.simulation_class.plot_validation(save_fig=True)
-                    self.simulation_class.mass_model.name = run_name
-                    self.simulation_class.mass_model.plot(savefig=True, plot_input=True, z_limit=0.001,
-                                                          fname=orig_name)
-
-            min_error = np.nanmin(self.error[i])
-
-            min_error_idx = (i, np.nanargmin(self.error[i]))
-            self.min_error_idxs[i] = min_error_idx[1]
-            self.min_errors.append(min_error)
-            self.opt_idxs.append(min_error_idx)
-            print('\n#########################################################################')
-            print(f'error: {min_error:.5f}, at index {min_error_idx}')
-            print(f'{param_values[:, min_error_idx[1]]}')
-            print('#########################################################################')
-
-            print(f'plotted results for diw_sim_opt_hu_{i}')
-            if min_error < self.eps:
-                print(f'error: {min_error:.4f}')
-                self.optimum = param_values[:, min_error_idx[1]]
-                print(f'optimal values: {self.optimum}')
-                break
-            if i > 0:
-                previous_min_error = np.min(np.array(self.min_errors[:i]))
-            if min_error < previous_min_error - self.noise_term:
-                # contract region in parameter space if error was smaller
-                print(f'new min error, updating parameters')
-
-                # get new bounds for next iteration
-                p_new = param_values[:, min_error_idx[1]]
-                self.optimum = p_new
-                print(f'optimal values: {self.optimum}')
-                delta = self.upper_bound - self.lower_bound
+            if i_count < i:
+                i_count += 1
+                param_values = np.zeros((self.n_param, self.n_grid))
+                keywords = self.parameters
                 for j in range(self.n_param):
-                    self.lower_bound[j] = max(self.lower_bound[j], p_new[j] - 0.5 * delta[j])
-                    self.upper_bound[j] = min(self.upper_bound[j], p_new[j] + 0.5 * delta[j])
+                    param_values[j] = np.random.uniform(self.lower_bound[j], self.upper_bound[j], self.n_grid)
+
+            # for k in range(self.n_grid):
+
+
+            self.opt_parameters[i, k] = param_values[:, k]
+
+            for l in range(self.n_param):
+                keywords[self.model_parameters[l]] = param_values[l, k]
+            # keywords['nykamp_parameters']['connectivity_matrix'] = np.array([[param_values[-1, k]]])  # hotfix!
+            keywords['y'] = self.y
+            keywords['idx'] = f'{i}_{k}'
+            keywords['simulation_class'] = None  # prevent this from copying over and over again
+            # keywords.update(...)
+            if self.simulation_class == None:
+                x = self.simulate(**keywords)
+            elif self.x_out == None:
+                self.simulation_class.__init__(parameters=keywords)
+                self.simulate()
             else:
-                print(f'error not smaller than {previous_min_error:.4f}-{self.noise_term}')
+                self.simulation_class.__init__(parameters=keywords)
+                self.simulate()
+                x = eval(f'self.simulation_class.{self.x_out}')
+            self.x_vals[i, k] = x
+            # self.error[i, k] = nrmse(self.y, x)
+            if hasattr(self.simulation_class, 'error'):
+                self.error[i, k] = self.simulation_class.error
+            else:
+                #TODO: extend to other fit functions
+                self.error[i, k] = nrmse(self.y, x)
+
+            orig_name = self.simulation_class.mass_model.name
+            if self.save_results:
+                run_name = os.path.join(self.results_folder, f'diw_sim_opt_hu_{i}_{k}')
+                # self.simulation_class.save_log(log_name=run_name)
+                self.simulation_class.name = run_name
+                self.simulation_class.plot_validation(save_fig=True)
+                self.simulation_class.mass_model.name = run_name
+                self.simulation_class.mass_model.plot(savefig=True, plot_input=True, z_limit=0.001,
+                                                      fname=orig_name)
+
+            if k == self.n_grid-1:
+                min_error = np.nanmin(self.error[i])
+
+                min_error_idx = (i, np.nanargmin(self.error[i]))
+                self.min_error_idxs[i] = min_error_idx[1]
+                self.min_errors.append(min_error)
+                self.opt_idxs.append(min_error_idx)
+                print('\n#########################################################################')
+                print(f'error: {min_error:.5f}, at index {min_error_idx}')
+                print(f'{param_values[:, min_error_idx[1]]}')
+                print('#########################################################################')
+
+                print(f'plotted results for diw_sim_opt_hu_{i}')
+                if min_error < self.eps:
+                    print(f'error: {min_error:.4f}')
+                    self.optimum = param_values[:, min_error_idx[1]]
+                    print(f'optimal values: {self.optimum}')
+                    break
+                if i > 0:
+                    previous_min_error = np.min(np.array(self.min_errors[:i]))
+                if min_error < previous_min_error - self.noise_term:
+                    # contract region in parameter space if error was smaller
+                    print(f'new min error, updating parameters')
+
+                    # get new bounds for next iteration
+                    p_new = param_values[:, min_error_idx[1]]
+                    self.optimum = p_new
+                    print(f'optimal values: {self.optimum}')
+                    delta = self.upper_bound - self.lower_bound
+                    for j in range(self.n_param):
+                        self.lower_bound[j] = max(self.lower_bound[j], p_new[j] - 0.5 * delta[j])
+                        self.upper_bound[j] = min(self.upper_bound[j], p_new[j] + 0.5 * delta[j])
+                else:
+                    print(f'error not smaller than {previous_min_error:.4f}-{self.noise_term}')
 
 class GA(Optimizer):
     def __init__(self, parameters):

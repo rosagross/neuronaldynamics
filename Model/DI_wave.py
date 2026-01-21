@@ -1,3 +1,5 @@
+from matplotlib.lines import lineStyles
+
 from Model.Nykamp_Model import Nykamp_Model_1
 from Model.Neck import generate_EP
 import numpy as np
@@ -105,7 +107,7 @@ class DI_wave_simulation():
         self.mass_model = Nykamp_Model_1(parameters=self.nykamp_parameters)
 
 
-    def simulate(self):
+    def simulate(self, r_file=None):
         """
         Simulation function that calls the neural mass model simulation function
         It then also convolves the result from the NMM, which is a rate into a voltage
@@ -114,11 +116,14 @@ class DI_wave_simulation():
         Finally the signal is validated against a test signal with self.validate, where an error is calculated and
         stored in self.error
         """
-        self.mass_model.simulate()
-        if self.save_plots:
-            self.mass_model.plot(heat_map=True, plot_input=True)
+        if not isinstance(r_file, np.ndarray):
+            self.mass_model.simulate()
+            if self.save_plots:
+                self.mass_model.plot(heat_map=True, plot_input=True)
 
-        mass_model_rate = self.mass_model.r[0]
+            mass_model_rate = self.mass_model.r[0]
+        else:
+            mass_model_rate = r_file
         EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=self.dt * 10)
         EP = -EP
         EP = EP / np.max(EP)
@@ -218,6 +223,7 @@ class DI_wave_simulation():
             data_dict = dict(orientation='PM', threshold=100, year=2020, threshold_type='RMT', channel=0, subject=0,
                              hdf5_path=hdf5_path, sigma=1)
             data_dict.update(self.file_args)
+            d_wave_width = 1.8
             with h5py.File(data_dict['hdf5_path'], 'r') as h5file:
                 name_h5group = h5file[data_dict['orientation']][data_dict['threshold_type']][str(data_dict['threshold'])][str(data_dict['year'])]
                 name_dict = dict(name_h5group)
@@ -253,23 +259,24 @@ class DI_wave_simulation():
             # please extend this to other signals for the full dictionary
             t = times[0]
             detrend_thr = 0.001
+            d_wave_width = 1.5
             if (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 140 and
                     data_dict['channel'] == 0):
                 idx_start = 0
                 idx_end = 87
-                height_d_wave = 3
+                height_d_wave = 1
                 dentrending = False
             elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 120 and
                     data_dict['channel'] == 0):
                 idx_start = 0
                 idx_end = t.shape[0]
-                height_d_wave = 3
+                height_d_wave = 1
                 dentrending = True
             elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 100 and
                     data_dict['channel'] == 0):
                 idx_start = 0
                 idx_end = 90
-                height_d_wave = 2
+                height_d_wave = 1.05
                 dentrending = False
             elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2007 and data_dict['threshold'] == 120 and
                     data_dict['channel'] == 0):
@@ -292,17 +299,23 @@ class DI_wave_simulation():
             elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2004 and data_dict['threshold'] == 146):
                 idx_start = 0
                 idx_end = t.shape[0]
-                height_d_wave = 0.4
+                height_d_wave = 0.1
                 dentrending = True
                 detrend_thr = 1e-4
+            # elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2004 and data_dict['threshold'] == 150):
+            #     idx_start = 0
+            #     idx_end = t.shape[0]
+            #     height_d_wave = 0.1
+            #     dentrending = False
             else:
                 idx_start = 0
                 idx_end = t.shape[0]
-                height_d_wave = 3
+                height_d_wave = 1
                 dentrending = False
+                d_wave_width = 2.0
 
 
-            measurement_data = measurement_data_original[idx_start:idx_end]
+            measurement_data = measurement_data_original[idx_start:idx_end].copy()
 
             t = t[idx_start:idx_end]
             d_wave_idx = scipy.signal.find_peaks(measurement_data, height=height_d_wave)[0][0]
@@ -310,7 +323,7 @@ class DI_wave_simulation():
             d_wave_start_idx = np.where(t>t_d_wave)[0][0]
             # d_wave_peak = measurement_data[d_wave_start_idx]
             # d_wave_start_idx = np.where(t>t_d_wave-0.85)[0][0]
-            d_wave_end_idx = np.where(t>t_d_wave+0.75)[0][0]
+            d_wave_end_idx = np.where(t>t_d_wave+(d_wave_width/2))[0][0]
             # measurement_data[d_wave_start_idx:d_wave_end_idx] = d_wave_peak*0.05
             measurement_data[:d_wave_end_idx] = 0
             measurement_data_filtered = scipy.ndimage.gaussian_filter1d(measurement_data, sigma=data_dict['sigma'])
@@ -319,8 +332,13 @@ class DI_wave_simulation():
                                                     find_peaks_args=dict(threshold=detrend_thr), plot=False)
                 measurement_data_filtered[measurement_data_filtered<0] = 0
             measurement_data_filtered[-1] = 0
-            # plt.plot(t[idx_start:idx_end], measurement_data)
-            # plt.scatter(t[d_wave_idx], measurement_data[d_wave_idx], marker='x')
+            plt.plot(t, measurement_data_filtered)
+            plt.plot(t, measurement_data_original[idx_start:idx_end], alpha=0.4, color='k', linestyle='--')
+            plt.xlabel('t (ms)')
+            plt.ylabel('v (µV)')
+            plt.scatter(t[d_wave_idx], measurement_data_original[idx_start:idx_end][d_wave_idx], marker='x', color='r')
+            plt.show()
+
             self.target = np.interp(self.t, t, measurement_data_filtered)
             # take caution when using this detrending
 

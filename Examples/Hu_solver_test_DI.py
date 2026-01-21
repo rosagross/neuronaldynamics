@@ -94,7 +94,6 @@ if plot_di_model:
     #  'current_sigma']
     #TODO: make effort to load from logs of optimization
     # check PA-140%-2020-ch_idx_0
-    # 2004 PA 146 isn't really well detrended (keep in mind, some of the peak might be lost)
     measurement_dict_2020_140_PA_ch3 = dict(orientation='PA', threshold=140, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2020_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2020_100_PA_ch3 = dict(orientation='PA', threshold=100, year=2020, hdf5_path=hdf5_path, sigma=1.0)
@@ -104,8 +103,19 @@ if plot_di_model:
     measurement_dict_2007_150_PA_ch3 = dict(orientation='PA', threshold=150, year=2007, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2004_154_PA_2_ch2 = dict(orientation='PA', threshold=154, year=2004, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2004_146_PA_2_ch2 = dict(orientation='PA', threshold=146, year=2004, hdf5_path=hdf5_path, sigma=1.0)
-    measurement_dict_2004_150_PA_1_ch2 = dict(orientation='PA', threshold=150, year=2004, hdf5_path=hdf5_path, sigma=1.0)
+    measurement_dict_2004_150_PA_1_ch2 = dict(orientation='PA', threshold=150, year=2004, hdf5_path=hdf5_path, sigma=0.1)
 
+    # data_dicts = [measurement_dict_2020_140_PA_ch3,
+    #               measurement_dict_2020_120_PA_ch3,
+    #               measurement_dict_2020_100_PA_ch3,
+    #               measurement_dict_2013_110_PA_ch2,
+    #               measurement_dict_2013_110_PA_ch3,
+    #               measurement_dict_2007_120_PA_ch3,
+    #               measurement_dict_2007_150_PA_ch3,
+    #               measurement_dict_2004_154_PA_2_ch2,
+    #               measurement_dict_2004_146_PA_2_ch2,
+    #               measurement_dict_2004_150_PA_1_ch2]
+    data_dicts = [measurement_dict_2004_146_PA_2_ch2, measurement_dict_2004_150_PA_1_ch2]
     measurement_dict = dict(orientation='PA', threshold=120, year=2013, hdf5_path=hdf5_path, sigma=1.0, channel=0)
     parameters = {'intensity': 350, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.94, 'fraction_ex': 0.64, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': False, 'min_delay': 5,
@@ -128,15 +138,19 @@ if plot_di_model:
                                         'current_sigma': 4,
                                         'verbose': 1}}
 
+    for i_dict, dict in enumerate(data_dicts):
+        parameters['file_args'] = dict
+        di_model = DI_wave_simulation(parameters=parameters, logname=None)
+        di_model.get_test_signal(plot=False, from_file=True, hdf5_args=di_model.file_args)
 
-    di_model = DI_wave_simulation(parameters=parameters, logname=None)
-    di_model.get_test_signal(plot=True, from_file=True, hdf5_args=di_model.file_args)
-    di_model.simulate()
+    # di_model = DI_wave_simulation(parameters=parameters, logname=None)
+    # di_model.get_test_signal(plot=True, from_file=True, hdf5_args=di_model.file_args)
+    # di_model.simulate()
     # di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.001, animate=False, savefig=False)
-    rhos = di_model.mass_model.rho
-    # change in rho area
+    # rhos = di_model.mass_model.rho
+    # # change in rho area
     # drho = np.sum(rhos[0, :, 5]) - np.sum(rhos[0, :, -1])
     # print(f"change in rho: {drho}")
     # print(f'rho end: {np.sum(rhos[0, :, -1])}')
-    di_model.plot_validation(fixed_ylim=False, save_fig=False)
-    di_model.mass_model.clean()
+    # di_model.plot_validation(fixed_ylim=False, save_fig=False)
+    # di_model.mass_model.clean()
