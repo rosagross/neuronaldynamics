@@ -201,7 +201,7 @@ class DI_wave_simulation():
 
     def get_test_signal(self, plot=False, from_file=False, fname='s2020_043_CNS2023.mat', hdf5_args=None):
         #TODO: extend this to different test function types eventually
-        if "hdf5_path" in self.file_args.keys():
+        if self.file_args != None and "hdf5_path" in self.file_args.keys():
             fname = self.file_args['hdf5_path']
         if not from_file:
             self.target = DI_wave_test_function(self.t,

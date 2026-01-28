@@ -72,11 +72,11 @@ if plot_nykamp_basic:
 
 if plot_di_model:
     # fn_session = '/home/erik/Downloads/gpc.pkl'
-    fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-    # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+    # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+    fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 
-    # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-    hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 
     simulation_name = 'diw_Hu_solver_test_26'
 
@@ -121,7 +121,7 @@ if plot_di_model:
                   'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': False, 'min_delay': 5,
                   'test_signal_from_file': True, 'i_scale': 5.148136e-6, 'detrend': True, 'plot_detrend': False,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'mind_delay': 0,
-                  'file_args': measurement_dict_2004_150_PA_1_ch2,
+                  'file_args': measurement_dict_2020_140_PA_ch3,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
@@ -143,14 +143,14 @@ if plot_di_model:
         di_model = DI_wave_simulation(parameters=parameters, logname=None)
         di_model.get_test_signal(plot=False, from_file=True, hdf5_args=di_model.file_args)
 
-    # di_model = DI_wave_simulation(parameters=parameters, logname=None)
+    di_model = DI_wave_simulation(parameters=parameters, logname=None)
     # di_model.get_test_signal(plot=True, from_file=True, hdf5_args=di_model.file_args)
-    # di_model.simulate()
-    # di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.001, animate=False, savefig=False)
+    di_model.simulate()
+    di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.001, animate=False, savefig=False)
     # rhos = di_model.mass_model.rho
     # # change in rho area
     # drho = np.sum(rhos[0, :, 5]) - np.sum(rhos[0, :, -1])
     # print(f"change in rho: {drho}")
     # print(f'rho end: {np.sum(rhos[0, :, -1])}')
-    # di_model.plot_validation(fixed_ylim=False, save_fig=False)
-    # di_model.mass_model.clean()
+    di_model.plot_validation(fixed_ylim=False, save_fig=False)
+    di_model.mass_model.clean()
