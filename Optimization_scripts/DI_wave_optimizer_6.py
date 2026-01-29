@@ -15,26 +15,34 @@ if __name__ == "__main__":
 
     # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
     hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-    results_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_model\\run_2026_01_21"
+    results_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_model\\run_2026_01_28"
 
-    simulation_name = '_diw_opt_hu_20_01_26'
+    simulation_name = '_diw_opt_hu_28_01_26'
     measurement_dict_2020_140_PA_ch3 = dict(orientation='PA', threshold=140, year=2020, hdf5_path=hdf5_path, sigma=1.0)
-    measurement_dict_2020_100_PA_ch3 = dict(orientation='PA', threshold=100, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2020_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2020, hdf5_path=hdf5_path, sigma=1.0)
+    measurement_dict_2020_100_PA_ch3 = dict(orientation='PA', threshold=100, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2013_110_PA_ch2 = dict(orientation='PA', threshold=110, year=2013, hdf5_path=hdf5_path, sigma=1.0,
                                             channel=0)
     measurement_dict_2013_110_PA_ch3 = dict(orientation='PA', threshold=110, year=2013, hdf5_path=hdf5_path, sigma=1.0,
                                             channel=1)
     measurement_dict_2007_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2007, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2007_150_PA_ch3 = dict(orientation='PA', threshold=150, year=2007, hdf5_path=hdf5_path, sigma=1.0)
-
+    measurement_dict_2004_154_PA_2_ch2 = dict(orientation='PA', threshold=154, year=2004, hdf5_path=hdf5_path,
+                                              sigma=1.0)
+    measurement_dict_2004_146_PA_2_ch2 = dict(orientation='PA', threshold=146, year=2004, hdf5_path=hdf5_path,
+                                              sigma=1.0)
+    measurement_dict_2004_150_PA_1_ch2 = dict(orientation='PA', threshold=150, year=2004, hdf5_path=hdf5_path,
+                                              sigma=0.1)
     data_dicts = [measurement_dict_2020_140_PA_ch3,
-                  measurement_dict_2020_100_PA_ch3,
                   measurement_dict_2020_120_PA_ch3,
+                  measurement_dict_2020_100_PA_ch3,
                   measurement_dict_2013_110_PA_ch2,
                   measurement_dict_2013_110_PA_ch3,
                   measurement_dict_2007_120_PA_ch3,
-                  measurement_dict_2007_150_PA_ch3]
+                  measurement_dict_2007_150_PA_ch3,
+                  measurement_dict_2004_154_PA_2_ch2,
+                  measurement_dict_2004_146_PA_2_ch2,
+                  measurement_dict_2004_150_PA_1_ch2]
     for i_dict, dict in enumerate(data_dicts):
         print('###################################################################### \n'
               '###################################################################### \n'
@@ -64,7 +72,7 @@ if __name__ == "__main__":
 
         model_parameters = ['intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex', 'pdf_offset', 'pdf_sigma',
                              'current_sigma']
-        model_parameter_bounds = [[200, 400], [0.25, 0.75], [0.9, 1.0], [0.5, 0.8], [0, 12], [0.01, 5], [0, 5]]
+        model_parameter_bounds = [[200, 400], [0.25, 0.75], [0.9, 1.0], [0.2, 0.8], [0, 12], [0.01, 5], [0, 5]]
 
         opt_parameters = parameters.copy()
         opt_parameters['optimizer'] = 'hierarchical'

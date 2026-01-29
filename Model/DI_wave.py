@@ -332,12 +332,12 @@ class DI_wave_simulation():
                                                     find_peaks_args=dict(threshold=detrend_thr), plot=False)
                 measurement_data_filtered[measurement_data_filtered<0] = 0
             measurement_data_filtered[-1] = 0
-            plt.plot(t, measurement_data_filtered)
-            plt.plot(t, measurement_data_original[idx_start:idx_end], alpha=0.4, color='k', linestyle='--')
-            plt.xlabel('t (ms)')
-            plt.ylabel('v (µV)')
-            plt.scatter(t[d_wave_idx], measurement_data_original[idx_start:idx_end][d_wave_idx], marker='x', color='r')
-            plt.show()
+            # plt.plot(t, measurement_data_filtered)
+            # plt.plot(t, measurement_data_original[idx_start:idx_end], alpha=0.4, color='k', linestyle='--')
+            # plt.xlabel('t (ms)')
+            # plt.ylabel('v (µV)')
+            # plt.scatter(t[d_wave_idx], measurement_data_original[idx_start:idx_end][d_wave_idx], marker='x', color='r')
+            # plt.show()
 
             self.target = np.interp(self.t, t, measurement_data_filtered)
             # take caution when using this detrending
