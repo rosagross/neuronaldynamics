@@ -7,7 +7,7 @@ from Model.DI_wave import DI_wave_simulation
 from tqdm.contrib import itertools
 matplotlib.use('TkAgg')
 
-plot_orientations = True
+plot_E_fields = True
 simulate = True
 
 dt = 0.01
@@ -18,12 +18,11 @@ t = np.arange(0, T, dt)
 Nt = t.shape[0]
 
 
-thetas = np.linspace(0, np.pi, 100)
-theta_deg = thetas / (2 * np.pi) * 360
-r, theta_grid = np.meshgrid(t, thetas)
-E_values = [175, 225, 250, 300, 350, 400]
-r_shapes = r.shape
-z = np.zeros((len(E_values), r_shapes[0], r_shapes[1]))
+E_values = np.linspace(150, 400, 100)
+theta_values = [k*45 for k in range(8)]
+E_mesh, t_mesh = np.meshgrid(t,E_values)
+mesh_shapes = E_mesh.shape
+z = np.zeros((len(theta_values), mesh_shapes[0], mesh_shapes[1]))
 
 # fn_session = '/home/erik/Downloads/gpc.pkl'
 fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
@@ -35,10 +34,10 @@ hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI
 # save_file_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI-wave_model\\orientation_tuning"
 save_file_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI-wave_model\\orientation_tuning"
 
-simulation_name = 'diw_orientation_test'
+simulation_name = 'diw_intensity_test'
 fname = os.path.join(save_file_path, simulation_name)
-n_theta = theta_deg.shape[0]
-n_E = len(E_values)
+n_theta = len(theta_values)
+n_E = E_values.shape[0]
 
 plot_thetas = [k*45 for k in range(8)]
 # plot_theta_idxs = []
@@ -48,11 +47,11 @@ plot_thetas = [k*45 for k in range(8)]
 
 if simulate:
     for i, j in itertools.product(range(n_theta), range(n_E)):
-            theta_i = theta_deg[i]
+            theta_i = theta_values[i]
             E_j = E_values[j]
             parameters = {'intensity': E_j, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.5,
                       'i_scale': 5.148136e-6, 'theta': theta_i, 'detrend': True,
-                      'fn_session': fn_session, 'T': T, 'name': 'orientation_diw_single_run', 'dt': dt, 'min_delay': 0,
+                      'fn_session': fn_session, 'T': T, 'name': 'intensity_diw_single_run', 'dt': dt, 'min_delay': 0,
                       'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                             'tau_ref': [0], #1.5
                                             'tau_mem': [12],
@@ -73,19 +72,19 @@ if simulate:
             di_model = DI_wave_simulation(parameters=parameters, logname=None)
             di_model.simulate()
             r_i = di_model.mass_model.r[0]
-            z[j, i] = r_i
+            z[i, j] = r_i
     with h5py.File(simulation_name + '.hdf5', 'w') as h5file:
         h5file.create_dataset('orientation_data', data=z)
     print(f'saved to {simulation_name}.hdf5')
 
 # z = np.sin(r) + 1 - (theta/(2 * np.pi))
-if plot_orientations:
+if plot_E_fields:
 
     with h5py.File(simulation_name + '.hdf5', 'r') as h5file:
         data = np.array(h5file['orientation_data'])*1e3 # conversion from 1/ms to 1/s
     z_max = data.max()
-    fig, axs = plt.subplots(2, 3,subplot_kw=dict(projection="polar"), figsize=(12, 10))
-    for i, E_i in enumerate(E_values):
+    fig, axs = plt.subplots(2, 3, figsize=(12, 10))
+    for i, theta_i in enumerate(theta_values):
         row_idx = 0
         col_idx = i
         if i > 2:
@@ -94,22 +93,11 @@ if plot_orientations:
 
         ax = axs[row_idx, col_idx]
         z_i = data[i]
-        pcm = ax.pcolormesh(theta_grid, r, z_i, shading="auto", cmap='gnuplot2', vmax=z_max)
-
-        ax.set_thetagrids(np.arange(0, 360, 30))
-        ax.set_rgrids([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-        ax.set_thetamax(180)
-        ax.set_thetamin(0)
-
-        ax.set_theta_zero_location("N")  # theta=0 at the top
-        ax.set_theta_direction(-1)
-
-        # ax.set_rorigin(-1.5)   # try different negative values
-        ax.set_rlim(0, 12)      # make sure limits allow the shift
+        pcm = ax.pcolormesh(E_mesh, t_mesh, z_i, shading="auto", cmap='gnuplot2', vmax=z_max)
         # ax.set_ylabel('t in (ms)')
         ax.text(-1, 6, 't (ms)', rotation=90)
         ax.set_rlabel_position(10)
-        ax.set_title(f'|E|: {E_i}V/m')
+        ax.set_title(f'phi: {theta_i}°')
         # cbar = fig.colorbar(pcm, ax=cbar_ax, label="Intensity", orientation="horizontal")
         # plt.tight_layout()
     # plt.tight_layout()
