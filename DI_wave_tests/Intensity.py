@@ -24,7 +24,7 @@ Nt = t.shape[0]
 
 E_values = np.linspace(150, 400, 100)
 theta_values = [k*30 for k in range(7)]
-E_mesh, t_mesh = np.meshgrid(t,E_values)
+E_mesh, t_mesh = np.meshgrid(t ,E_values)
 mesh_shapes = E_mesh.shape
 z = np.zeros((len(theta_values), mesh_shapes[0], mesh_shapes[1]))
 
