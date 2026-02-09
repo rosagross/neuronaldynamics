@@ -5,10 +5,14 @@ import os
 import matplotlib
 from Model.DI_wave import DI_wave_simulation
 from tqdm.contrib import itertools
+from Model.Neck import generate_EP
+import scipy
+from Utils import butter_highpass_filter
 matplotlib.use('TkAgg')
 
+voltage_view = True
 plot_E_fields = True
-simulate = True
+simulate = False
 
 dt = 0.01
 dv = 0.01
@@ -19,7 +23,7 @@ Nt = t.shape[0]
 
 
 E_values = np.linspace(150, 400, 100)
-theta_values = [k*45 for k in range(8)]
+theta_values = [k*30 for k in range(7)]
 E_mesh, t_mesh = np.meshgrid(t,E_values)
 mesh_shapes = E_mesh.shape
 z = np.zeros((len(theta_values), mesh_shapes[0], mesh_shapes[1]))
@@ -38,12 +42,6 @@ simulation_name = 'diw_intensity_test'
 fname = os.path.join(save_file_path, simulation_name)
 n_theta = len(theta_values)
 n_E = E_values.shape[0]
-
-plot_thetas = [k*45 for k in range(8)]
-# plot_theta_idxs = []
-# for plot_theta in plot_thetas:
-#     theta_idx = np.where(theta_deg > plot_theta)[0][0]
-#     plot_theta_idxs.append(theta_idx)
 
 if simulate:
     for i, j in itertools.product(range(n_theta), range(n_E)):
@@ -82,30 +80,53 @@ if plot_E_fields:
 
     with h5py.File(simulation_name + '.hdf5', 'r') as h5file:
         data = np.array(h5file['orientation_data'])*1e3 # conversion from 1/ms to 1/s
+    label = "r (Hz)"
+    if voltage_view:
+        label = ('V (a.u.)')
+        for i, theta_i in enumerate(theta_values):
+            EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=dt * 10)
+            EP = -EP
+            EP = EP / np.max(EP)
+            EP_small = np.interp(t[t < 1.0] - 0.5, t_EP, EP)
+            for j in range(data[i].shape[0]):
+                nmm_potential = scipy.signal.convolve(data[i, j], EP_small)
+                nmm_shape = data[i, j].shape[0]
+                nmm_potential_out = nmm_potential[:nmm_shape]
+
+                v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.05,
+                                                  fps=int(1 / dt))  # very small cutoff
+                v_out_mean = nmm_potential_out.mean()
+                data[i, j] = v_out_hp/1000
+
+    fig, axs = plt.subplots(2, 4, figsize=(12, 9))
     z_max = data.max()
-    fig, axs = plt.subplots(2, 3, figsize=(12, 10))
     for i, theta_i in enumerate(theta_values):
         row_idx = 0
         col_idx = i
-        if i > 2:
+        if i > 3:
             row_idx = 1
-            col_idx -= 3
+            col_idx -= 4
 
         ax = axs[row_idx, col_idx]
+
         z_i = data[i]
         pcm = ax.pcolormesh(E_mesh, t_mesh, z_i, shading="auto", cmap='gnuplot2', vmax=z_max)
         # ax.set_ylabel('t in (ms)')
-        ax.text(-1, 6, 't (ms)', rotation=90)
-        ax.set_rlabel_position(10)
         ax.set_title(f'phi: {theta_i}°')
+        if col_idx == 0:
+            ax.set_ylabel('|E| (V/m)')
+        if row_idx > 0:
+            ax.set_xlabel('t (ms)')
+        ax.grid(True)
+        ax.set_xticks([0, 2, 4, 5, 6, 7, 8, 10, 12])
         # cbar = fig.colorbar(pcm, ax=cbar_ax, label="Intensity", orientation="horizontal")
         # plt.tight_layout()
     # plt.tight_layout()
 
     # fig.subplots_adjust(right=0.7)
     fig.subplots_adjust(bottom=0.2)
-    cbar_ax = fig.add_axes([0.15, 0.15, 0.8, 0.01])
-    fig.colorbar(pcm, cax=cbar_ax, orientation="horizontal", label="r")
+    cbar_ax = fig.add_axes([0.15, 0.12, 0.8, 0.01])
+    fig.colorbar(pcm, cax=cbar_ax, orientation="horizontal", label=label)
     # plt.tight_layout()
     plt.show()
 
