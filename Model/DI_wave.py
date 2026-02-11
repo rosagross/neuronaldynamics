@@ -12,7 +12,7 @@ import scipy
 import scipy.io
 import yaml
 from tqdm import tqdm
-from Utils import DI_wave_test_function, nrmse, cross_correlation_align, butter_highpass_filter, detrend
+from Utils import DI_wave_test_function, nrmse, cross_correlation_align, butter_highpass_filter, detrend, delay_signal
 import Model.Nykamp_Model
 from Optimizers.Optimizer import *
 matplotlib.use('TkAgg')
@@ -63,6 +63,8 @@ class DI_wave_simulation():
         self.c_eext2_factor = 1
         self.nykamp_parameters = {}
         self.file_args = None
+        self.delay_signal = False
+        self.delay = 2
 
         if logname != None:
             self.load_from_file(logname=logname)
@@ -174,6 +176,9 @@ class DI_wave_simulation():
         #     nmm_potential_scaled = nmm_potential_out
 
         self.mass_model_v_out = nmm_potential_scaled
+
+        if self.delay_signal:
+            self.mass_model_v_out = delay_signal(self.mass_model_v_out, self.delay, self.dt)
         # self.plot_nmm_out()
         # self.plot_convolution()
         self.validate()

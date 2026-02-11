@@ -5,7 +5,7 @@ import h5py
 import matplotlib
 import matplotlib.pyplot as plt
 import scipy.signal
-from scipy.ndimage import gaussian_filter1d
+from scipy.ndimage import gaussian_filter1d, shift
 from scipy.signal import correlate, find_peaks
 matplotlib.use('TkAgg')
 
@@ -667,3 +667,15 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
             # plt.title(di_wave_full_name)
             # plt.show()
     return di_wave_data
+
+def delay_signal(signal, delay, dt):
+    """
+    Function that delays a signal on a grid of dt spaced time points by a specific time 'delay'
+    :param signal: np.ndarray, signal that wil be delayed
+    :param delay:  int or float, time by which the signal will be delayed
+    :param dt: float, time step of the signal, used to find the index, by which the signal is delayed
+    :return: delayed_signal: np.ndarray, signal that is delayed by the specified delay value
+    """
+    delay_idx_value = int(delay/dt)
+    delayed_signal = shift(signal, delay_idx_value, cval=0)
+    return delayed_signal
