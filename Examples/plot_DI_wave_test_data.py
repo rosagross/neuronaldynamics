@@ -1,24 +1,21 @@
 import os
 import scipy
-import pandas as pd
-import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from Utils import plot_DI_wave_data, get_di_wave_data
 matplotlib.use('TkAgg')
-nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
-# nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
-# nextcloud_path = '/home/erik/Downloads/DI_wave_data/DIwaves_Di_Lazzaro'
+# nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+nextcloud_path = '/home/erik/Downloads/DI_wave_data/DIwaves_Di_Lazzaro'
 plot = True
-detrend = True
+detrend = False
 
 
 def add_entry(dict_target, dict_source, orientation, threshold_type, rmt_digit, recording, rmt_value, year, name):
     if isinstance(rmt_digit, list):
         rmt_digit = rmt_digit[0]
     # init dict if necessary
-
     if not orientation in dict_target.keys():
         dict_target[orientation] = {}
     if not threshold_type in dict_target[orientation].keys():
@@ -29,65 +26,16 @@ def add_entry(dict_target, dict_source, orientation, threshold_type, rmt_digit, 
         dict_target[orientation][threshold_type][str(rmt_digit)][year] = {}
 
     dict_target[orientation][threshold_type][str(rmt_digit)][year][name] = {}
-    channel_names = dict_source[recording]['channel_names']
+    channel_names = dict_source[recording][rmt_value].keys()
     dict_target[orientation][threshold_type][str(rmt_digit)][year][name] = \
         dict(time=dict_source[recording][rmt_value]['time'],
              time_short=dict_source[recording][rmt_value]['time_short'],
 
              emg_location=dict_source[recording]['emg_location'])
     for channel in channel_names:
-        if 'epidural' in channel.lower():
-            try:
-                signal_full = dict_source[recording][rmt_value][channel]['signal_full'],
-            except:
-                a=12
-            signal_short = dict_source[recording][rmt_value][channel]['signal_short']
-            dict_target[orientation][threshold_type][str(rmt_digit)][year][name][channel] = dict(signal_full=signal_full,
-                                                                                                 signal_short=signal_short)
-def save_entry(dict_source, orientation, threshold_type, rmt_digit, recording, rmt_value, year, name):
+        signal = dict_source[recording][rmt_value]['signal'],
+        signal_short = dict_source[recording][rmt_value]['signal_short'],
 
-
-    if isinstance(rmt_digit, list):
-        rmt_digit = rmt_digit[0]
-    # init dict if necessary
-    fname = 'DiLazarro_di_wave_data.hdf5'
-    if os.path.exists(fname):
-        h5_opening_mode = 'a'
-    else:
-        h5_opening_mode = 'w'
-    with h5py.File(fname, h5_opening_mode) as h5file:
-        if not orientation in h5file.keys():
-            h5file.create_group(orientation)
-        if not threshold_type in h5file[orientation].keys():
-            h5file[orientation].create_group(threshold_type)
-        if not str(rmt_digit) in h5file[orientation][threshold_type].keys():
-            h5file[orientation][threshold_type].create_group(str(rmt_digit))
-        if not year in h5file[orientation][threshold_type][str(rmt_digit)].keys():
-            h5file[orientation][threshold_type][str(rmt_digit)].create_group(year)
-        if not name in h5file[orientation][threshold_type][str(rmt_digit)][year].keys():
-            h5file[orientation][threshold_type][str(rmt_digit)][year].create_group(name)
-
-        channel_names = dict_source[recording]['channel_names']
-        h5file[orientation][threshold_type][str(rmt_digit)][year][name].create_dataset(
-            'time', data=dict_source[recording][rmt_value]['time'])
-        h5file[orientation][threshold_type][str(rmt_digit)][year][name].create_dataset(
-            'time_short', data=dict_source[recording][rmt_value]['time_short'])
-        h5file[orientation][threshold_type][str(rmt_digit)][year][name].create_dataset(
-            'emg_location', data=dict_source[recording]['emg_location'])
-
-        for channel in channel_names:
-            if 'epidural' in channel.lower():
-                h5file[orientation][threshold_type][str(rmt_digit)][year][name].create_group(channel)
-                signal_full = dict_source[recording][rmt_value][channel]['signal_full'],
-                signal_short = dict_source[recording][rmt_value][channel]['signal_short']
-                h5file[orientation][threshold_type][str(rmt_digit)][year][name][channel].create_dataset(
-                    'signal_full', data=signal_full)
-                h5file[orientation][threshold_type][str(rmt_digit)][year][name][channel].create_dataset(
-                            'signal_short', data=signal_short)
-    di_wave_df = pd.DataFrame.from_dict(di_wave_dict)
-    file_path = os.path.abspath(__file__)
-    dict_path = file_path[:-26]
-    print(f'saved di-wave data to {dict_path}\\{fname}')
 
 di_wave_data_collection = dict()
 ########################################################################################################################
@@ -178,21 +126,20 @@ if plot:
                       find_peaks_args=dict(threshold=0.005, distance=1))
 
 
-meta_data_2004_1 = dict(channel_names=['Ch1 Epidural (µV)', 'Ch2 EMG (mV)'], emg_location='left FDI muscle',
-                        name=title_5, year='2004')
-meta_data_2004_2 = dict(channel_names=['Ch1 Epidural (µV)', 'Ch2 EMG (mV)'], emg_location='left FDI muscle',
-                        name=title_6, year='2004')
+meta_data_2004_1 = dict(channel_names=titles_5, emg_location='left FDI muscle', name=title_5, year='2004')
+meta_data_2004_2 = dict(channel_names=titles_6, emg_location='left FDI muscle', name=title_6, year='2004')
 meta_data_2007 = dict(channel_names=titles_4, emg_location='left FDI muscle', name=title_4, year='2007')
-meta_data_2013 = dict(channel_names=titles_3, emg_location='left APB muscle', name=title_3, year='2013')
+meta_data_2013 = dict(channel_names=titles_3, emg_location='left APB muscle', name=title_3, year='20013')
 meta_data_2020_PA = dict(channel_names=titles, emg_location='left FDI muscle', name=title, year='2020')
 meta_data_2020_LM = dict(channel_names=titles, emg_location='left FDI muscle', name=title_2, year='2020')
 
 di_wave_data_collection['s2004_epid001'] = get_di_wave_data(data_2004_1, rmt_names_5, epidural_channel_idxs=[0],
                                                             find_peaks_args=dict(threshold=0.005, distance=1),
                                                             meta_data=meta_data_2004_1,
-                                                            emg_peak_height=3.5,
                                                             sample_frequency=[5e3, 25e3, 5e3, 5e3],
                                                             rmt_values=yaxis_5)
+# TODO: sth wrong with this channel here, I believe it does find the epidural channel instead of the EMG
+#  for the peak detection
 di_wave_data_collection['s2004_epid002'] = get_di_wave_data(data_2004_2, rmt_names_6, epidural_channel_idxs=[0],
                                                             find_peaks_args=dict(threshold=0.005, distance=1),
                                                             meta_data=meta_data_2004_2,
@@ -231,14 +178,6 @@ for recording in di_wave_data_collection.keys():
             rmt_digit = di_wave_data_collection[recording][rmt_value]['RMT_digit']
             add_entry(dict_target=di_wave_dict,
                       dict_source=di_wave_data_collection,
-                      orientation=orientation,
-                      threshold_type=threshold_type,
-                      rmt_digit=rmt_digit,
-                      recording=recording,
-                      rmt_value=rmt_value,
-                      year=year,
-                      name=name)
-            save_entry(dict_source=di_wave_data_collection,
                       orientation=orientation,
                       threshold_type=threshold_type,
                       rmt_digit=rmt_digit,

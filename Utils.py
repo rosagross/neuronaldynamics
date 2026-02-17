@@ -679,3 +679,35 @@ def delay_signal(signal, delay, dt):
     delay_idx_value = int(delay/dt)
     delayed_signal = shift(signal, delay_idx_value, cval=0)
     return delayed_signal
+
+
+def get_peak_values(x, y, find_peak_args={}, plot=False):
+    """
+    Function that extracts 4 types of peak values from a timeseries signal:
+    t_delta_peaks: the distance between each peak in time
+    amp_delta_peaks: the change in amplitude between peaks
+    peak_1_time: the time delay until the first peak is observed
+    peak_max_amp: the maximum amplitude found in the peaks
+
+    param: x, np.ndarray: time or equivalent grid of the signal
+    param: y, np.ndarray: signal
+    returns:
+    peak_values: dictionary of all 4 output quantities
+    """
+    peaks = find_peaks(y, **find_peak_args)[0]
+    peak_ys = y[peaks]
+    peak_xs = x[peaks]
+
+    t_delta_peaks = np.diff(peak_xs)[0:-1]
+    amp_delta_peaks = np.abs(np.diff(peak_ys)[0:-1])
+    peak_1_time = peak_xs[0]
+    peak_max_amp = peak_ys.max()
+    peak_values = dict(t_delta_peaks=t_delta_peaks,
+                       amp_delta_peaks=amp_delta_peaks,
+                       peak_1_time=peak_1_time,
+                       peak_max_amp=peak_max_amp)
+    if plot:
+        plt.plot(x, y)
+        plt.scatter(peak_xs, peak_ys, c='green', marker='x')
+        plt.show()
+    return peak_values
