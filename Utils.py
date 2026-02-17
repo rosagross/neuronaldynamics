@@ -709,5 +709,6 @@ def get_peak_values(x, y, find_peak_args={}, plot=False):
     if plot:
         plt.plot(x, y)
         plt.scatter(peak_xs, peak_ys, c='green', marker='x')
+        plt.grid()
         plt.show()
     return peak_values
