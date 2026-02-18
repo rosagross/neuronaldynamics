@@ -699,10 +699,14 @@ def get_peak_values(x, y, find_peak_args={}, plot=False):
     peak_ys = y[peaks]
     peak_xs = x[peaks]
 
-    t_delta_peaks = np.diff(peak_xs)[0:-1]
-    amp_delta_peaks = np.abs(np.diff(peak_ys)[0:-1])
-    peak_1_time = peak_xs[0]
-    peak_max_amp = peak_ys.max()
+    t_delta_peaks = np.diff(peak_xs)
+    amp_delta_peaks = np.abs(np.diff(peak_ys))
+    if len(peaks) > 0:
+        peak_1_time = peak_xs[0]
+        peak_max_amp = peak_ys.max()
+    else:
+        peak_1_time = np.nan
+        peak_max_amp = np.nan
     area = np.sum(y)
     peak_values = dict(t_delta_peaks=t_delta_peaks,
                        amp_delta_peaks=amp_delta_peaks,

@@ -12,11 +12,13 @@ from Utils import butter_highpass_filter, get_peak_values
 matplotlib.use('TkAgg')
 
 voltage_view = True
-plot = False
+plot = True
 simulate = False
-plot_single_result = True
-theta_plot = 90
-E_plot=230
+plot_single_result = False
+theta_plot = [90, 90, 0]
+# E_plot= [230, 250, 380]
+E_plot= [230, 330, 300]
+height = 0.5 #-3
 
 dt = 0.01
 dv = 0.01
@@ -31,7 +33,7 @@ theta_values = np.linspace(0, 180, 100)
 E_mesh, theta_mesh = np.meshgrid(E_values ,theta_values)
 mesh_shapes = E_mesh.shape
 z = np.zeros((mesh_shapes[0], mesh_shapes[1], t.shape[0]))
-
+#TODO: make all plots also with delayed data, could also plot 2ms more to avoid loss of info
 path_root = 'C:\\Users\\emueller'
 # path_root = '/home/emueller'
 fn_session = os.path.join(path_root, 'Downloads', 'gpc.pkl')
@@ -108,10 +110,15 @@ if plot:
     amp_max = np.zeros_like(E_mesh)
     I_area = np.zeros_like(E_mesh)
 
+    theta_idx = np.where(theta_values > theta_plot[1])[0][0]
+    E_idx = np.where(E_values > E_plot[1])[0][0]
+
     for i in range(theta_values.shape[0]):
         for j in range(E_values.shape[0]):
-            peak_values_ij = get_peak_values(t, data[i, j])
-            if peak_values_ij['t_delta_peaks'].shape[0] < 2:
+            if i == theta_idx and j==E_idx:
+                r=1
+            peak_values_ij = get_peak_values(t, data[i, j], find_peak_args=dict(height=height))
+            if peak_values_ij['t_delta_peaks'].shape[0] < 1:
                 tI1[i, j] = np.nan
                 amp_max[i, j] = np.nan
                 I_area[i, j] = np.nan
@@ -119,26 +126,26 @@ if plot:
                 tI1[i, j] = peak_values_ij['peak_1_time']
                 amp_max[i, j] = peak_values_ij['peak_max_amp']
                 I_area[i, j] = peak_values_ij['area']
-            if peak_values_ij['t_delta_peaks'].shape[0] < 2:
+            if peak_values_ij['t_delta_peaks'].shape[0] < 1:
                 dt_I12[i, j] = np.nan
                 dA_I12[i, j] = np.nan
             else:
                 dt_I12[i, j] = peak_values_ij['t_delta_peaks'][0]
                 dA_I12[i, j] = peak_values_ij['amp_delta_peaks'][0]
-            if peak_values_ij['t_delta_peaks'].shape[0] < 3:
+            if peak_values_ij['t_delta_peaks'].shape[0] < 2:
                 dt_I23[i, j] = np.nan
                 dA_I23[i, j] = np.nan
             else:
                 dt_I23[i, j] = peak_values_ij['t_delta_peaks'][1]
                 dA_I23[i, j] = peak_values_ij['amp_delta_peaks'][1]
-            if peak_values_ij['t_delta_peaks'].shape[0] < 4:
+            if peak_values_ij['t_delta_peaks'].shape[0] < 3:
                 dt_I34[i, j] = np.nan
                 dA_I34[i, j] = np.nan
             else:
                 dt_I34[i, j] = peak_values_ij['t_delta_peaks'][1]
                 dA_I34[i, j] = peak_values_ij['amp_delta_peaks'][1]
 
-    fig, axs = plt.subplots(3, 3, figsize=(11, 9))
+    fig, axs = plt.subplots(3, 4, figsize=(13, 9))
     z_max = data.max()
 
 
@@ -148,27 +155,49 @@ if plot:
                        ['delay first I-wave (ms)', 'max I-wave amp (µV)', 'area under curve']]
     for j in range(3):
         row_idx = j
-        for i in range(3):
+        for i in range(4):
             col_idx = i
-            ax = axs[row_idx, col_idx]
-            z_i = measures[j][i]
-            z_i_max = z_i.max()
-            z_i_min = z_i.min()
-            pcm = ax.pcolormesh(E_mesh, theta_mesh, z_i, shading="auto", cmap='gnuplot2', vmax=z_max)
-            # ax.set_ylabel('t in (ms)')
-            ax.set_title(measures_labels[j][i])
-            ax.grid(True)
-            cbar = fig.colorbar(pcm)# , label=measures_labels[j][i])
-            if row_idx ==2:
-                ax.set_xlabel('E (V/m)')
-            if col_idx == 0:
-                ax.set_ylabel('Phi (°)')
-            # ax.set_xticks([0, 2, 4, 5, 6, 7, 8, 10, 12])
-
+            if i < 3:
+                ax = axs[row_idx, col_idx]
+                z_i = measures[j][i]
+                z_i_max = z_i.max()
+                z_i_min = z_i.min()
+                pcm = ax.pcolormesh(E_mesh, theta_mesh, z_i, shading="auto", cmap='gnuplot2', vmax=z_max)
+                # ax.set_ylabel('t in (ms)')
+                ax.set_title(measures_labels[j][i])
+                ax.grid(True)
+                cbar = fig.colorbar(pcm)# , label=measures_labels[j][i])
+                if row_idx ==2:
+                    ax.set_xlabel('E (V/m)')
+                if col_idx == 0:
+                    ax.set_ylabel('Phi (°)')
+                for l in range(len(E_plot)):
+                    ax.scatter(E_plot[l], theta_plot[l], color='green')
+                # ax.set_xticks([0, 2, 4, 5, 6, 7, 8, 10, 12])
+            else:
+                ax = axs[row_idx, col_idx]
+                theta_idx = np.where(theta_values > theta_plot[j])[0][0]
+                E_idx = np.where(E_values > E_plot[j])[0][0]
+                signal_j = data[theta_idx, E_idx]
+                peak_idxs = scipy.signal.find_peaks(signal_j,height=height)[0]
+                peak_vvals = signal_j[peak_idxs]
+                peak_tvals = t[peak_idxs]
+                ax.plot(t, signal_j)
+                ax.set_ylabel('v (µV)')
+                ax.set_xlabel('t (ms)')
+                ax.grid(True)
+                ax.scatter(peak_tvals, peak_vvals, marker='x', c='red')
+                ax.set_title(f'E = {E_plot[j]}V/m, phi = {theta_plot[j]}°')
+                for l in range(len(peak_vvals)):
+                    ax.text(peak_tvals[l]+0.1, peak_vvals[l]+0.1,f'{peak_tvals[l]:.1f} ms, {peak_vvals[l]:.1f} µV',
+                            size=8, color='k')
     plt.tight_layout()
     plt.show()
 
 if plot_single_result:
+
+    with h5py.File(simulation_name + '.hdf5', 'r') as h5file:
+        data = np.array(h5file['E_theta_2D'])*1e3 # conversion from 1/ms to 1/s
     if voltage_view:
         label = ('V (a.u.)')
         for i, theta_i in enumerate(theta_values):
@@ -191,4 +220,5 @@ if plot_single_result:
     plt.plot(t, y)
     plt.ylabel('v (µV)')
     plt.xlabel('t (ms)')
-
+    plt.grid()
+    plt.show()
