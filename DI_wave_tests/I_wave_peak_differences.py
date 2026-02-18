@@ -11,13 +11,17 @@ import scipy
 from Utils import butter_highpass_filter, get_peak_values
 matplotlib.use('TkAgg')
 
+
+#TODO: make all plots also with delayed data, could also plot 2ms more to avoid loss of info
+# TODO: there is also the weird hard cut again between I-wave amps, it's wrong I guess, find out where it comes from!
+
 voltage_view = True
 plot = True
 simulate = False
 plot_single_result = False
 theta_plot = [90, 90, 0]
 # E_plot= [230, 250, 380]
-E_plot= [230, 330, 300]
+E_plot= [230, 255, 300]
 height = 0.5 #-3
 
 dt = 0.01
@@ -33,7 +37,6 @@ theta_values = np.linspace(0, 180, 100)
 E_mesh, theta_mesh = np.meshgrid(E_values ,theta_values)
 mesh_shapes = E_mesh.shape
 z = np.zeros((mesh_shapes[0], mesh_shapes[1], t.shape[0]))
-#TODO: make all plots also with delayed data, could also plot 2ms more to avoid loss of info
 path_root = 'C:\\Users\\emueller'
 # path_root = '/home/emueller'
 fn_session = os.path.join(path_root, 'Downloads', 'gpc.pkl')
@@ -109,16 +112,17 @@ if plot:
     tI1 = np.zeros_like(E_mesh)
     amp_max = np.zeros_like(E_mesh)
     I_area = np.zeros_like(E_mesh)
+    n_iwaves = np.zeros_like(E_mesh)
 
     theta_idx = np.where(theta_values > theta_plot[1])[0][0]
     E_idx = np.where(E_values > E_plot[1])[0][0]
 
     for i in range(theta_values.shape[0]):
         for j in range(E_values.shape[0]):
-            if i == theta_idx and j==E_idx:
-                r=1
-            peak_values_ij = get_peak_values(t, data[i, j], find_peak_args=dict(height=height))
-            if peak_values_ij['t_delta_peaks'].shape[0] < 1:
+            peak_values_ij = get_peak_values(t, data[i, j])
+            n_iwaves_ij = peak_values_ij['t_delta_peaks'].shape[0]
+            n_iwaves[i, j] = n_iwaves_ij
+            if n_iwaves_ij < 2:
                 tI1[i, j] = np.nan
                 amp_max[i, j] = np.nan
                 I_area[i, j] = np.nan
@@ -126,19 +130,19 @@ if plot:
                 tI1[i, j] = peak_values_ij['peak_1_time']
                 amp_max[i, j] = peak_values_ij['peak_max_amp']
                 I_area[i, j] = peak_values_ij['area']
-            if peak_values_ij['t_delta_peaks'].shape[0] < 1:
+            if n_iwaves_ij < 2:
                 dt_I12[i, j] = np.nan
                 dA_I12[i, j] = np.nan
             else:
                 dt_I12[i, j] = peak_values_ij['t_delta_peaks'][0]
                 dA_I12[i, j] = peak_values_ij['amp_delta_peaks'][0]
-            if peak_values_ij['t_delta_peaks'].shape[0] < 2:
+            if n_iwaves_ij < 3:
                 dt_I23[i, j] = np.nan
                 dA_I23[i, j] = np.nan
             else:
                 dt_I23[i, j] = peak_values_ij['t_delta_peaks'][1]
                 dA_I23[i, j] = peak_values_ij['amp_delta_peaks'][1]
-            if peak_values_ij['t_delta_peaks'].shape[0] < 3:
+            if n_iwaves_ij < 4:
                 dt_I34[i, j] = np.nan
                 dA_I34[i, j] = np.nan
             else:
@@ -149,10 +153,10 @@ if plot:
     z_max = data.max()
 
 
-    measures = [[dt_I12, dt_I23, dt_I34], [dA_I12, dA_I23, dA_I34], [tI1, amp_max, I_area]]
+    measures = [[dt_I12, dt_I23, dt_I34], [dA_I12, dA_I23, dA_I34], [tI1, amp_max, n_iwaves]]
     measures_labels = [['delta t I1-I2 (ms)', 'delta t I2-I3 (ms)', 'delta t I3-I4 (ms)'],
                        ['delta amp I1-I2 (µV)', 'delta amp I2-I3 (µV)', 'delta amp I3-I4 (µV)'],
-                       ['delay first I-wave (ms)', 'max I-wave amp (µV)', 'area under curve']]
+                       ['delay first I-wave (ms)', 'max I-wave amp (µV)', 'number of I-waves']]
     for j in range(3):
         row_idx = j
         for i in range(4):
