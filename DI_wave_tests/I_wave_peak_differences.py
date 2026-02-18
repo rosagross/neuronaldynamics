@@ -12,8 +12,11 @@ from Utils import butter_highpass_filter, get_peak_values
 matplotlib.use('TkAgg')
 
 voltage_view = True
-plot = True
+plot = False
 simulate = False
+plot_single_result = True
+theta_plot = 90
+E_plot=230
 
 dt = 0.01
 dv = 0.01
@@ -164,4 +167,28 @@ if plot:
 
     plt.tight_layout()
     plt.show()
+
+if plot_single_result:
+    if voltage_view:
+        label = ('V (a.u.)')
+        for i, theta_i in enumerate(theta_values):
+            EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=dt * 10)
+            EP = -EP
+            EP = EP / np.max(EP)
+            EP_small = np.interp(t[t < 1.0] - 0.5, t_EP, EP)
+            for j in range(data[i].shape[0]):
+                nmm_potential = scipy.signal.convolve(data[i, j], EP_small)
+                nmm_shape = data[i, j].shape[0]
+                nmm_potential_out = nmm_potential[:nmm_shape]
+
+                v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.05,
+                                                  fps=int(1 / dt))  # very small cutoff
+                v_out_mean = nmm_potential_out.mean()
+                data[i, j] = v_out_hp/1000
+    theta_idx = np.where(theta_values > theta_plot)[0][0]
+    E_idx = np.where(E_values > E_plot)[0][0]
+    y = data[theta_idx, E_idx]
+    plt.plot(t, y)
+    plt.ylabel('v (µV)')
+    plt.xlabel('t (ms)')
 
