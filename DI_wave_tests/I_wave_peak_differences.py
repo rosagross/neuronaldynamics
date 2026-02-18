@@ -11,9 +11,9 @@ import scipy
 from Utils import butter_highpass_filter, get_peak_values
 matplotlib.use('TkAgg')
 
-voltage_view = False
-plot_E_fields = False
-simulate = True
+voltage_view = True
+plot = True
+simulate = False
 
 dt = 0.01
 dv = 0.01
@@ -25,9 +25,9 @@ Nt = t.shape[0]
 
 E_values = np.linspace(150, 400, 100)
 theta_values = np.linspace(0, 180, 100)
-E_mesh, t_mesh = np.meshgrid(t ,E_values)
+E_mesh, theta_mesh = np.meshgrid(E_values ,theta_values)
 mesh_shapes = E_mesh.shape
-z = np.zeros((len(theta_values), mesh_shapes[0], mesh_shapes[1]))
+z = np.zeros((mesh_shapes[0], mesh_shapes[1], t.shape[0]))
 
 path_root = 'C:\\Users\\emueller'
 # path_root = '/home/emueller'
@@ -39,43 +39,6 @@ simulation_name = 'E_theta_2D'
 fname = os.path.join(save_file_path, simulation_name)
 n_theta = theta_values.shape[0]
 n_E = E_values.shape[0]
-# out = np.zeros((E_values.shape[0], t.shape[0]))
-# for i, E_i in tqdm(enumerate(E_values)):
-#     parameters = {'intensity': E_i, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.5,
-#                           'i_scale': 5.148136e-6, 'theta': 0, 'detrend': True,
-#                           'fn_session': fn_session, 'T': T, 'name': 'E_theta_diw_single_run', 'dt': dt, 'min_delay': 0,
-#                           'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
-#                                                 'tau_ref': [0], #1.5
-#                                                 'tau_mem': [12],
-#                                                 'input_type': 'stochastic-current',
-#                                                 'static_noise': True,
-#                                                 'init_pdf_offset': 0,
-#                                                 'init_pdf_sigma': 0.5,
-#                                                 'init_pdf_weight': 0,
-#                                                 'delay_kernel_type': 'alpha',
-#                                                 'delay_kernel_parameters': {'n_alpha': 9, 'tau_alpha': 1/3},
-#                                                 'dv': dv,
-#                                                 'dt': dt,
-#                                                 'solver': 'Hu-2021',
-#                                                 'current_sigma': 4,
-#                                                 'verbose': 0,
-#                                                 'tqdm_disable': True}}
-#
-#     di_model = DI_wave_simulation(parameters=parameters, logname=None)
-#     di_model.simulate()
-#     r_i = di_model.mass_model.r[0]
-#     out[i] = r_i
-    # peak_values = get_peak_values(t, r_i, plot=True)
-
-# t_0_delta = np.zeros_like(E_values)
-# amp_delta_peaks = np.zeros_like(E_values)
-# for i in range(E_values.shape[0]):
-#     peak_values_i = get_peak_values(t, out[i])
-#     t_0_delta[i] = peak_values_i['t_delta_peaks'][0]
-#     amp_delta_peaks[i] = peak_values_i['amp_delta_peaks'][0]
-    #
-# plt.plot(E_values, t_0_delta)
-# plt.plot(E_values, amp_delta_peaks)
 
 if simulate:
     for i, j in itertools.product(range(n_theta), range(n_E)):
@@ -109,7 +72,7 @@ if simulate:
         h5file.create_dataset('E_theta_2D', data=z)
     print(f'saved to {simulation_name}.hdf5')
 
-if plot_E_fields:
+if plot:
 
     with h5py.File(simulation_name + '.hdf5', 'r') as h5file:
         data = np.array(h5file['E_theta_2D'])*1e3 # conversion from 1/ms to 1/s
@@ -131,35 +94,74 @@ if plot_E_fields:
                 v_out_mean = nmm_potential_out.mean()
                 data[i, j] = v_out_hp/1000
 
-    fig, axs = plt.subplots(2, 4, figsize=(12, 9))
+    # load all relevant params from the file
+    dt_I12 = np.zeros_like(E_mesh)
+    dt_I23 = np.zeros_like(E_mesh)
+    dt_I34 = np.zeros_like(E_mesh)
+    dA_I12 = np.zeros_like(E_mesh)
+    dA_I23 = np.zeros_like(E_mesh)
+    dA_I34 = np.zeros_like(E_mesh)
+    tI1 = np.zeros_like(E_mesh)
+    amp_max = np.zeros_like(E_mesh)
+    I_area = np.zeros_like(E_mesh)
+
+    for i in range(theta_values.shape[0]):
+        for j in range(E_values.shape[0]):
+            peak_values_ij = get_peak_values(t, data[i, j])
+            if peak_values_ij['t_delta_peaks'].shape[0] < 2:
+                tI1[i, j] = np.nan
+                amp_max[i, j] = np.nan
+                I_area[i, j] = np.nan
+            else:
+                tI1[i, j] = peak_values_ij['peak_1_time']
+                amp_max[i, j] = peak_values_ij['peak_max_amp']
+                I_area[i, j] = peak_values_ij['area']
+            if peak_values_ij['t_delta_peaks'].shape[0] < 2:
+                dt_I12[i, j] = np.nan
+                dA_I12[i, j] = np.nan
+            else:
+                dt_I12[i, j] = peak_values_ij['t_delta_peaks'][0]
+                dA_I12[i, j] = peak_values_ij['amp_delta_peaks'][0]
+            if peak_values_ij['t_delta_peaks'].shape[0] < 3:
+                dt_I23[i, j] = np.nan
+                dA_I23[i, j] = np.nan
+            else:
+                dt_I23[i, j] = peak_values_ij['t_delta_peaks'][1]
+                dA_I23[i, j] = peak_values_ij['amp_delta_peaks'][1]
+            if peak_values_ij['t_delta_peaks'].shape[0] < 4:
+                dt_I34[i, j] = np.nan
+                dA_I34[i, j] = np.nan
+            else:
+                dt_I34[i, j] = peak_values_ij['t_delta_peaks'][1]
+                dA_I34[i, j] = peak_values_ij['amp_delta_peaks'][1]
+
+    fig, axs = plt.subplots(3, 3, figsize=(11, 9))
     z_max = data.max()
-    for i, theta_i in enumerate(theta_values):
-        row_idx = 0
-        col_idx = i
-        if i > 3:
-            row_idx = 1
-            col_idx -= 4
 
-        ax = axs[row_idx, col_idx]
 
-        z_i = data[i]
-        pcm = ax.pcolormesh(E_mesh, t_mesh, z_i, shading="auto", cmap='gnuplot2', vmax=z_max)
-        # ax.set_ylabel('t in (ms)')
-        ax.set_title(f'phi: {theta_i}°')
-        if col_idx == 0:
-            ax.set_ylabel('|E| (V/m)')
-        if row_idx > 0:
-            ax.set_xlabel('t (ms)')
-        ax.grid(True)
-        ax.set_xticks([0, 2, 4, 5, 6, 7, 8, 10, 12])
-        # cbar = fig.colorbar(pcm, ax=cbar_ax, label="Intensity", orientation="horizontal")
-        # plt.tight_layout()
-    # plt.tight_layout()
+    measures = [[dt_I12, dt_I23, dt_I34], [dA_I12, dA_I23, dA_I34], [tI1, amp_max, I_area]]
+    measures_labels = [['delta t I1-I2 (ms)', 'delta t I2-I3 (ms)', 'delta t I3-I4 (ms)'],
+                       ['delta amp I1-I2 (µV)', 'delta amp I2-I3 (µV)', 'delta amp I3-I4 (µV)'],
+                       ['delay first I-wave (ms)', 'max I-wave amp (µV)', 'area under curve']]
+    for j in range(3):
+        row_idx = j
+        for i in range(3):
+            col_idx = i
+            ax = axs[row_idx, col_idx]
+            z_i = measures[j][i]
+            z_i_max = z_i.max()
+            z_i_min = z_i.min()
+            pcm = ax.pcolormesh(E_mesh, theta_mesh, z_i, shading="auto", cmap='gnuplot2', vmax=z_max)
+            # ax.set_ylabel('t in (ms)')
+            ax.set_title(measures_labels[j][i])
+            ax.grid(True)
+            cbar = fig.colorbar(pcm)# , label=measures_labels[j][i])
+            if row_idx ==2:
+                ax.set_xlabel('E (V/m)')
+            if col_idx == 0:
+                ax.set_ylabel('Phi (°)')
+            # ax.set_xticks([0, 2, 4, 5, 6, 7, 8, 10, 12])
 
-    # fig.subplots_adjust(right=0.7)
-    fig.subplots_adjust(bottom=0.2)
-    cbar_ax = fig.add_axes([0.15, 0.12, 0.8, 0.01])
-    fig.colorbar(pcm, cax=cbar_ax, orientation="horizontal", label=label)
-    # plt.tight_layout()
+    plt.tight_layout()
     plt.show()
 

@@ -688,6 +688,7 @@ def get_peak_values(x, y, find_peak_args={}, plot=False):
     amp_delta_peaks: the change in amplitude between peaks
     peak_1_time: the time delay until the first peak is observed
     peak_max_amp: the maximum amplitude found in the peaks
+    area: the area under the curve of the signal
 
     param: x, np.ndarray: time or equivalent grid of the signal
     param: y, np.ndarray: signal
@@ -702,10 +703,12 @@ def get_peak_values(x, y, find_peak_args={}, plot=False):
     amp_delta_peaks = np.abs(np.diff(peak_ys)[0:-1])
     peak_1_time = peak_xs[0]
     peak_max_amp = peak_ys.max()
+    area = np.sum(y)
     peak_values = dict(t_delta_peaks=t_delta_peaks,
                        amp_delta_peaks=amp_delta_peaks,
                        peak_1_time=peak_1_time,
-                       peak_max_amp=peak_max_amp)
+                       peak_max_amp=peak_max_amp,
+                       area=area)
     if plot:
         plt.plot(x, y)
         plt.scatter(peak_xs, peak_ys, c='green', marker='x')
