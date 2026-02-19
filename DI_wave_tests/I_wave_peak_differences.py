@@ -19,7 +19,7 @@ voltage_view = True
 plot = True
 simulate = False
 plot_single_result = False
-theta_plot = [90, 90, 0]
+theta_plot = [90, 165, 0]
 # E_plot= [230, 250, 380]
 E_plot= [230, 255, 300]
 height = 0.5 #-3
@@ -119,10 +119,12 @@ if plot:
 
     for i in range(theta_values.shape[0]):
         for j in range(E_values.shape[0]):
-            peak_values_ij = get_peak_values(t, data[i, j])
+            if i==theta_idx and j==E_idx:
+                r=12
+            peak_values_ij = get_peak_values(t, data[i, j], find_peak_args=dict(height=height))
             n_iwaves_ij = peak_values_ij['t_delta_peaks'].shape[0]
             n_iwaves[i, j] = n_iwaves_ij
-            if n_iwaves_ij < 2:
+            if n_iwaves_ij < 1:
                 tI1[i, j] = np.nan
                 amp_max[i, j] = np.nan
                 I_area[i, j] = np.nan
@@ -130,19 +132,19 @@ if plot:
                 tI1[i, j] = peak_values_ij['peak_1_time']
                 amp_max[i, j] = peak_values_ij['peak_max_amp']
                 I_area[i, j] = peak_values_ij['area']
-            if n_iwaves_ij < 2:
+            if n_iwaves_ij < 1:
                 dt_I12[i, j] = np.nan
                 dA_I12[i, j] = np.nan
             else:
                 dt_I12[i, j] = peak_values_ij['t_delta_peaks'][0]
                 dA_I12[i, j] = peak_values_ij['amp_delta_peaks'][0]
-            if n_iwaves_ij < 3:
+            if n_iwaves_ij < 2:
                 dt_I23[i, j] = np.nan
                 dA_I23[i, j] = np.nan
             else:
                 dt_I23[i, j] = peak_values_ij['t_delta_peaks'][1]
                 dA_I23[i, j] = peak_values_ij['amp_delta_peaks'][1]
-            if n_iwaves_ij < 4:
+            if n_iwaves_ij < 3:
                 dt_I34[i, j] = np.nan
                 dA_I34[i, j] = np.nan
             else:
