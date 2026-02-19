@@ -12,6 +12,9 @@ nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modelin
 # nextcloud_path = '/home/erik/Downloads/DI_wave_data/DIwaves_Di_Lazzaro'
 plot = True
 detrend = False
+save=False
+
+fname = 'DiLazarro_di_wave_data.hdf5'
 
 
 def add_entry(dict_target, dict_source, orientation, threshold_type, rmt_digit, recording, rmt_value, year, name):
@@ -44,13 +47,12 @@ def add_entry(dict_target, dict_source, orientation, threshold_type, rmt_digit, 
             signal_short = dict_source[recording][rmt_value][channel]['signal_short']
             dict_target[orientation][threshold_type][str(rmt_digit)][year][name][channel] = dict(signal_full=signal_full,
                                                                                                  signal_short=signal_short)
-def save_entry(dict_source, orientation, threshold_type, rmt_digit, recording, rmt_value, year, name):
+def save_entry(fname, dict_source, orientation, threshold_type, rmt_digit, recording, rmt_value, year, name):
 
 
     if isinstance(rmt_digit, list):
         rmt_digit = rmt_digit[0]
     # init dict if necessary
-    fname = 'DiLazarro_di_wave_data.hdf5'
     if os.path.exists(fname):
         h5_opening_mode = 'a'
     else:
@@ -121,7 +123,7 @@ if plot:
 
 data_fname = os.path.join(nextcloud_path, 's2013_031_3ch.mat')
 data_2013 = scipy.io.loadmat(data_fname)
-rmt_names_3 = ['f002_wave_data', 'f001_wave_data', 'f002_wave_data']
+rmt_names_3 = ['f002_wave_data', 'f001_wave_data', 'f000_wave_data']
 titles_3 = ['Ch1: EMG (mV)', 'Ch2: Epidural potential (µV)', 'Ch3: Epidural potential (µV)']
 yaxis_3 = ['100% RMT - LM', '110% RMT - PA', '120% RMT - PA']
 alphas_3 = [0.2, 0.05, 0.05]
@@ -219,6 +221,10 @@ di_wave_data_collection['s2020_043_3ch_LM'] = get_di_wave_data(data_2020, rmt_na
 
 # create newly structured hdf5
 #
+
+if save:
+    os.remove('DiLazarro_di_wave_data.hdf5')
+
 di_wave_dict = {}
 for recording in di_wave_data_collection.keys():
     name = di_wave_data_collection[recording]['name']
@@ -238,12 +244,14 @@ for recording in di_wave_data_collection.keys():
                       rmt_value=rmt_value,
                       year=year,
                       name=name)
-            save_entry(dict_source=di_wave_data_collection,
-                      orientation=orientation,
-                      threshold_type=threshold_type,
-                      rmt_digit=rmt_digit,
-                      recording=recording,
-                      rmt_value=rmt_value,
-                      year=year,
-                      name=name)
+            if save:
+                save_entry(dict_source=di_wave_data_collection,
+                          orientation=orientation,
+                          threshold_type=threshold_type,
+                          rmt_digit=rmt_digit,
+                          recording=recording,
+                          rmt_value=rmt_value,
+                          year=year,
+                          name=name,
+                           fname=fname)
 
