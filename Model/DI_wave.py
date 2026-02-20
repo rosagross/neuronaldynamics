@@ -204,8 +204,12 @@ class DI_wave_simulation():
         plt.ylabel('Iext in nA', fontsize=15)
         plt.show()
 
-    def get_test_signal(self, plot=False, from_file=False, fname='s2020_043_CNS2023.mat', hdf5_args=None):
+    def get_test_signal(self, plot=False, from_file=False, fname='s2020_043_CNS2023.mat', hdf5_args=None,
+                        highpass=False, hp_cutoff=0.3):
         #TODO: extend this to different test function types eventually
+
+        if self.enable_high_pass and not highpass:
+            highpass=True
         if self.file_args != None and "hdf5_path" in self.file_args.keys():
             fname = self.file_args['hdf5_path']
         if not from_file:
@@ -336,6 +340,9 @@ class DI_wave_simulation():
                 measurement_data_filtered = detrend(t, measurement_data_filtered,
                                                     find_peaks_args=dict(threshold=detrend_thr), plot=False)
                 measurement_data_filtered[measurement_data_filtered<0] = 0
+            if highpass:
+                measurement_data_filtered = butter_highpass_filter(measurement_data_filtered,
+                                                    cutoff=hp_cutoff, fps=int(1/self.dt))
             measurement_data_filtered[-1] = 0
             # plt.plot(t, measurement_data_filtered)
             # plt.plot(t, measurement_data_original[idx_start:idx_end], alpha=0.4, color='k', linestyle='--')
