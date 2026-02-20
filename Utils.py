@@ -489,7 +489,8 @@ def detrend(x, y, find_peaks_args=dict(threshold=0.05, distance=1), plot=False, 
 
 def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_detrend=True, sample_frequency=1e4,
                       n_channels=3, main_title='DI-wave data', emg_peak_height=200, custom_DI_wave_ylims=None,
-                      switch_channel_order=False, find_peaks_args=dict(threshold=0.05, distance=1)):
+                      switch_channel_order=False, highpass=False, hp_cutoff=0.3,
+                      find_peaks_args=dict(threshold=0.05, distance=1)):
     fig = plt.figure(figsize=(12, 8))
     fig.suptitle(main_title, fontsize=16)
     n_rmts = len(rmt_names)
@@ -516,15 +517,18 @@ def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_de
         t_peak = t_ch1[tms_peak_idx[0]]
         t_ch1 -= t_peak
         dt = np.diff(t_ch1)[0]
-        t_2ms_idx = int(tms_peak_idx + 2 / dt)
-        t_12ms_idx = int(tms_peak_idx + 12 / dt)
-        t_1ms_idx = int(t_peak + 1/dt)
+        t_2ms_idx = int(tms_peak_idx + (2 / dt))
+        t_12ms_idx = int(tms_peak_idx + (12 / dt))
+        t_5ms_idx = int(tms_peak_idx + (5 / dt))
         for j in range(n_channels):
             ax = fig.add_subplot(n_rmts, n_channels , (n_channels*k)+j+1)
             for i in range(rmt_k_data.shape[0]):
                 if j > 0 and do_detrend:
                     # TODO: eventually detrend them by the mean, to have a coherent plot here
                     data_i = detrend(t_ch1, rmt_k_data[i, j], find_peaks_args=find_peaks_args)
+                elif highpass and j > 0:
+                    data_i = butter_highpass_filter(rmt_k_data[i, j], cutoff=hp_cutoff, fps=int(1 / dt))
+                    data_i -= data_i[t_5ms_idx:t_12ms_idx].mean()
                 else:
                     data_i = rmt_k_data[i, j]
                 plt.plot(t_ch1, data_i, c='k', alpha=alphas[j])
@@ -532,6 +536,9 @@ def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_de
             if j > 0:
                 if do_detrend:
                     ax_mean = detrend(t_ch1, ax_mean, find_peaks_args=find_peaks_args)
+                elif highpass:
+                    ax_mean = butter_highpass_filter(ax_mean, cutoff=hp_cutoff, fps=int(1 / dt))
+                    ax_mean -= ax_mean[t_5ms_idx:t_12ms_idx].mean()
                 # ax_mean_filtered = butter_highpass_filter(ax_mean, cutoff=0.1, fps=int(1 / dt))
                 if filter:
                     ax_mean = gaussian_filter1d(ax_mean, sigma=1)
@@ -551,6 +558,13 @@ def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_de
 
                     max_DI_wave = ax_mean[t_2ms_idx:t_12ms_idx].max()
                     ax.set_ylim(-0.5, max_DI_wave*1.2)
+                elif highpass:
+                    max_DI_wave = ax_mean[t_5ms_idx:t_12ms_idx].max()
+                    min_DI_wave = ax_mean[t_5ms_idx:t_12ms_idx].min()
+                    if min_DI_wave < 0:
+                        ax.set_ylim(1.3*min_DI_wave, max_DI_wave * 1.3)
+                    else:
+                        ax.set_ylim(0.7* min_DI_wave, max_DI_wave * 1.3)
                 else:
                     # ax.set_ylim(-0.2, 1)
                     ax.set_ylim(-5, 8)

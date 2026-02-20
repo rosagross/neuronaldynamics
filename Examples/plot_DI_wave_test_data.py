@@ -12,7 +12,7 @@ nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modelin
 # nextcloud_path = '/home/erik/Downloads/DI_wave_data/DIwaves_Di_Lazzaro'
 plot = True
 detrend = False
-save=False
+save=True
 
 fname = 'DiLazarro_di_wave_data.hdf5'
 
@@ -40,10 +40,7 @@ def add_entry(dict_target, dict_source, orientation, threshold_type, rmt_digit, 
              emg_location=dict_source[recording]['emg_location'])
     for channel in channel_names:
         if 'epidural' in channel.lower():
-            try:
-                signal_full = dict_source[recording][rmt_value][channel]['signal_full'],
-            except:
-                a=12
+            signal_full = dict_source[recording][rmt_value][channel]['signal_full']
             signal_short = dict_source[recording][rmt_value][channel]['signal_short']
             dict_target[orientation][threshold_type][str(rmt_digit)][year][name][channel] = dict(signal_full=signal_full,
                                                                                                  signal_short=signal_short)
@@ -104,7 +101,7 @@ yaxis = ['100% RMT PA', '120% RMT PA', '140% RMT PA']
 alphas = [0.2, 0.05, 0.05]
 title = 'Di Lazarro 2020 PA'
 if plot:
-    plot_DI_wave_data(data_2020, rmt_names, titles, yaxis, alphas, filter=True, main_title=title, do_detrend=detrend)
+    plot_DI_wave_data(data_2020, rmt_names, titles, yaxis, alphas, filter=True, main_title=title, do_detrend=detrend, highpass=True)
 
 ########################################################################################################################
 # Di Lazarro DATA 2020 3ch - LM
@@ -115,7 +112,7 @@ yaxis_2 = ['80% RMT LM', '100% RMT LM', '120% RMT LM']
 alphas_2 = [0.2, 0.05, 0.05]
 title_2 = 'Di Lazarro 2020 LM'
 if plot:
-    plot_DI_wave_data(data_2020, rmt_names_2, titles, yaxis_2, alphas_2, filter=True, main_title=title_2, do_detrend=detrend)
+    plot_DI_wave_data(data_2020, rmt_names_2, titles, yaxis_2, alphas_2, filter=True, main_title=title_2, do_detrend=detrend, highpass=True)
 
 ########################################################################################################################
 # Di Lazarro DATA 2013 3ch
@@ -130,7 +127,7 @@ alphas_3 = [0.2, 0.05, 0.05]
 title_3 = 'Di Lazarro 2013 PA & LM'
 if plot:
     plot_DI_wave_data(data_2013, rmt_names_3, titles_3, yaxis_3, alphas_3, filter=True, main_title=title_3,
-                      do_detrend=detrend)
+                      do_detrend=detrend, highpass=True)
 
 ########################################################################################################################
 # Di Lazarro DATA 2007 2ch
@@ -145,7 +142,7 @@ alphas_4 = [0.2, 0.2, 0.2]
 title_4 = 'Di Lazarro 2007 PA & LM'
 if plot:
     plot_DI_wave_data(data_2007, rmt_names_4, titles_4, yaxis_4, alphas_4, filter=True, main_title=title_4, n_channels=2,
-                      emg_peak_height=20, do_detrend=detrend, find_peaks_args=dict(threshold=0.01, distance=1))
+                      emg_peak_height=20, do_detrend=detrend, find_peaks_args=dict(threshold=0.01, distance=1), highpass=True)
 
 ########################################################################################################################
 # Di Lazarro DATA 2004 2ch #1
@@ -161,7 +158,7 @@ title_5 = 'Di Lazarro 2004 PA & LM # 1'
 if plot:
     plot_DI_wave_data(data_2004_1, rmt_names_5, titles_5, yaxis_5, alphas_5, filter=True, main_title=title_5, n_channels=2,
                       emg_peak_height=200, sample_frequency=[5e3, 25e3, 5e3, 5e3], do_detrend=detrend,
-                      switch_channel_order=True, find_peaks_args=dict(threshold=0.005, distance=1))
+                      switch_channel_order=True, find_peaks_args=dict(threshold=0.005, distance=1), highpass=True)
 
 ########################################################################################################################
 # Di Lazarro DATA 2004 2ch #2
@@ -177,7 +174,7 @@ title_6 = 'Di Lazarro 2004 PA & LM # 2'
 if plot:
     plot_DI_wave_data(data_2004_2, rmt_names_6, titles_6, yaxis_6, alphas_6, filter=True, main_title=title_6, n_channels=2,
                       emg_peak_height=40, sample_frequency=5e3, do_detrend=True, switch_channel_order=True,
-                      find_peaks_args=dict(threshold=0.005, distance=1))
+                      find_peaks_args=dict(threshold=0.005, distance=1), highpass=True)
 
 
 meta_data_2004_1 = dict(channel_names=['Ch1 Epidural (µV)', 'Ch2 EMG (mV)'], emg_location='left FDI muscle',
