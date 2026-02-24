@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from Model.DI_wave import DI_wave_simulation
+from Utils import get_peak_values
 from Model.Nykamp_Model import Nykamp_Model_1
 matplotlib.use('TkAgg')
 
@@ -12,12 +13,12 @@ T = 14
 t = np.arange(0, T, dt)
 Nt = t.shape[0]
 
-# fn_session = '/home/erik/Downloads/gpc.pkl'
-fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+fn_session = '/home/erik/Downloads/gpc.pkl'
+# fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
 # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-
+# hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
 simulation_name = 'I_wave_plot'
 
 
@@ -65,9 +66,40 @@ parameters = {'intensity': 250, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.95, 
                                     'current_sigma': 4,
                                     'verbose': 1}}
 
-for i_dict, dict in enumerate(data_dicts):
-    parameters['file_args'] = dict
-    di_model = DI_wave_simulation(parameters=parameters, logname=None)
-    di_model.get_test_signal(plot=True, from_file=True, hdf5_args=di_model.file_args, highpass=True)
+pa_100 = []
+pa_110 = []
+pa_120 = []
 
+pa_140 = []
+pa_150 = []
+for i, dict_i in enumerate(data_dicts):
+    parameters['file_args'] = dict_i
+    di_model = DI_wave_simulation(parameters=parameters, logname=None)
+    di_model.get_test_signal(plot=False, from_file=True, hdf5_args=di_model.file_args, highpass=True)
+    iwaves = di_model.target
+    peak_min_dist = int(1/dt)
+    if dict_i['threshold'] < 110:
+        pa_100.append(iwaves)
+    elif dict_i['threshold'] >100 and dict_i['threshold'] <120:
+        pa_110.append(iwaves)
+    elif dict_i['threshold'] > 110 and dict_i['threshold'] < 130:
+        pa_120.append(iwaves)
+    elif dict_i['threshold'] >130 and dict_i['threshold'] <145:
+        pa_140.append(iwaves)
+    elif dict_i['threshold'] >144 and dict_i['threshold'] <160:
+        pa_150.append(iwaves)
+
+    find_peak_args = {'distance':peak_min_dist, 'height': 0.5}
+    # peak_vals = get_peak_values(x=t, y=iwaves, plot=True, find_peak_args=find_peak_args)
+
+pa_lists = [pa_100, pa_110, pa_120, pa_140, pa_150]
+pa_names = ['PA- 100%RMT', 'PA- 110%RMT', 'PA- 120%RMT', 'PA- 140%RMT', 'PA- 150%RMT']
+fig = plt.figure()
+for j in range(len(pa_lists)):
+    ax = fig.add_subplot(len(pa_lists), 1, j+1)
+    for l in range(len(pa_lists[j])):
+        ax.plot(t, pa_lists[j][l], label=pa_names[l], c='k')
+    ax.set_ylabel(pa_names[j])
+plt.tight_layout()
+plt.show()
 

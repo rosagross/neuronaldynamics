@@ -206,8 +206,6 @@ class DI_wave_simulation():
 
     def get_test_signal(self, plot=False, from_file=False, fname='s2020_043_CNS2023.mat', hdf5_args=None,
                         highpass=False, hp_cutoff=1.5):
-        #TODO: extend this to different test function types eventually
-
         if self.enable_high_pass and not highpass:
             highpass=True
         if self.file_args != None and "hdf5_path" in self.file_args.keys():
@@ -264,8 +262,7 @@ class DI_wave_simulation():
                         di_signals.append(single_channels)
                 measurement_data_original = np.array(di_signals[0][0]['signal_short'])
 
-            # TODO: procedure to find end and start of signal, get rid of D-wave and unwanted peaks still WIP
-            # please extend this to other signals for the full dictionary
+            # procedure to find end and start of signal, get rid of D-wave and unwanted peaks
             t = times[0]
             detrend_thr = 0.001
             d_wave_width = 1.5
@@ -342,17 +339,18 @@ class DI_wave_simulation():
             # d_wave_start_idx = np.where(t>t_d_wave-0.85)[0][0]
             d_wave_end_idx = np.where(t>t_d_wave+(d_wave_width/2))[0][0]
             # measurement_data[d_wave_start_idx:d_wave_end_idx] = d_wave_peak*0.05
-            measurement_data[:d_wave_end_idx] = 0
+
             if dentrending and self.detrend:
                 measurement_data_filtered = detrend(t, measurement_data_filtered,
                                                     find_peaks_args=dict(threshold=detrend_thr), plot=False)
                 measurement_data_filtered[measurement_data_filtered<0] = 0
-
+            measurement_data_filtered[:d_wave_end_idx] = 0
             measurement_data_filtered[-1] = 0
             plt.plot(t, measurement_data_filtered)
             plt.plot(t, measurement_data_original[idx_start:idx_end], alpha=0.4, color='k', linestyle='--')
             plt.xlabel('t (ms)')
             plt.ylabel('v (µV)')
+            plt.title(f"{data_dict['orientation']} {data_dict['threshold']} {data_dict['year']} {data_dict['channel']+2}")
             plt.scatter(t[d_wave_idx], measurement_data_original[idx_start:idx_end][d_wave_idx], marker='x', color='r')
             plt.show()
 
