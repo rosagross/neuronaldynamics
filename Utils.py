@@ -582,7 +582,7 @@ def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_de
 
 def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_frequency=1e4, n_channels=3, emg_peak_height=200,
                      switch_channel_order=False, find_peaks_args=dict(threshold=0.05, distance=1), meta_data=None,
-                     filter_sigma=1, filter=False):
+                     filter_sigma=1, filter=False, do_detrend=False):
 
     # year + subject_ID + time - threshold -  channel -
     #  [data_DI-waves, data_DI-waves_short, threshold_type, threshold, orientation, data_name]
@@ -663,7 +663,8 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
             # plt.plot(t_ch1, ax_mean)
             # plt.show()
             ax_mean = ax_mean[t_2ms_idx: t_12ms_idx]
-            ax_mean = detrend(t_window, ax_mean, find_peaks_args=find_peaks_args)
+            if do_detrend:
+                ax_mean = detrend(t_window, ax_mean, find_peaks_args=find_peaks_args)
             # ax_mean_filtered = butter_highpass_filter(ax_mean, cutoff=0.1, fps=int(1 / dt))
             if filter:
                 ax_mean = gaussian_filter1d(ax_mean, sigma=filter_sigma)

@@ -191,36 +191,40 @@ di_wave_data_collection['s2004_epid001'] = get_di_wave_data(data_2004_1, rmt_nam
                                                             meta_data=meta_data_2004_1,
                                                             emg_peak_height=3.5,
                                                             sample_frequency=[5e3, 25e3, 5e3, 5e3],
-                                                            rmt_values=yaxis_5)
+                                                            rmt_values=yaxis_5,
+                                                            do_detrend=detrend)
 di_wave_data_collection['s2004_epid002'] = get_di_wave_data(data_2004_2, rmt_names_6, epidural_channel_idxs=[0],
                                                             find_peaks_args=dict(threshold=0.005, distance=1),
                                                             meta_data=meta_data_2004_2,
                                                             emg_peak_height=1.5,
                                                             sample_frequency=5e3,
-                                                            rmt_values=yaxis_6)
+                                                            rmt_values=yaxis_6,
+                                                            do_detrend=detrend)
 di_wave_data_collection['s2007_epid001'] = get_di_wave_data(data_2007, rmt_names_4, epidural_channel_idxs=[1],
                                                             emg_peak_height=0.4, find_peaks_args=dict(threshold=0.01, distance=1),
-                                                            meta_data=meta_data_2007, rmt_values=yaxis_4)
+                                                            meta_data=meta_data_2007, rmt_values=yaxis_4,
+                                                            do_detrend=detrend)
 di_wave_data_collection['s2013_031_3ch'] = get_di_wave_data(data_2013, rmt_names_3, epidural_channel_idxs=[1, 2],
                                                             meta_data=meta_data_2013, rmt_values=yaxis_3,
-                                                            emg_peak_height=0.3)
+                                                            emg_peak_height=0.3,
+                                                            do_detrend=detrend)
 di_wave_data_collection['s2020_043_3ch_PA'] = get_di_wave_data(data_2020, rmt_names, epidural_channel_idxs=[1, 2],
                                                                meta_data=meta_data_2020_PA, rmt_values=yaxis,
-                                                               emg_peak_height=1.0)
+                                                               emg_peak_height=1.0,
+                                                               do_detrend=detrend)
 di_wave_data_collection['s2020_043_3ch_LM'] = get_di_wave_data(data_2020, rmt_names_2, epidural_channel_idxs=[1, 2],
                                                                meta_data=meta_data_2020_LM, rmt_values=yaxis_2,
-                                                               emg_peak_height=2.0)
+                                                               emg_peak_height=2.0,
+                                                               do_detrend=detrend)
 
-# TODO: structure LM/PM - threshold - year - subject_ID - Channel
-# TODO: structure from file: year + subject_ID - channel -
-#  [data_DI-waves, data_DI-waves_short, threshold_type, threshold, orientation, time, time_short, data_name]
+
 # bad channels 2004_2, 2020 - PA/LM - Ch4
 
 # create newly structured hdf5
 #
 
 if save:
-    os.remove('DiLazarro_di_wave_data.hdf5')
+    os.remove('../Examples/DiLazarro_di_wave_data.hdf5')
 
 di_wave_dict = {}
 for recording in di_wave_data_collection.keys():

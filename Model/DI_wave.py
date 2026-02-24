@@ -205,7 +205,7 @@ class DI_wave_simulation():
         plt.show()
 
     def get_test_signal(self, plot=False, from_file=False, fname='s2020_043_CNS2023.mat', hdf5_args=None,
-                        highpass=False, hp_cutoff=0.3):
+                        highpass=False, hp_cutoff=1.5):
         #TODO: extend this to different test function types eventually
 
         if self.enable_high_pass and not highpass:
@@ -327,7 +327,15 @@ class DI_wave_simulation():
             measurement_data = measurement_data_original[idx_start:idx_end].copy()
 
             t = t[idx_start:idx_end]
-            d_wave_idx = scipy.signal.find_peaks(measurement_data, height=height_d_wave)[0][0]
+            measurement_data_filtered = scipy.ndimage.gaussian_filter1d(measurement_data, sigma=data_dict['sigma'])
+            if self.detrend:
+                d_wave_idx = scipy.signal.find_peaks(measurement_data, height=height_d_wave)[0][0]
+            else:
+                d_wave_idx = scipy.signal.find_peaks(measurement_data_filtered, height=height_d_wave)[0][0]
+            if highpass:
+                measurement_data_filtered = butter_highpass_filter(measurement_data_filtered,
+                                                    cutoff=hp_cutoff, fps=int(1/self.dt))
+                # measurement_data_filtered -= measurement_data_filtered.mean()
             t_d_wave = t[d_wave_idx]
             d_wave_start_idx = np.where(t>t_d_wave)[0][0]
             # d_wave_peak = measurement_data[d_wave_start_idx]
@@ -335,21 +343,18 @@ class DI_wave_simulation():
             d_wave_end_idx = np.where(t>t_d_wave+(d_wave_width/2))[0][0]
             # measurement_data[d_wave_start_idx:d_wave_end_idx] = d_wave_peak*0.05
             measurement_data[:d_wave_end_idx] = 0
-            measurement_data_filtered = scipy.ndimage.gaussian_filter1d(measurement_data, sigma=data_dict['sigma'])
-            if dentrending:
+            if dentrending and self.detrend:
                 measurement_data_filtered = detrend(t, measurement_data_filtered,
                                                     find_peaks_args=dict(threshold=detrend_thr), plot=False)
                 measurement_data_filtered[measurement_data_filtered<0] = 0
-            if highpass:
-                measurement_data_filtered = butter_highpass_filter(measurement_data_filtered,
-                                                    cutoff=hp_cutoff, fps=int(1/self.dt))
+
             measurement_data_filtered[-1] = 0
-            # plt.plot(t, measurement_data_filtered)
-            # plt.plot(t, measurement_data_original[idx_start:idx_end], alpha=0.4, color='k', linestyle='--')
-            # plt.xlabel('t (ms)')
-            # plt.ylabel('v (µV)')
-            # plt.scatter(t[d_wave_idx], measurement_data_original[idx_start:idx_end][d_wave_idx], marker='x', color='r')
-            # plt.show()
+            plt.plot(t, measurement_data_filtered)
+            plt.plot(t, measurement_data_original[idx_start:idx_end], alpha=0.4, color='k', linestyle='--')
+            plt.xlabel('t (ms)')
+            plt.ylabel('v (µV)')
+            plt.scatter(t[d_wave_idx], measurement_data_original[idx_start:idx_end][d_wave_idx], marker='x', color='r')
+            plt.show()
 
             self.target = np.interp(self.t, t, measurement_data_filtered)
             # take caution when using this detrending
