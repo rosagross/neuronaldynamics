@@ -14,16 +14,19 @@ T = 14
 t = np.arange(0, T, dt)
 Nt = t.shape[0]
 detrend = True
-scale = True
+scale = False
 
 # fn_session = '/home/erik/Downloads/gpc.pkl'
-fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-# fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+# fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 if not detrend:
-    hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 else:
-    hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
+    # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
+    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
+
 
 # hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
 simulation_name = 'I_wave_plot'
@@ -107,7 +110,7 @@ max_pa_amp=0
 for i, dict_i in enumerate(data_dicts):
     parameters['file_args'] = dict_i
     di_model = DI_wave_simulation(parameters=parameters, logname=None)
-    di_model.get_test_signal(plot_d_wave_detection=True, from_file=True, hdf5_args=di_model.file_args, highpass=hp)
+    di_model.get_test_signal(plot_d_wave_detection=False, from_file=True, hdf5_args=di_model.file_args, highpass=hp)
     iwaves = di_model.target
     peak_min_dist = int(1/dt)
     if iwaves.max() > max_pa_amp:
@@ -201,48 +204,99 @@ amp_max = np.zeros_like(dt_I12)
 I_area = np.zeros_like(dt_I12)
 n_iwaves = np.zeros_like(dt_I12)
 
-with h5py.File(simulation_name + '.hdf5', 'r') as h5file:
-    data = np.array(h5file['E_theta_2D']) * 1e3  # conversion from 1/ms to 1/s
-
-E_values = np.linspace(150, 400, 100)
-theta_values = np.linspace(0, 180, 100)
-E_mesh, theta_mesh = np.meshgrid(E_values ,theta_values)
-mesh_shapes = E_mesh.shape
-theta_guess = -0.1
-theta_idx = np.where(theta_values > theta_guess)[0][0]
-height = 0.5
-# E_idx = np.where(E_values > E_plot[1])[0][0]
-
-i = theta_idx
-for j in range(E_values.shape[0]):
-    peak_values_ij = get_peak_values(t, data[i, j], find_peak_args=dict(height=height))
-    n_iwaves_ij = peak_values_ij['t_delta_peaks'].shape[0]
-    n_iwaves[i, j] = n_iwaves_ij
-    if n_iwaves_ij < 1:
-        tI1[i, j] = np.nan
-        amp_max[i, j] = np.nan
-        I_area[i, j] = np.nan
-    else:
-        tI1[i, j] = peak_values_ij['peak_1_time']
-        amp_max[i, j] = peak_values_ij['peak_max_amp']
-        I_area[i, j] = peak_values_ij['area']
-    if n_iwaves_ij < 1:
-        dt_I12[i, j] = np.nan
-        dA_I12[i, j] = np.nan
-    else:
-        dt_I12[i, j] = peak_values_ij['t_delta_peaks'][0]
-        dA_I12[i, j] = peak_values_ij['amp_delta_peaks'][0]
-    if n_iwaves_ij < 2:
-        dt_I23[i, j] = np.nan
-        dA_I23[i, j] = np.nan
-    else:
-        dt_I23[i, j] = peak_values_ij['t_delta_peaks'][1]
-        dA_I23[i, j] = peak_values_ij['amp_delta_peaks'][1]
-    if n_iwaves_ij < 3:
-        dt_I34[i, j] = np.nan
-        dA_I34[i, j] = np.nan
-    else:
-        dt_I34[i, j] = peak_values_ij['t_delta_peaks'][1]
-        dA_I34[i, j] = peak_values_ij['amp_delta_peaks'][1]
+# with h5py.File('E_theta_2D.hdf5', 'r') as h5file:
+#     data = np.array(h5file['E_theta_2D']) * 1e3  # conversion from 1/ms to 1/s
+#
+# E_values = np.linspace(150, 400, 100)
+# theta_values = np.linspace(0, 180, 100)
+# E_mesh, theta_mesh = np.meshgrid(E_values, theta_values)
+# mesh_shapes = E_mesh.shape
+# theta_guess = -0.1
+# theta_idx = np.where(theta_values > theta_guess)[0][0]
+# height = 0.5
+# # E_idx = np.where(E_values > E_plot[1])[0][0]
+#
+# i = theta_idx
+# for j in range(E_values.shape[0]):
+#     peak_values_ij = get_peak_values(t, data[i, j], find_peak_args=dict(height=height))
+#     n_iwaves_ij = peak_values_ij['t_delta_peaks'].shape[0]
+#     n_iwaves[i, j] = n_iwaves_ij
+#     if n_iwaves_ij < 1:
+#         tI1[i, j] = np.nan
+#         amp_max[i, j] = np.nan
+#         I_area[i, j] = np.nan
+#     else:
+#         tI1[i, j] = peak_values_ij['peak_1_time']
+#         amp_max[i, j] = peak_values_ij['peak_max_amp']
+#         I_area[i, j] = peak_values_ij['area']
+#     if n_iwaves_ij < 1:
+#         dt_I12[i, j] = np.nan
+#         dA_I12[i, j] = np.nan
+#     else:
+#         dt_I12[i, j] = peak_values_ij['t_delta_peaks'][0]
+#         dA_I12[i, j] = peak_values_ij['amp_delta_peaks'][0]
+#     if n_iwaves_ij < 2:
+#         dt_I23[i, j] = np.nan
+#         dA_I23[i, j] = np.nan
+#     else:
+#         dt_I23[i, j] = peak_values_ij['t_delta_peaks'][1]
+#         dA_I23[i, j] = peak_values_ij['amp_delta_peaks'][1]
+#     if n_iwaves_ij < 3:
+#         dt_I34[i, j] = np.nan
+#         dA_I34[i, j] = np.nan
+#     else:
+#         dt_I34[i, j] = peak_values_ij['t_delta_peaks'][1]
+#         dA_I34[i, j] = peak_values_ij['amp_delta_peaks'][1]
 
 # generate signal from data
+# convoluted nested lists atm, think of something better eventually?
+pa_thresholds = [100, 110, 120, 140, 150]
+mean_pa_signals = np.zeros((5, t.shape[0]))
+pa_signals = []
+dtI12_data = np.zeros(5)
+dtI23_data = np.zeros(5)
+dtI34_data = np.zeros(5)
+tI1_data = np.zeros(5)
+n_iwaves_data = np.zeros(5)
+for i in range(n_pa):
+    pa_list_threshold=[]
+    pa_signals.append([])
+    for j in range(len(pa_lists[i])):
+        if pa_lists[i][j].max() > 2:
+            pa_list_threshold.append(pa_lists[i][j])
+
+    pa_signals.append(pa_list_threshold)
+    mean_pa_signals[i] = np.mean(np.array(pa_list_threshold), axis=0)
+
+    peak_values_ij = get_peak_values(t,mean_pa_signals[i], find_peak_args=dict(height=1))
+    n_iwaves_i = peak_values_ij['t_delta_peaks'].shape[0]
+    n_iwaves_data[i] = n_iwaves_i
+    if n_iwaves_i < 1:
+        tI1_data[i] = np.nan
+        # amp_max[i, j] = np.nan
+        # I_area[i, j] = np.nan
+    else:
+        tI1_data[i] = peak_values_ij['peak_1_time']
+        dtI12_data[i] = peak_values_ij['t_delta_peaks'][0]
+    if n_iwaves_i < 2:
+        dtI23_data[i] = np.nan
+    else:
+        dtI23_data[i] = peak_values_ij['t_delta_peaks'][1]
+    if n_iwaves_i < 3:
+        dtI34_data[i] = np.nan
+    else:
+        dtI23_data[i] = peak_values_ij['t_delta_peaks'][2]
+
+for i in range(n_pa):
+    plt.plot(t, mean_pa_signals[i])
+plt.xlim(0, 12)
+plt.xlabel('t (ms)')
+plt.ylabel('v (uV)')
+plt.grid()
+plt.legend(pa_names)
+plt.show()
+
+plt.plot(pa_thresholds, tI1_data)
+plt.plot(pa_thresholds, dtI12_data)
+plt.legend(['tI1', 'dtI12'])
+plt.show()
