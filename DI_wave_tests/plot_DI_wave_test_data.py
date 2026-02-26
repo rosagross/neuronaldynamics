@@ -223,8 +223,8 @@ di_wave_data_collection['s2020_043_3ch_LM'] = get_di_wave_data(data_2020, rmt_na
 # create newly structured hdf5
 #
 
-if save:
-    os.remove('../Examples/DiLazarro_di_wave_data.hdf5')
+if save and os.path.exists('DiLazarro_di_wave_data.hdf5'):
+    os.remove('DiLazarro_di_wave_data.hdf5')
 
 di_wave_dict = {}
 for recording in di_wave_data_collection.keys():
