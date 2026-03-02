@@ -734,3 +734,17 @@ def get_peak_values(x, y, find_peak_args={}, plot=False):
         plt.grid()
         plt.show()
     return peak_values
+
+def argmin_2d(array):
+    """
+    Function that returns the 2 idxs (row, col) of the smalles value in a 2D array
+    :param array: np.ndarray, input array
+    :return: idxs: tuple, 2 output idxs of min value
+    """
+    assert(len(array.shape) == 2, 'Please only provide 2D arrays as input for this funtion!')
+
+    min_idx_1D = np.nanargmin(array)
+    ncol = array.shape[1]
+    row_idx = int(np.floor(min_idx_1D / ncol))
+    col_idx = min_idx_1D % ncol
+    return row_idx, col_idx
