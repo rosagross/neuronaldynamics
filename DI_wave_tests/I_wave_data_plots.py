@@ -19,6 +19,7 @@ Nt = t.shape[0]
 detrend = True
 scale = False
 plot_overview = False
+opt_crit = 0
 
 # fn_session = '/home/erik/Downloads/gpc.pkl'
 fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
@@ -199,8 +200,9 @@ if plot_overview:
 # PA Plots
 ########################################################################################################################
 
-
-with h5py.File('E_theta_2D.hdf5', 'r') as h5file:
+# E_theta_2D_frexc_pt6
+# E_theta_2D
+with h5py.File('E_theta_2D_frexc_pt6.hdf5', 'r') as h5file:
     data = np.array(h5file['E_theta_2D']) * 1e3  # conversion from 1/ms to 1/s
 
 
@@ -226,11 +228,17 @@ for i, theta_i in enumerate(theta_values):
                                           fps=int(1 / dt))  # very small cutoff
         v_out_mean = nmm_potential_out.mean()
         data[i, j] = v_out_hp / 1000
-
-theta_guess = 20
+#######################################################################################################################
+# PA values
+#######################################################################################################################
+theta_guess = 0
+theta_start = 0
+theta_end = 60
 theta_idx = np.where(theta_values > theta_guess)[0][0]
-n_pa = len(pa_lists)
-dt_I12 = np.zeros((E_values.shape[0]))
+theta_idx_start = np.where(theta_values > theta_start)[0][0] - 1
+theta_idx_end = np.where(theta_values > theta_end)[0][0]
+theta_range = theta_values[theta_idx_start:theta_idx_end]
+dt_I12 = np.zeros((theta_range.shape[0], E_values.shape[0]))
 dt_I23 = np.zeros_like(dt_I12)
 dt_I34 = np.zeros_like(dt_I12)
 dA_I12 = np.zeros_like(dt_I12)
@@ -244,48 +252,50 @@ n_iwaves = np.zeros_like(dt_I12)
 
 # E_idx = np.where(E_values > E_plot[1])[0][0]
 
-i = theta_idx
-for j in range(E_values.shape[0]):
-    peak_values_j = get_peak_values(t, data[i, j], find_peak_args=dict(height=height))
-    n_iwaves_j = peak_values_j['t_delta_peaks'].shape[0]
-    n_iwaves[j] = n_iwaves_j
-    if n_iwaves_j < 1:
-        tI1[j] = np.nan
-        amp_max[j] = np.nan
-        I_area[j] = np.nan
-    else:
-        tI1[j] = peak_values_j['peak_1_time']
-        amp_max[j] = peak_values_j['peak_max_amp']
-        I_area[j] = peak_values_j['area']
-    if n_iwaves_j < 1:
-        dt_I12[j] = np.nan
-        dA_I12[j] = np.nan
-    else:
-        dt_I12[j] = peak_values_j['t_delta_peaks'][0]
-        dA_I12[j] = peak_values_j['amp_delta_peaks'][0]
-    if n_iwaves_j < 2:
-        dt_I23[j] = np.nan
-        dA_I23[j] = np.nan
-    else:
-        dt_I23[j] = peak_values_j['t_delta_peaks'][1]
-        dA_I23[j] = peak_values_j['amp_delta_peaks'][1]
-    if n_iwaves_j < 3:
-        dt_I34[j] = np.nan
-        dA_I34[j] = np.nan
-    else:
-        dt_I34[j] = peak_values_j['t_delta_peaks'][1]
-        dA_I34[j] = peak_values_j['amp_delta_peaks'][1]
+for i in range(theta_range.shape[0]):
+    for j in range(E_values.shape[0]):
+        peak_values_j = get_peak_values(t, data[i, j], find_peak_args=dict(height=height))
+        n_iwaves_j = peak_values_j['t_delta_peaks'].shape[0]
+        n_iwaves[i, j] = n_iwaves_j
+        if n_iwaves_j < 1:
+            tI1[i, j] = np.nan
+            amp_max[i, j] = np.nan
+            I_area[i, j] = np.nan
+        else:
+            tI1[i, j] = peak_values_j['peak_1_time']
+            amp_max[i, j] = peak_values_j['peak_max_amp']
+            I_area[i, j] = peak_values_j['area']
+        if n_iwaves_j < 1:
+            dt_I12[i, j] = np.nan
+            dA_I12[i, j] = np.nan
+        else:
+            dt_I12[i, j] = peak_values_j['t_delta_peaks'][0]
+            dA_I12[i, j] = peak_values_j['amp_delta_peaks'][0]
+        if n_iwaves_j < 2:
+            dt_I23[i, j] = np.nan
+            dA_I23[i, j] = np.nan
+        else:
+            dt_I23[i, j] = peak_values_j['t_delta_peaks'][1]
+            dA_I23[i, j] = peak_values_j['amp_delta_peaks'][1]
+        if n_iwaves_j < 3:
+            dt_I34[i, j] = np.nan
+            dA_I34[i, j] = np.nan
+        else:
+            dt_I34[i, j] = peak_values_j['t_delta_peaks'][1]
+            dA_I34[i, j] = peak_values_j['amp_delta_peaks'][1]
+
 
 # generate signal from data
 # convoluted nested lists atm, think of something better eventually?
+n_pa = len(pa_lists)
 pa_thresholds = [100, 110, 120, 140, 150]
-mean_pa_signals = np.zeros((5, t.shape[0]))
+mean_pa_signals = np.zeros((n_pa, t.shape[0]))
 pa_signals = []
-dtI12_data = np.zeros(5)
-dtI23_data = np.zeros(5)
-dtI34_data = np.zeros(5)
-tI1_data = np.zeros(5)
-n_iwaves_data = np.zeros(5)
+dtI12_data = np.zeros(n_pa)
+dtI23_data = np.zeros(n_pa)
+dtI34_data = np.zeros(n_pa)
+tI1_data = np.zeros(n_pa)
+n_iwaves_data = np.zeros(n_pa)
 for i in range(n_pa):
     pa_list_threshold=[]
     pa_signals.append([])
@@ -301,6 +311,7 @@ for i in range(n_pa):
     n_iwaves_data[i] = n_iwaves_i
     if n_iwaves_i < 1:
         tI1_data[i] = np.nan
+        dtI12_data[i] = np.nan
         # amp_max[i, j] = np.nan
         # I_area[i, j] = np.nan
     else:
@@ -323,10 +334,15 @@ tI_delayed = tI1 + delay
 rmt_array = np.array(pa_thresholds)
 a_values = np.linspace(1.0, 2.3, 100)
 b_values = np.linspace(0, 50, 100)
-sqerror = np.zeros((100, 100))
-for i, j in itertools.product(range(a_values.shape[0]), range(b_values.shape[0])):
-    # a = 2
-    # b= 50
+sqerror_theta = np.zeros((theta_range.shape[0], 100, 100))
+a_opt = np.zeros(theta_range.shape[0])
+b_opt = np.zeros(theta_range.shape[0])
+opt_idxs = np.zeros((theta_range.shape[0], 2), dtype=np.int64)
+min_sqerror = np.zeros(theta_range.shape[0])
+sqerror = np.zeros((theta_range.shape[0], 100, 100))
+print('performing extensive grid search for PA fits \n')
+for m, i, j in itertools.product(range(theta_range.shape[0]), range(a_values.shape[0]), range(b_values.shape[0])):
+
     a = a_values[i]
     b = b_values[j]
 
@@ -335,47 +351,232 @@ for i, j in itertools.product(range(a_values.shape[0]), range(b_values.shape[0])
     for k in range(n_pa):
         E_idxs_data[k] = np.floor(np.where(E_values > E_map[k])[0][0])
 
-    dy = (tI_delayed[E_idxs_data] - tI1_data)**2
-    sqerror[i, j] = np.sum(dy)
-min_sqerror_idxs = argmin_2d(sqerror)
-min_sqerror = sqerror.min()
-opt_ab = np.zeros((1, 2))
-a_opt = a_values[min_sqerror_idxs[0]]
-b_opt = b_values[min_sqerror_idxs[1]]
-opt_ab[0] = np.array((a_opt, b_opt))
-E_map_opt = a_opt*rmt_array + b_opt
-fig = plt.figure(figsize=(8, 2))
+    if opt_crit == 0:
+        dy = (tI_delayed[m, E_idxs_data] - tI1_data)**2
+    elif opt_crit == 1:
+        dy = (dt_I12[m, E_idxs_data] - dtI12_data) ** 2
+    elif opt_crit == 2:
+        dy = ((tI_delayed[m, E_idxs_data] - tI1_data) ** 2 / tI1_data.mean() + (dt_I12[m, E_idxs_data] - dtI12_data) ** 2) / dtI12_data.mean()
+    # else:
+    #     dy = ((tI_delayed[m, E_idxs_data] - tI1_data) ** 2 + (dt_I12[m, E_idxs_data] - dtI12_data) ** 2 +
+    #           (dt_I23[m, E_idxs_data] - dtI23_data) ** 2 + (dt_I34[m, E_idxs_data] - dtI34_data) ** 2)
+    sqerror[m, i, j] = np.sum(dy)
 
-ax = fig.add_subplot(1, 4, 1)
-ax.plot(E_values, tI_delayed)
+    if i == a_values.shape[0] - 1 and j == b_values.shape[0] - 1:
+        opt_idxs[m] = argmin_2d(sqerror[m])
+        min_sqerror[m] = np.nanmin(sqerror[m])
+        a_opt[m] = a_values[opt_idxs[m, 0]]
+        b_opt[m] = b_values[opt_idxs[m, 1]]
+    # E_map_opt = a_opt[k]*rmt_array + b_opt[k]
+opt_theta_idx = np.argmin(min_sqerror)
+a_theta_opt = a_opt[opt_theta_idx]
+b_theta_opt = b_opt[opt_theta_idx]
+E_map_opt = a_theta_opt*rmt_array + b_theta_opt
+
+fig = plt.figure(figsize=(15, 3))
+ax = fig.add_subplot(1, 5, 1)
+ax.plot(E_values, tI_delayed[opt_theta_idx])
 ax.scatter(E_map_opt, tI1_data, marker='x', color='k')
+ax.set_ylabel('t (ms)')
+ax.set_xlabel('time first I-wave (ms)')
 
-ax = fig.add_subplot(1, 4, 2)
-ax.plot(E_values, dt_I12)
+ax = fig.add_subplot(1, 5, 2)
+ax.plot(E_values, dt_I12[opt_theta_idx])
 ax.scatter(E_map_opt, dtI12_data, marker='x', color='k')
+ax.set_xlabel('time between I1 and I2 (ms)')
+ax.set_ylabel('t (ms)')
 
-ax = fig.add_subplot(1, 4, 3)
-ax.plot(E_values, dt_I23)
+ax = fig.add_subplot(1, 5, 3)
+ax.plot(E_values, dt_I23[opt_theta_idx])
 ax.scatter(E_map_opt, dtI23_data, marker='x', color='k')
+ax.set_xlabel('time between I2 and I3 (ms)')
+ax.set_ylabel('t (ms)')
 
-ax = fig.add_subplot(1, 4, 4)
-ax.plot(E_values, dt_I34)
+ax = fig.add_subplot(1, 5, 4)
+ax.plot(E_values, dt_I34[opt_theta_idx])
 ax.scatter(E_map_opt, dtI34_data, marker='x', color='k')
+ax.set_xlabel('time between I3 and I4 (ms)')
+ax.set_ylabel('t (ms)')
 
+ax = fig.add_subplot(1, 5, 5)
+ax.plot(theta_range, min_sqerror)
+ax.set_ylabel('summed squared error of fit')
+ax.set_xlabel('coil orientation (°)')
 plt.tight_layout()
 plt.show()
 
-#
-# for i in range(n_pa):
-#     plt.plot(t, mean_pa_signals[i])
-# plt.xlim(0, 12)
-# plt.xlabel('t (ms)')
-# plt.ylabel('v (uV)')
-# plt.grid()
-# plt.legend(pa_names)
-# plt.show()
-#
-# plt.plot(pa_thresholds, tI1_data)
-# plt.plot(pa_thresholds, dtI12_data)
-# plt.legend(['tI1', 'dtI12'])
-# plt.show()
+#######################################################################################################################
+# LM values
+#######################################################################################################################
+
+theta_start = 60
+theta_end = 120
+theta_idx = np.where(theta_values > theta_guess)[0][0]
+theta_idx_start = np.where(theta_values > theta_start)[0][0] - 1
+theta_idx_end = np.where(theta_values > theta_end)[0][0]
+theta_range = theta_values[theta_idx_start:theta_idx_end]
+dt_I12 = np.zeros((theta_range.shape[0], E_values.shape[0]))
+dt_I23 = np.zeros_like(dt_I12)
+dt_I34 = np.zeros_like(dt_I12)
+dA_I12 = np.zeros_like(dt_I12)
+dA_I23 = np.zeros_like(dt_I12)
+dA_I34 = np.zeros_like(dt_I12)
+tI1 = np.zeros_like(dt_I12)
+amp_max = np.zeros_like(dt_I12)
+I_area = np.zeros_like(dt_I12)
+n_iwaves = np.zeros_like(dt_I12)
+
+
+# E_idx = np.where(E_values > E_plot[1])[0][0]
+
+for i in range(theta_range.shape[0]):
+    for j in range(E_values.shape[0]):
+        peak_values_j = get_peak_values(t, data[i, j], find_peak_args=dict(height=height))
+        n_iwaves_j = peak_values_j['t_delta_peaks'].shape[0]
+        n_iwaves[i, j] = n_iwaves_j
+        if n_iwaves_j < 1:
+            tI1[i, j] = np.nan
+            amp_max[i, j] = np.nan
+            I_area[i, j] = np.nan
+        else:
+            tI1[i, j] = peak_values_j['peak_1_time']
+            amp_max[i, j] = peak_values_j['peak_max_amp']
+            I_area[i, j] = peak_values_j['area']
+        if n_iwaves_j < 1:
+            dt_I12[i, j] = np.nan
+            dA_I12[i, j] = np.nan
+        else:
+            dt_I12[i, j] = peak_values_j['t_delta_peaks'][0]
+            dA_I12[i, j] = peak_values_j['amp_delta_peaks'][0]
+        if n_iwaves_j < 2:
+            dt_I23[i, j] = np.nan
+            dA_I23[i, j] = np.nan
+        else:
+            dt_I23[i, j] = peak_values_j['t_delta_peaks'][1]
+            dA_I23[i, j] = peak_values_j['amp_delta_peaks'][1]
+        if n_iwaves_j < 3:
+            dt_I34[i, j] = np.nan
+            dA_I34[i, j] = np.nan
+        else:
+            dt_I34[i, j] = peak_values_j['t_delta_peaks'][1]
+            dA_I34[i, j] = peak_values_j['amp_delta_peaks'][1]
+
+# lm_thresholds = [80, 100, 120, 140]
+lm_thresholds = [100, 120, 140]
+n_lm = len(lm_thresholds)
+mean_lm_signals = np.zeros((n_lm-1, t.shape[0]))
+lm_signals = []
+dtI12_data = np.zeros(n_lm)
+dtI23_data = np.zeros(n_lm)
+dtI34_data = np.zeros(n_lm)
+tI1_data = np.zeros(n_lm)
+n_iwaves_data = np.zeros(n_lm)
+for i in range(n_lm-1): # exclude 80% rmt here
+    lm_list_threshold=[]
+    lm_signals.append([])
+    for j in range(len(lm_lists[i+1])):
+        if lm_lists[i+1][j].max() > 1: #loosen a bit here
+            lm_list_threshold.append(lm_lists[i+1][j])
+
+    lm_signals.append(lm_list_threshold)
+    mean_lm_signals[i] = np.mean(np.array(lm_list_threshold), axis=0) #hotfix don't touch
+
+    peak_values_ij = get_peak_values(t,mean_lm_signals[i], find_peak_args=dict(height=1))
+    n_iwaves_i = peak_values_ij['t_delta_peaks'].shape[0]
+    n_iwaves_data[i] = n_iwaves_i
+    if n_iwaves_i < 1:
+        tI1_data[i] = np.nan
+        dtI12_data[i] = np.nan
+        # amp_max[i, j] = np.nan
+        # I_area[i, j] = np.nan
+    else:
+        tI1_data[i] = peak_values_ij['peak_1_time']
+        dtI12_data[i] = peak_values_ij['t_delta_peaks'][0]
+    if n_iwaves_i < 2:
+        dtI23_data[i] = np.nan
+    else:
+        dtI23_data[i] = peak_values_ij['t_delta_peaks'][1]
+    if n_iwaves_i < 3:
+        dtI34_data[i] = np.nan
+    else:
+        dtI34_data[i] = peak_values_ij['t_delta_peaks'][2]
+
+
+
+# map from data pts to E-field
+delay = 0.7 #1.3
+tI_delayed = tI1 + delay
+rmt_array = np.array(lm_thresholds)
+a_values = np.linspace(1.0, 2.3, 100)
+b_values = np.linspace(0, 50, 100)
+sqerror_theta = np.zeros((theta_range.shape[0], 100, 100))
+a_opt = np.zeros(theta_range.shape[0])
+b_opt = np.zeros(theta_range.shape[0])
+opt_idxs = np.zeros((theta_range.shape[0], 2), dtype=np.int64)
+min_sqerror = np.zeros(theta_range.shape[0])
+sqerror = np.zeros((theta_range.shape[0], 100, 100))
+
+print('performing extensive grid search for LM fits \n')
+for m, i, j in itertools.product(range(theta_range.shape[0]), range(a_values.shape[0]), range(b_values.shape[0])):
+
+    a = a_values[i]
+    b = b_values[j]
+
+    E_map = a*rmt_array + b
+    E_idxs_data = np.zeros(E_map.shape[0], dtype=np.int64)
+    for k in range(len(lm_thresholds)):
+        E_idxs_data[k] = np.floor(np.where(E_values > E_map[k])[0][0])
+
+    if opt_crit == 0:
+        dy = (tI_delayed[m, E_idxs_data] - tI1_data) ** 2
+    elif opt_crit == 1:
+        dy = (dt_I12[m, E_idxs_data] - dtI12_data) ** 2
+    elif opt_crit == 2:
+        dy = ((tI_delayed[m, E_idxs_data] - tI1_data) ** 2 / tI1_data.mean() + (dt_I12[m, E_idxs_data] - dtI12_data) ** 2) / dtI12_data.mean()
+    # else:
+    #     dy = ((tI_delayed[m, E_idxs_data] - tI1_data) ** 2 + (dt_I12[m, E_idxs_data] - dtI12_data) ** 2 +
+    #           (dt_I23[m, E_idxs_data] - dtI23_data) ** 2 + (dt_I34[m, E_idxs_data] - dtI34_data) ** 2)
+    sqerror[m, i, j] = np.sum(dy)
+
+    if i == a_values.shape[0] - 1 and j == b_values.shape[0] - 1:
+        opt_idxs[m] = argmin_2d(sqerror[m])
+        min_sqerror[m] = np.nanmin(sqerror[m])
+        a_opt[m] = a_values[opt_idxs[m, 0]]
+        b_opt[m] = b_values[opt_idxs[m, 1]]
+    # E_map_opt = a_opt[k]*rmt_array + b_opt[k]
+opt_theta_idx = np.argmin(min_sqerror)
+a_theta_opt = a_opt[opt_theta_idx]
+b_theta_opt = b_opt[opt_theta_idx]
+E_map_opt = a_theta_opt*rmt_array + b_theta_opt
+
+fig = plt.figure(figsize=(15, 3))
+ax = fig.add_subplot(1, 5, 1)
+ax.plot(E_values, tI_delayed[opt_theta_idx])
+ax.scatter(E_map_opt, tI1_data, marker='x', color='k')
+ax.set_ylabel('t (ms)')
+ax.set_xlabel('time first I-wave (ms)')
+
+ax = fig.add_subplot(1, 5, 2)
+ax.plot(E_values, dt_I12[opt_theta_idx])
+ax.scatter(E_map_opt, dtI12_data, marker='x', color='k')
+ax.set_xlabel('time between I1 and I2 (ms)')
+ax.set_ylabel('t (ms)')
+
+ax = fig.add_subplot(1, 5, 3)
+ax.plot(E_values, dt_I23[opt_theta_idx])
+ax.scatter(E_map_opt, dtI23_data, marker='x', color='k')
+ax.set_xlabel('time between I2 and I3 (ms)')
+ax.set_ylabel('t (ms)')
+
+ax = fig.add_subplot(1, 5, 4)
+ax.plot(E_values, dt_I34[opt_theta_idx])
+ax.scatter(E_map_opt, dtI34_data, marker='x', color='k')
+ax.set_xlabel('time between I3 and I4 (ms)')
+ax.set_ylabel('t (ms)')
+
+ax = fig.add_subplot(1, 5, 5)
+ax.plot(theta_range, min_sqerror)
+ax.set_ylabel('summed squared error of fit')
+ax.set_xlabel('coil orientation (°)')
+plt.tight_layout()
+plt.show()

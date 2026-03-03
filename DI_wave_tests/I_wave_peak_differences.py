@@ -9,12 +9,8 @@ from tqdm import tqdm
 from Model.Neck import generate_EP
 import scipy
 from Utils import butter_highpass_filter, get_peak_values
-import os
-import sys
-import pathlib
 matplotlib.use('TkAgg')
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'my_module_folder')))
 
 
 #TODO: make all plots also with delayed data, could also plot 2ms more to avoid loss of info
