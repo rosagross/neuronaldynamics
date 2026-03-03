@@ -19,18 +19,18 @@ Nt = t.shape[0]
 detrend = True
 scale = False
 plot_overview = False
-opt_crit = 0
+opt_crit = 2
 
 # fn_session = '/home/erik/Downloads/gpc.pkl'
-fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-# fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+# fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 if not detrend:
-    hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-    # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 else:
-    hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
-    # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
+    # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
+    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
 
 
 # hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
@@ -329,7 +329,7 @@ for i in range(n_pa):
 
 
 # map from data pts to E-field
-delay = 0.7 #1.3
+delay = 0.9 #1.3
 tI_delayed = tI1 + delay
 rmt_array = np.array(pa_thresholds)
 a_values = np.linspace(1.0, 2.3, 100)
@@ -340,7 +340,7 @@ b_opt = np.zeros(theta_range.shape[0])
 opt_idxs = np.zeros((theta_range.shape[0], 2), dtype=np.int64)
 min_sqerror = np.zeros(theta_range.shape[0])
 sqerror = np.zeros((theta_range.shape[0], 100, 100))
-print('performing extensive grid search for PA fits \n')
+print('performing extensive grid search for PA fits')
 for m, i, j in itertools.product(range(theta_range.shape[0]), range(a_values.shape[0]), range(b_values.shape[0])):
 
     a = a_values[i]
@@ -402,6 +402,8 @@ ax = fig.add_subplot(1, 5, 5)
 ax.plot(theta_range, min_sqerror)
 ax.set_ylabel('summed squared error of fit')
 ax.set_xlabel('coil orientation (°)')
+ax.vlines(theta_range[opt_theta_idx],  min_sqerror.min(),  min_sqerror.max(), color='red', linestyle='--')
+ax.text(theta_range[opt_theta_idx] + 5, min_sqerror.max()*0.95, f'theta: {theta_range[opt_theta_idx]:.1f}°', color='red')
 plt.tight_layout()
 plt.show()
 
@@ -464,14 +466,14 @@ for i in range(theta_range.shape[0]):
 # lm_thresholds = [80, 100, 120, 140]
 lm_thresholds = [100, 120, 140]
 n_lm = len(lm_thresholds)
-mean_lm_signals = np.zeros((n_lm-1, t.shape[0]))
+mean_lm_signals = np.zeros((n_lm, t.shape[0]))
 lm_signals = []
 dtI12_data = np.zeros(n_lm)
 dtI23_data = np.zeros(n_lm)
 dtI34_data = np.zeros(n_lm)
 tI1_data = np.zeros(n_lm)
 n_iwaves_data = np.zeros(n_lm)
-for i in range(n_lm-1): # exclude 80% rmt here
+for i in range(n_lm): # exclude 80% rmt here
     lm_list_threshold=[]
     lm_signals.append([])
     for j in range(len(lm_lists[i+1])):
@@ -504,7 +506,7 @@ for i in range(n_lm-1): # exclude 80% rmt here
 
 
 # map from data pts to E-field
-delay = 0.7 #1.3
+delay = 0.9 #1.3
 tI_delayed = tI1 + delay
 rmt_array = np.array(lm_thresholds)
 a_values = np.linspace(1.0, 2.3, 100)
@@ -516,7 +518,7 @@ opt_idxs = np.zeros((theta_range.shape[0], 2), dtype=np.int64)
 min_sqerror = np.zeros(theta_range.shape[0])
 sqerror = np.zeros((theta_range.shape[0], 100, 100))
 
-print('performing extensive grid search for LM fits \n')
+print('performing extensive grid search for LM fits')
 for m, i, j in itertools.product(range(theta_range.shape[0]), range(a_values.shape[0]), range(b_values.shape[0])):
 
     a = a_values[i]
@@ -578,5 +580,8 @@ ax = fig.add_subplot(1, 5, 5)
 ax.plot(theta_range, min_sqerror)
 ax.set_ylabel('summed squared error of fit')
 ax.set_xlabel('coil orientation (°)')
+ax.vlines(theta_range[opt_theta_idx], min_sqerror.min(), min_sqerror.max(), color='red', linestyle='--')
+ax.text(theta_range[opt_theta_idx] + 5, min_sqerror.max()*0.95, f'theta: {theta_range[opt_theta_idx]:.1f}°', color='red')
+
 plt.tight_layout()
 plt.show()
