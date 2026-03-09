@@ -18,19 +18,19 @@ t = np.arange(0, T, dt)
 Nt = t.shape[0]
 detrend = True
 scale = False
-plot_overview = False
-opt_crit = 2
+plot_overview = True
+opt_crit = 0
 
 # fn_session = '/home/erik/Downloads/gpc.pkl'
-# fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+# fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 if not detrend:
-    # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 else:
-    # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
-    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
+    hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
+    # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
 
 
 # hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
@@ -142,8 +142,10 @@ if plot_overview:
     fig = plt.figure(figsize=(6, 10))
     for j in range(len(pa_lists)):
         ax = fig.add_subplot(len(pa_lists), 1, j+1)
+        mean_j = np.mean(pa_lists[j], axis=0)
         for l in range(len(pa_lists[j])):
-            ax.plot(t, pa_lists[j][l]/max_pa_amp, label=pa_names[l])
+            ax.plot(t, pa_lists[j][l] / max_pa_amp, label=pa_names[l], c='k', alpha=0.5, linestyle=':')
+            ax.plot(t, mean_j, color='k')
             ax.set_xlim((0, 12))
             # ax.text(f'number of samples: {len(pa_lists[j])}')
         if j == len(pa_lists) - 1:
@@ -185,8 +187,10 @@ if plot_overview:
     fig = plt.figure(figsize=(6, 10))
     for j in range(len(lm_lists)):
         ax = fig.add_subplot(len(lm_lists), 1, j+1)
+        mean_j = np.mean(lm_lists[j], axis=0)
         for l in range(len(lm_lists[j])):
-            ax.plot(t, lm_lists[j][l]/max_lm_amp, label=lm_names[l])
+            ax.plot(t, lm_lists[j][l]/max_lm_amp, label=lm_names[l], c='k', alpha=0.5, linestyle=':')
+            ax.plot(t, mean_j, color='k')
             ax.set_xlim((0, 12))
             # ax.text(f'number of samples: {len(pa_lists[j])}')
         if j == len(lm_lists) - 1:
