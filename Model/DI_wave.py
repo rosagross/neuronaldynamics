@@ -227,7 +227,7 @@ class DI_wave_simulation():
             # plt.plot(t, mean_DI_waves_detrend[:, 0])
         elif fname.split('.')[1] == 'hdf5' or fname.split('.')[1] == 'h5':
             hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-            data_dict = dict(orientation='PM', threshold=100, year=2020, threshold_type='RMT', channel=0, subject=0,
+            data_dict = dict(orientation='PA', threshold=100, year=2020, threshold_type='RMT', channel=0, subject=0,
                              hdf5_path=hdf5_path, sigma=1)
             data_dict.update(self.file_args)
             d_wave_width = 1.8
