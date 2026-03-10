@@ -575,7 +575,7 @@ def plot_DI_wave_data(data, rmt_names, titles, yaxis, alphas, filter=True, do_de
             if k < 1:
                 ax.set_title(titles[j])
             if k > 1:
-                ax.set_xlabel('t (ms)')
+                ax.set_xlabel('time (ms)')
             ax.grid()
 
     plt.show()

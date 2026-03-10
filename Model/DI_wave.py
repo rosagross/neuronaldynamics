@@ -1,4 +1,5 @@
 from matplotlib.lines import lineStyles
+from sympy.printing.pretty.pretty_symbology import line_width
 
 from Model.Nykamp_Model import Nykamp_Model_1
 from Model.Neck import generate_EP
@@ -65,6 +66,7 @@ class DI_wave_simulation():
         self.file_args = None
         self.delay_signal = False
         self.delay = 2
+        self.labelsize=15
 
         if logname != None:
             self.load_from_file(logname=logname)
@@ -161,13 +163,13 @@ class DI_wave_simulation():
         self.get_test_signal(from_file=self.test_signal_from_file, hdf5_args=self.file_args)
         di_max = np.max(self.target)
         I1_time = np.argmax(mass_model_rate) * self.dt
-        if isinstance(self.min_delay, (float, int)):
-            t_idx_delay = np.where(self.t > self.min_delay)[0][0]
-            potential_max = nmm_potential_out[:].max()
-            nmm_potential_scaled = nmm_potential_out / potential_max * di_max
-        else:
-            nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
-
+        # if isinstance(self.min_delay, (float, int)):
+        #     t_idx_delay = np.where(self.t > self.min_delay)[0][0]
+        #     potential_max = nmm_potential_out[:].max()
+        #     nmm_potential_scaled = nmm_potential_out / potential_max * di_max
+        # else:
+        #     nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
+        nmm_potential_scaled = nmm_potential_out
         # previous version to cut out large spikes after 4ms
         # if np.max(mass_model_rate) > 0.1 and I1_time < 4:  # only scale to normalize if rate is sufficiently large
         # if I1_time < 4:
@@ -198,11 +200,37 @@ class DI_wave_simulation():
     def create_coords(self):
         self.coords = np.array([[self.theta, self.gradient, self.intensity, self.fraction_nmda, self.fraction_gaba_a,
                                  self.fraction_ex]])
-    def plot_input_current(self):
-        plt.plot(self.t, self.input_current*1e3, linewidth=2, c='orange')
-        plt.xlabel('time in ms', fontsize=15)
-        plt.ylabel('Iext in nA', fontsize=15)
-        plt.show()
+    def plot_input_current(self, savefig=False):
+        fig = plt.figure(figsize=(7, 5))
+        ax = fig.add_subplot(111)
+        ax.plot(self.t, self.input_current*1e6, linewidth=2, c='teal') #hotfixes...
+        ax.set_xlabel('time (ms)', fontsize=self.labelsize)
+        ax.set_ylabel('Current (nA)', fontsize=self.labelsize)
+        ax.set_ylim(0, self.input_current.max()*1e6*1.1)
+        ax.set_xlim((0, self.t.max()))
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
+        if savefig:
+            plt.savefig(self.name + 'input_current.png')
+        else:
+            plt.show()
+    def plot_voltage(self, savefig=False):
+
+        fig = plt.figure(figsize=(7, 5))
+        ax = fig.add_subplot(111)
+        ax.plot(self.t, self.mass_model_v_out, linewidth=2, c='indianred')  # hotfixes...
+        ax.set_xlabel('time (ms)', fontsize=self.labelsize)
+        ax.set_ylabel('Voltage (µV)', fontsize=self.labelsize)
+        ax.set_ylim(0, self.mass_model_v_out.max() * 1.1)
+        ax.set_xlim((2, self.t.max()))
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
+        if savefig:
+            plt.savefig(self.name + '_out_voltage.png')
+        else:
+            plt.show()
 
     def get_test_signal(self, plot=False, from_file=False, fname='s2020_043_CNS2023.mat', hdf5_args=None,
                         highpass=False, hp_cutoff=1.5, plot_d_wave_detection=False):
@@ -271,6 +299,7 @@ class DI_wave_simulation():
                 idx_start = 0
                 idx_end = 87
                 height_d_wave = 1
+                d_wave_width = 1.0
                 detrending = False
             elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 120 and
                     data_dict['channel'] == 0):
@@ -406,23 +435,32 @@ class DI_wave_simulation():
         else:
             label1, label2 = labels[0], labels[1]
 
+        self.mass_model_v_out[self.mass_model_v_out<0] = 0
+
         v_shade = self.mass_model_v_out.copy()
-        abs_signal = self.target_aligned
+        abs_signal = self.target_aligned + self.mass_model_v_out
         non_zero_mask = np.where(abs_signal > 1e-3)
         v_shade[non_zero_mask] = self.target_aligned[non_zero_mask]
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.t, self.mass_model_v_out)
-        ax.plot(self.t, self.target_aligned)
-        ax.fill_between(self.t, self.mass_model_v_out, v_shade, alpha=0.2, color='k')
-        ax.grid()
-        ax.set_xlabel('t in ms')
+        ax.plot(self.t, self.mass_model_v_out, linewidth=2.0, color='indianred')
+        ax.plot(self.t, self.target_aligned, linewidth=2.0, color='darkslateblue', linestyle='-.')
+        ax.fill_between(self.t, self.mass_model_v_out, v_shade, alpha=0.3, color='k')
+        ax.set_xlim((3, 14))
+        ax.set_ylim((-0.2, self.target_aligned.max()*1.1))
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        # ax.grid()
+        ax.set_ylabel('V (µV)', fontsize=self.labelsize)
+        ax.set_xlabel('t (ms)', fontsize=self.labelsize)
         ax.legend([label1, label2])
         if fixed_ylim:
             ax.set_ylim(-0.2*self.target.max(), 1.2*self.target.max())
         # plt.legend(['nykamp rate', 'nykamp_potential', 'D-I-wave test function'])
         ax.set_title(f'nrmse: {self.error:.4f}')
+        ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
+
         if save_fig:
             plt.savefig(self.name + '_validation.png')
             plt.close()

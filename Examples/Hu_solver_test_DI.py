@@ -78,7 +78,7 @@ if plot_di_model:
     # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
     hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
 
-    simulation_name = 'diw_Hu_solver_test_26'
+    simulation_name = 'CNS26_example'
 
     # [3.80187468e+02 6.24947346e-01 9.15432571e-01 6.77733943e-01
     #  5.89647134e-03 2.89137701e-01 3.55730239e+00 1.71540732e-06
@@ -121,7 +121,7 @@ if plot_di_model:
                   'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': False, 'min_delay': 5,
                   'test_signal_from_file': True, 'i_scale': 5.148136e-6, 'detrend': True, 'plot_detrend': False,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'mind_delay': 0,
-                  'theta': 90,
+                  'theta': 90, 'delay_signal':True,
                   'file_args': measurement_dict_2020_140_PA_ch3,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0], #1.5
@@ -129,14 +129,14 @@ if plot_di_model:
                                         'input_type': 'stochastic-current',
                                         'static_noise': True,
                                         'init_pdf_offset': 0,
-                                        'init_pdf_sigma': 0.5,
+                                        'init_pdf_sigma': 0.1,
                                         'init_pdf_weight': 0,
                                         'delay_kernel_type': 'alpha',
                                         'delay_kernel_parameters': {'n_alpha': 9, 'tau_alpha': 1/3},
                                         'dv': dv,
                                         'dt': dt,
                                         'solver': 'Hu-2021',
-                                        'current_sigma': 4,
+                                        'current_sigma': 12,
                                         'verbose': 1}}
 
     # for i_dict, dict in enumerate(data_dicts):
@@ -147,14 +147,29 @@ if plot_di_model:
     di_model = DI_wave_simulation(parameters=parameters, logname=None)
     # di_model.get_test_signal(plot=True, from_file=True, hdf5_args=di_model.file_args)
     di_model.simulate()
-    di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.001, animate=False, savefig=False)
+    plt.rcParams["font.family"] = "serif"
+    plt.rcParams["font.serif"] = ["Times New Roman"]
+    di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=False, z_limit=0.0018, animate=False, savefig=True)
+    di_model.plot_input_current(savefig=True)
     voltage_signal = di_model.mass_model_v_out
-    peak_values = get_peak_values(t, voltage_signal, find_peak_args=dict(height=0.5), plot=True)
-    print(f'{peak_values["t_delta_peaks"]}')
+    # peak_values = get_peak_values(t, voltage_signal, find_peak_args=dict(height=0.5), plot=True)
+    # print(f'{peak_values["t_delta_peaks"]}')
     # rhos = di_model.mass_model.rho
     # # change in rho area
     # drho = np.sum(rhos[0, :, 5]) - np.sum(rhos[0, :, -1])
     # print(f"change in rho: {drho}")
     # print(f'rho end: {np.sum(rhos[0, :, -1])}')
-    di_model.plot_validation(fixed_ylim=False, save_fig=False)
+
+    di_model.plot_validation(fixed_ylim=False, save_fig=True, labels=['Population Model', 'Measurement'])
     di_model.mass_model.clean()
+    # parameters['intensity'] = 200
+    parameters['theta'] = 30
+    parameters['name'] = 'CNS_26_example_PA'
+    di_model = DI_wave_simulation(parameters=parameters)
+    di_model.simulate()
+    di_model.plot_voltage(savefig=True)
+    parameters['theta'] = 150
+    parameters['name'] = 'CNS_26_example_LM'
+    di_model = DI_wave_simulation(parameters=parameters)
+    di_model.simulate()
+    di_model.plot_voltage(savefig=True)

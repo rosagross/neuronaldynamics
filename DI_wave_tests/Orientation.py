@@ -8,13 +8,16 @@ from tqdm.contrib import itertools
 from tqdm import tqdm
 from Model.Neck import generate_EP
 import scipy
-from Utils import butter_highpass_filter
+from Utils import butter_highpass_filter, delay_signal
 matplotlib.use('TkAgg')
 
+plt.rcParams["font.family"] = "serif"
+plt.rcParams["font.serif"] = ["Times New Roman"]
+
 voltage_view = True
-plot_orientations = False
+plot_orientations = True
 simulate = False
-single_shot = True
+single_shot = False
 
 dt = 0.01
 dv = 0.01
@@ -95,6 +98,7 @@ if plot_orientations:
 
     label = "r (Hz)"
     if voltage_view:
+        delay = 1.0
         label = ('V (a.u.)')
         for i, E_i in enumerate(E_values):
             EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=dt * 10)
@@ -109,7 +113,7 @@ if plot_orientations:
                 v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.05,
                                                   fps=int(1 / dt))  # very small cutoff
                 v_out_mean = nmm_potential_out.mean()
-                data[i, j] = v_out_hp / 1000
+                data[i, j] = delay_signal(v_out_hp, delay, dt) / 1000
     z_max = data.max()
     fig, axs = plt.subplots(2, 3,subplot_kw=dict(projection="polar"), figsize=(12, 10))
     for i, E_i in enumerate(E_values):
@@ -125,6 +129,9 @@ if plot_orientations:
 
         ax.set_thetagrids(np.arange(0, 360, 30))
         ax.set_rgrids([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+        if i == 1:
+            fig.colorbar(pcm, label='V (µV)', orientation="horizontal")
+            ax.set_rgrids([2, 4, 6, 8, 10, 12])
         ax.set_thetamax(180)
         ax.set_thetamin(0)
 
@@ -146,7 +153,8 @@ if plot_orientations:
     cbar_ax = fig.add_axes([0.15, 0.15, 0.8, 0.01])
     fig.colorbar(pcm, cax=cbar_ax, orientation="horizontal", label=label)
     # plt.tight_layout()
-    plt.show()
+    # plt.show()
+    plt.savefig('CNS26_orientation.png', dpi=600)
 
 ########################################################################################################################
 # SINGLE RUN OF ONE E-FIELD STRENGTH

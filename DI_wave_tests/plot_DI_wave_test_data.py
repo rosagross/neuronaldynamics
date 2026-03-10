@@ -10,13 +10,14 @@ matplotlib.use('TkAgg')
 nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
 # nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
 # nextcloud_path = '/home/erik/Downloads/DI_wave_data/DIwaves_Di_Lazzaro'
-plot = False
+plot = True
 detrend = False
-save=True
+save = False
 
 fname = 'DiLazarro_di_wave_data.hdf5'
 
-
+plt.rcParams["font.family"] = "serif"
+plt.rcParams["font.serif"] = ["Times New Roman"]
 def add_entry(dict_target, dict_source, orientation, threshold_type, rmt_digit, recording, rmt_value, year, name):
     if isinstance(rmt_digit, list):
         rmt_digit = rmt_digit[0]

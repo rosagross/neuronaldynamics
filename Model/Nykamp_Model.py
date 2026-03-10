@@ -784,6 +784,7 @@ class Nykamp_Model_1():
         self.init_pdf_weight = 1
         self.thr_idx = -1
         self.verbose = 0
+        self.labelsize=15
 
         # input current
         self.input_type = 'rate'
@@ -1626,7 +1627,7 @@ class Nykamp_Model_1():
             h5file.create_dataset('p_types', data=self.population_type)
 
     def plot(self, fname=None, heat_map=True, plot_idxs=None, savefig=False, plot_input=False, z_limit=None,
-             plot_combined=True, animate=False, crop_rate=False):
+             plot_combined=True, animate=False, crop_rate=False, frame_off=False):
 
         if fname == None:
             fname = self.name
@@ -1703,7 +1704,7 @@ class Nykamp_Model_1():
 
         else:
             for i_plot, plot_idx in enumerate(plot_idxs):
-                fig_1 = plt.figure(figsize=(5, 4.25))
+                fig_1 = plt.figure(figsize=(6, 4.25))
 
                 if heat_map:
                     ax = fig_1.add_subplot(n_plots, 1, 1)
@@ -1711,7 +1712,7 @@ class Nykamp_Model_1():
                     if z_limit is None:
                         z_limit = np.abs(rho_plot[plot_idx]).max()
                     z_min, z_max = 0, z_limit
-                    c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='viridis', vmin=z_min, vmax=z_max)
+                    c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='gnuplot2', vmin=z_min, vmax=z_max)
                     fig_1.colorbar(c, ax=ax)
 
                 else:
@@ -1722,27 +1723,39 @@ class Nykamp_Model_1():
                     ax.set_zlim3d(0, 1)
 
                 ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})")
-                ax.set_xlabel("time (ms)")
-                ax.set_ylabel("membrane potential (mv)")
+                ax.set_xlabel("time (ms)", fontsize=self.labelsize)
+                ax.set_ylabel("membrane potential (mv)", fontsize=self.labelsize)
+                ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
                 plt.tight_layout()
                 if savefig:
                     plt.savefig(self.name + 'voltage_dist_plot.png')
                     plt.close()
                 else:
                     plt.show()
-                fig_2 = plt.figure(figsize=(5, 4.25))
+                fig_2 = plt.figure(figsize=(6, 4.25))
                 ax = fig_2.add_subplot(n_plots, 1, 1)
-                ax.plot(t_plot, r_plot[plot_idx] * 1000)
+                ax.plot(t_plot, r_plot[plot_idx] * 1000, color='darkorange', linewidth=2)
                 ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
-                ax.set_ylabel("Firing rate (Hz)")
-                ax.set_xlabel("time (ms)")
+                ax.set_ylabel("Spike density (1/s)", fontsize=self.labelsize)
+                ax.set_xlabel("time (ms)", fontsize=self.labelsize)
                 if plot_input:
-                    rate_height = np.max(r_plot[plot_idx] * 1000)
-                    i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
-                    ax.plot(t_plot, i_in_plot)
-                    ax.legend(['rate', 'input'])
+                    ax_input = ax.twinx()
 
-                    ax.grid()
+                    # rate_height = np.max(r_plot[plot_idx] * 1000)
+                    # i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
+                    ax_input.plot(t_plot, i_in[plot_idx].flatten()/1e3*1e9, color='teal', linewidth=2)
+                    ax_input.set_ylabel("Current (nA)", fontsize=self.labelsize)
+                    ax_input.set_ylim(0, i_in[plot_idx].flatten().max()/1e3*1e9*1.2)
+                    ax_input.tick_params(axis='both', which='major', labelsize=self.labelsize)
+                    ax.plot(t_plot, -5*np.ones_like(r_plot[plot_idx]), color='teal')
+                    ax.legend(['Spike density', 'Current'])
+                ax.set_ylim(0, r_plot[plot_idx].max()*1e3*1.2)
+                ax.set_xlim(0, t_plot.max())
+                ax.spines['top'].set_visible(False)
+                ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
+
+
+                # ax.grid()
                 plt.tight_layout()
                 if savefig:
                     plt.savefig(self.name + 'rate_plot.png')
