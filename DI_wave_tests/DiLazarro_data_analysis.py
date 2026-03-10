@@ -116,16 +116,14 @@ def load_recordings(load_dict):
                         single_channels.append(channel_h5subgroup[key])
                 di_signals.append(single_channels)
         out = np.array(di_signals[0][0]['signal_full'])
-        measurement_data_original = out.reshape(out.shape[2], out.shape[0]*out.shape[1])
+        measurement_data_original = out[0].T
     return measurement_data_original
 
-rec_1 = load_recordings(measurement_dict_2020_140_PA_ch3)
+rec_1 = load_recordings(measurement_dict_2007_150_PA_ch3)
 sample_frequency = 1e4
 t_ch1 = np.linspace(0, rec_1.shape[1]/sample_frequency, rec_1.shape[1]) * 1e3
 rec_1_mean = rec_1.mean(axis=0)
 
-# todo check tms peak and check dt here
-# where does the peak go?, check ustils version of this...
 tms_peak_idx = scipy.signal.find_peaks(rec_1_mean, height=rec_1_mean.max()*0.9)[0][0]
 t_min1ms_idx = int(tms_peak_idx - (5 / dt))
 t_2ms_idx = int(tms_peak_idx + (2 / dt))
