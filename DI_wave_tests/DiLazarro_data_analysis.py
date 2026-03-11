@@ -14,6 +14,9 @@ dt = 0.01
 dv = 0.01
 T = 14
 
+highpass = True
+section = False
+
 t = np.arange(0, T, dt)
 Nt = t.shape[0]
 detrend = True
@@ -47,6 +50,8 @@ measurement_dict_2007_150_PA_ch3 = dict(orientation='PA', threshold=150, year=20
 measurement_dict_2004_154_PA_2_ch2 = dict(orientation='PA', threshold=154, year=2004, hdf5_path=hdf5_path, sigma=1.0)
 measurement_dict_2004_146_PA_2_ch2 = dict(orientation='PA', threshold=146, year=2004, hdf5_path=hdf5_path, sigma=1.0)
 measurement_dict_2004_150_PA_1_ch2 = dict(orientation='PA', threshold=150, year=2004, hdf5_path=hdf5_path, sigma=0.1)
+measurement_dict_2004_155_PA_1_ch2 = dict(orientation='PA', threshold=155, year=2004, hdf5_path=hdf5_path, sigma=0.1)
+measurement_dict_2013_120_PA_ch2 = dict(orientation='PA', threshold=120, year=2013, hdf5_path=hdf5_path, sigma=0.1)
 
 measurement_dict_2020_80_LM_ch3 = dict(orientation='LM', threshold=80, year=2020, hdf5_path=hdf5_path, sigma=1.0, channel=0)
 measurement_dict_2020_80_LM_ch4 = dict(orientation='LM', threshold=80, year=2020, hdf5_path=hdf5_path, sigma=1.0, channel=1)
@@ -59,26 +64,28 @@ measurement_dict_2013_100_LM_ch3 = dict(orientation='LM', threshold=100, year=20
 measurement_dict_2007_120_LM_ch2 = dict(orientation='LM', threshold=120, year=2007, hdf5_path=hdf5_path, sigma=1.0, channel=0)
 measurement_dict_2004_140_LM_1_ch2 = dict(orientation='LM', threshold=140, year=2004, hdf5_path=hdf5_path, sigma=0.1, channel=0)
 
-data_dicts = [measurement_dict_2020_140_PA_ch3,
-              measurement_dict_2020_120_PA_ch3,
-              measurement_dict_2020_100_PA_ch3,
+data_dicts = [measurement_dict_2020_100_PA_ch3,
               measurement_dict_2013_110_PA_ch2,
               measurement_dict_2013_110_PA_ch3,
+              measurement_dict_2020_120_PA_ch3,
               measurement_dict_2007_120_PA_ch3,
-              measurement_dict_2007_150_PA_ch3,
-              measurement_dict_2004_154_PA_2_ch2,
+              measurement_dict_2013_120_PA_ch2,
+              measurement_dict_2020_140_PA_ch3,
               measurement_dict_2004_146_PA_2_ch2,
-              measurement_dict_2004_150_PA_1_ch2]
+              measurement_dict_2004_154_PA_2_ch2,
+              measurement_dict_2007_150_PA_ch3,
+              measurement_dict_2004_150_PA_1_ch2,
+              measurement_dict_2004_155_PA_1_ch2]
 
 data_dicts_LM = [measurement_dict_2020_80_LM_ch3,
               measurement_dict_2020_80_LM_ch4,
               measurement_dict_2020_100_LM_ch3,
               measurement_dict_2020_100_LM_ch4,
-              measurement_dict_2020_120_LM_ch3,
-              measurement_dict_2020_120_LM_ch4,
               measurement_dict_2013_100_LM_ch2,
               measurement_dict_2013_100_LM_ch3,
-              # measurement_dict_2007_120_LM_ch2,
+              measurement_dict_2020_120_LM_ch3,
+              measurement_dict_2020_120_LM_ch4,
+              measurement_dict_2007_120_LM_ch2,
               measurement_dict_2004_140_LM_1_ch2]
 
 def load_recordings(load_dict):
@@ -119,18 +126,126 @@ def load_recordings(load_dict):
         measurement_data_original = out[0].T
     return measurement_data_original
 
-rec_1 = load_recordings(measurement_dict_2007_150_PA_ch3)
-sample_frequency = 1e4
-t_ch1 = np.linspace(0, rec_1.shape[1]/sample_frequency, rec_1.shape[1]) * 1e3
-rec_1_mean = rec_1.mean(axis=0)
+# rec_1 = load_recordings(measurement_dict_2007_150_PA_ch3)
+all_dicts = data_dicts + data_dicts_LM
+for k, dict_k in enumerate(all_dicts):
+    rec_1 = load_recordings(dict_k)
 
-tms_peak_idx = scipy.signal.find_peaks(rec_1_mean, height=rec_1_mean.max()*0.9)[0][0]
-t_min1ms_idx = int(tms_peak_idx - (5 / dt))
-t_2ms_idx = int(tms_peak_idx + (2 / dt))
-t_15ms_idx = int(tms_peak_idx + (15 / dt))
-t_5ms_idx = int(tms_peak_idx + (5 / dt))
-rec_1_mean = scipy.ndimage.gaussian_filter1d(rec_1_mean, sigma=1)
-for i in range(rec_1.shape[0]):
-    plt.plot(rec_1[i, t_min1ms_idx:t_15ms_idx], color='k', alpha=0.3)
-plt.plot(rec_1_mean[t_min1ms_idx:t_15ms_idx], color='blue', alpha=1.0)
-a=1
+    sample_frequency = 1e4
+
+
+    t_ch1 = np.linspace(0, rec_1.shape[1]/sample_frequency, rec_1.shape[1]) * 1e3
+    dt = 1/sample_frequency*1e3
+    t_end = 10
+    rec_1_mean = rec_1.mean(axis=0)
+    tms_peak_idx, peak_height = scipy.signal.find_peaks(rec_1_mean, height=rec_1_mean.max()*0.9)
+    t_min1ms_idx = int(tms_peak_idx - (1 / dt))
+    t_2ms_idx = int(tms_peak_idx + (2 / dt))
+    t_end_idx = int(tms_peak_idx + (t_end / dt))
+    t_5ms_idx = int(tms_peak_idx + (5 / dt))
+
+    if highpass:
+        if section:
+            for j in range(rec_1.shape[0]):
+                rec_1[j, t_2ms_idx:t_end_idx] = butter_highpass_filter(rec_1[j, t_2ms_idx:t_end_idx], cutoff=0.000005, fps=1/sample_frequency)
+            rec_1_mean = rec_1.mean(axis=0)
+        else:
+            for j in range(rec_1.shape[0]):
+                rec_1[j, t_2ms_idx:t_end_idx] = butter_highpass_filter(rec_1[j, t_2ms_idx:t_end_idx], cutoff=0.000005, fps=1/sample_frequency)
+            rec_1_mean = rec_1.mean(axis=0)
+
+    t=np.arange(-1, t_end, dt)
+    rec_1_mean = scipy.ndimage.gaussian_filter1d(rec_1_mean, sigma=0.2)
+
+    # begin figure
+
+    fig = plt.figure(figsize=(10, 3))
+    fig.suptitle(f'{dict_k["orientation"]} - {dict_k["threshold"]} - {rec_1.shape[0]} samples - {dict_k["year"]}')
+    ax = fig.add_subplot(131)
+    rec_local = np.zeros((rec_1.shape[0], t_end_idx-t_min1ms_idx))
+    for i in range(rec_1.shape[0]):
+        rec_local[i] = rec_1[i, t_min1ms_idx:t_end_idx]
+    rec_mean_local = rec_1_mean[t_min1ms_idx:t_end_idx]
+
+    # rescale the outliers
+    if rec_mean_local.max() > 6:
+        rec_local = rec_local*0.5
+        rec_mean_local = rec_mean_local * 0.5
+
+    for i in range(rec_1.shape[0]):
+        plt.plot(t, rec_local[i], color='k', alpha=0.2)
+    ax.plot(t, rec_mean_local, color='blue', alpha=1.0)
+    ax.set_ylim(-1.5, 5)
+    dtI = 1.5
+    tI1 = np.where(t>2.0)[0][0]
+    tI2 = np.where(t>(2.0+dtI))[0][0]
+    tI3 = np.where(t>(2.0+2*dtI))[0][0]
+    tI4 = np.where(t>(2.0+3*dtI))[0][0]
+    tI5 = np.where(t>(2.0+4*dtI))[0][0]
+    tI6 = np.where(t>(2.0+5*dtI))[0][0]
+    shade_bot = np.ones_like(t)*-30
+    shade_top = np.ones_like(t)*-30
+    shade_top[tI1:tI2] = 30
+    shade_top[tI3:tI4] = 30
+    shade_top[tI5:tI6] = 30
+    ax.fill_between(t, shade_top, shade_bot, alpha=0.3, color='k', zorder=-10)
+    ax.set_xlim(-1, 10)
+    ax.set_xlabel('t (ms)')
+    ax.set_ylabel('v (µV)')
+    ax.text(2.5, 4.0, 'D')
+    ax.text(4.0, 4.0, 'I1')
+    ax.text(5.5, 4.0, 'I2')
+
+    ax = fig.add_subplot(132)
+    # plot distribution of peaks in I1, I2, I3 and D interval
+    I1_amps = np.zeros(rec_local.shape[0])
+    I2_amps = np.zeros(rec_local.shape[0])
+    I3_amps = np.zeros(rec_local.shape[0])
+    for i in range(rec_local.shape[0]):
+        I1_amps[i] = rec_local[i, tI1:tI2].max()
+        I2_amps[i] = rec_local[i, tI2:tI3].max()
+        I3_amps[i] = rec_local[i, tI3:tI4].max()
+    counts, bins = np.histogram(I1_amps)
+    ax.stairs(counts, bins, fill=True, color='indianred', alpha=0.3)
+    counts, bins = np.histogram(I2_amps)
+    ax.stairs(counts, bins, fill=True, color='darkorange', alpha=0.3)
+    counts, bins = np.histogram(I3_amps)
+    ax.stairs(counts, bins, fill=True, color='teal', alpha=0.3)
+    ax.legend(['D-wave peaks', 'I1-peaks', 'I2-peaks'])
+
+    ax.set_xlabel('Amplitude (µV)')
+    ax.set_ylabel('Histogram')
+
+    ax = fig.add_subplot(133)
+    # plot distribution of peaks in I1, I2, I3 and D interval
+    I1_times = np.zeros(rec_local.shape[0])
+    I2_times = np.zeros(rec_local.shape[0])
+    I3_times = np.zeros(rec_local.shape[0])
+    for i in range(rec_local.shape[0]):
+        I1_times[i] = t[np.argmax(rec_local[i, tI1:tI2])] + 2.0
+        I2_times[i] = t[np.argmax(rec_local[i, tI2:tI3])] + (2.0+dtI)
+        I3_times[i] = t[np.argmax(rec_local[i, tI3:tI4])] + (2.0+2.0*dtI)
+    counts, bins = np.histogram(I1_times, bins=np.arange(I1_times.min(), I1_times.max(), dt))
+    try:
+        ax.stairs(counts, bins, fill=True, color='indianred', alpha=0.3)
+        counts, bins = np.histogram(I2_times, bins=np.arange(I2_times.min(), I2_times.max(), dt))
+    except:
+        pass
+    try:
+        ax.stairs(counts, bins, fill=True, color='darkorange', alpha=0.3)
+        counts, bins = np.histogram(I3_times, bins=np.arange(I3_times.min(), I3_times.max(), dt))
+    except:
+        pass
+    try:
+        ax.stairs(counts, bins, fill=True, color='teal', alpha=0.3)
+        ax.legend(['D-wave peaks', 'I1-peaks', 'I2-peaks'], loc='upper right')
+    except:
+        pass
+    ax.set_xlabel('Amplitude time (ms)')
+    ax.set_ylabel('Histogram')
+    plt.tight_layout()
+
+    # plt.show()
+    plt.savefig(f'I-wave_hists_{k}.png', dpi=200)
+    print(f'saved to I-wave_hists_{k}.png')
+    a=1
