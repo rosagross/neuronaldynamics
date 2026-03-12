@@ -1678,14 +1678,14 @@ class Nykamp_Model_1():
                     ax.set_zlim3d(0, 1)
 
                 ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})")
-                ax.set_xlabel("time (ms)")
-                ax.set_ylabel("membrane potential (mv)")
+                ax.set_xlabel("t (ms)")
+                ax.set_ylabel("Membrane potential (mV)")
 
                 ax = fig.add_subplot(n_plots, 2, plot_loc_2)
                 ax.plot(t_plot, r_plot[plot_idx] * 1000)
                 ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
                 ax.set_ylabel("Firing rate (Hz)")
-                ax.set_xlabel("time (ms)")
+                ax.set_xlabel("t (ms)")
                 if crop_rate:
                     ax.set_ylim(0, np.max(1.2*r_plot[plot_idx, 50:] * 1000))
                 if plot_input:
@@ -1723,8 +1723,8 @@ class Nykamp_Model_1():
                     ax.set_zlim3d(0, 1)
 
                 ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})")
-                ax.set_xlabel("time (ms)", fontsize=self.labelsize)
-                ax.set_ylabel("membrane potential (mv)", fontsize=self.labelsize)
+                ax.set_xlabel("t (ms)", fontsize=self.labelsize)
+                ax.set_ylabel("Membrane potential (mM)", fontsize=self.labelsize)
                 ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
                 plt.tight_layout()
                 if savefig:
@@ -1737,7 +1737,7 @@ class Nykamp_Model_1():
                 ax.plot(t_plot, r_plot[plot_idx] * 1000, color='darkorange', linewidth=2)
                 ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
                 ax.set_ylabel("Spike density (1/s)", fontsize=self.labelsize)
-                ax.set_xlabel("time (ms)", fontsize=self.labelsize)
+                ax.set_xlabel("t (ms)", fontsize=self.labelsize)
                 if plot_input:
                     ax_input = ax.twinx()
 

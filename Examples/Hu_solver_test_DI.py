@@ -150,6 +150,7 @@ if plot_di_model:
     plt.rcParams["font.family"] = "serif"
     plt.rcParams["font.serif"] = ["Times New Roman"]
     di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=False, z_limit=0.0018, animate=False, savefig=True)
+    di_model.labelsize=20
     di_model.plot_input_current(savefig=True)
     voltage_signal = di_model.mass_model_v_out
     # peak_values = get_peak_values(t, voltage_signal, find_peak_args=dict(height=0.5), plot=True)
@@ -159,7 +160,7 @@ if plot_di_model:
     # drho = np.sum(rhos[0, :, 5]) - np.sum(rhos[0, :, -1])
     # print(f"change in rho: {drho}")
     # print(f'rho end: {np.sum(rhos[0, :, -1])}')
-
+    di_model.labelsize=17
     di_model.plot_validation(fixed_ylim=False, save_fig=True, labels=['Population Model', 'Measurement'])
     di_model.mass_model.clean()
     # parameters['intensity'] = 200
@@ -168,8 +169,10 @@ if plot_di_model:
     di_model = DI_wave_simulation(parameters=parameters)
     di_model.simulate()
     di_model.plot_voltage(savefig=True)
+    di_model.mass_model.clean()
     parameters['theta'] = 150
     parameters['name'] = 'CNS_26_example_LM'
     di_model = DI_wave_simulation(parameters=parameters)
     di_model.simulate()
     di_model.plot_voltage(savefig=True)
+    di_model.mass_model.clean()

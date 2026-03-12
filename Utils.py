@@ -652,7 +652,7 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
 
         di_wave_data[f'{rmt_values[k]}'] = dict(time=t_ch1, time_short=t_window, RMT_digit=RMT_digit,
                                                 threshold_type=threshold_type, orientation=orientation,
-                                                sample_frequency=sample_frequency)
+                                                sample_frequency=sample_frequency[k])
 
         for i_idx, idx in enumerate(epidural_channel_idxs):
             signals_full = rmt_k_data[:, idx, :]
@@ -742,7 +742,7 @@ def argmin_2d(array):
     :param array: np.ndarray, input array
     :return: idxs: tuple, 2 output idxs of min value
     """
-    assert(len(array.shape) == 2, 'Please only provide 2D arrays as input for this funtion!')
+    assert len(array.shape) == 2, 'Please only provide 2D arrays as input for this funtion!'
 
     min_idx_1D = np.nanargmin(array)
     ncol = array.shape[1]
@@ -751,7 +751,7 @@ def argmin_2d(array):
     return row_idx, col_idx
 
 
-def get_I_wave_locs(recording, sample_frequency=1e4, t_end=10, dtI=1.5, highpass=True, section=True):
+def get_I_wave_locs(recording, sample_frequency=1e4, t_end=10, dtI=1.5, tD=2.0, highpass=True, section=True):
     """
     Function that finds local I-wave locations in dt intervals after TMS pulse
     an input recording is sliced 2ms after the TMS pulse into sections every dtI ms
@@ -759,7 +759,8 @@ def get_I_wave_locs(recording, sample_frequency=1e4, t_end=10, dtI=1.5, highpass
     :param sample_frequency: np.float, sample frequency of recording, default=1e4
     :param t_end: np.float, end of time window where recording is analysed, default=10ms
     :param dtI: np.float, assumed time interval between I-waves, default=1.5ms
-    :param highpass: bool, if signal needs to be highpassed, default=True
+    :param tD: np.float, start of time interval of D-wave, default=2.0 meaning the interval (2, 2+dtI)ms will be used
+    :param highpass: bool, if signal needs to be highpassed, default=None
     :param section: bool, if the highpass is performed only on the section starting at 2ms and ending at t_end.
      This is preferable since the large TMS signal at 0ms distorts the highpass filtered signal close to it, default=True
     :return: I-wave charactersitics in 5 lists:
@@ -796,12 +797,12 @@ def get_I_wave_locs(recording, sample_frequency=1e4, t_end=10, dtI=1.5, highpass
         rec_local = rec_local * 0.5
         rec_mean_local = rec_mean_local * 0.5
 
-    tI1 = np.where(t > 2.0)[0][0]
-    tI2 = np.where(t > (2.0 + dtI))[0][0]
-    tI3 = np.where(t > (2.0 + 2 * dtI))[0][0]
-    tI4 = np.where(t > (2.0 + 3 * dtI))[0][0]
-    tI5 = np.where(t > (2.0 + 4 * dtI))[0][0]
-    tI6 = np.where(t > (2.0 + 5 * dtI))[0][0]
+    tI1 = np.where(t > tD)[0][0]
+    tI2 = np.where(t > (tD + dtI))[0][0]
+    tI3 = np.where(t > (tD + 2 * dtI))[0][0]
+    tI4 = np.where(t > (tD + 3 * dtI))[0][0]
+    tI5 = np.where(t > (tD + 4 * dtI))[0][0]
+    tI6 = np.where(t > (tD + 5 * dtI))[0][0]
 
     I1_amps = np.zeros(rec_local.shape[0])
     I2_amps = np.zeros(rec_local.shape[0])
@@ -815,9 +816,9 @@ def get_I_wave_locs(recording, sample_frequency=1e4, t_end=10, dtI=1.5, highpass
     I2_times = np.zeros(rec_local.shape[0])
     I3_times = np.zeros(rec_local.shape[0])
     for i in range(rec_local.shape[0]):
-        I1_times[i] = t[np.argmax(rec_local[i, tI1:tI2])] + 3.0  # t starts at -1
-        I2_times[i] = t[np.argmax(rec_local[i, tI2:tI3])] + (3.0 + dtI)
-        I3_times[i] = t[np.argmax(rec_local[i, tI3:tI4])] + (3.0 + 2.0 * dtI)
+        I1_times[i] = t[np.argmax(rec_local[i, tI1:tI2])] + 1.0 + tD  # t starts at -1
+        I2_times[i] = t[np.argmax(rec_local[i, tI2:tI3])] + (1.0 + tD + dtI)
+        I3_times[i] = t[np.argmax(rec_local[i, tI3:tI4])] + (1.0 + tD + 2.0 * dtI)
     tms_idxs = [tms_peak_idx, t_min1ms_idx, t_2ms_idx, t_5ms_idx]
     time_intervals = [tI1, tI2, tI3, tI4, tI5, tI6]
     I_wave_times = [I1_times, I2_times, I3_times]

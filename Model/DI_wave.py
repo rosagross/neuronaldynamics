@@ -220,9 +220,10 @@ class DI_wave_simulation():
         fig = plt.figure(figsize=(7, 5))
         ax = fig.add_subplot(111)
         ax.plot(self.t, self.mass_model_v_out, linewidth=2, c='indianred')  # hotfixes...
-        ax.set_xlabel('time (ms)', fontsize=self.labelsize)
-        ax.set_ylabel('Voltage (µV)', fontsize=self.labelsize)
+        ax.set_xlabel('t (ms)', fontsize=self.labelsize)
+        ax.set_ylabel('v (µV)', fontsize=self.labelsize)
         ax.set_ylim(0, self.mass_model_v_out.max() * 1.1)
+        ax.set_ylim(0, 4)
         ax.set_xlim((2, self.t.max()))
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
@@ -452,7 +453,7 @@ class DI_wave_simulation():
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         # ax.grid()
-        ax.set_ylabel('V (µV)', fontsize=self.labelsize)
+        ax.set_ylabel('v (µV)', fontsize=self.labelsize)
         ax.set_xlabel('t (ms)', fontsize=self.labelsize)
         ax.legend([label1, label2])
         if fixed_ylim:

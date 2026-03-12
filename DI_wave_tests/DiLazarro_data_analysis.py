@@ -1,14 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from Model.DI_wave import DI_wave_simulation
-from Model.Neck import generate_EP
-import scipy
-from Utils import get_peak_values, argmin_2d, butter_highpass_filter, get_I_wave_locs
+from Utils import get_I_wave_locs
 import h5py
-from tqdm.contrib import itertools
-from Model.Nykamp_Model import Nykamp_Model_1
 matplotlib.use('TkAgg')
+plt.rcParams["font.family"] = "serif"
+plt.rcParams["font.serif"] = ["Times New Roman"]
 
 dt = 0.01
 dv = 0.01
@@ -17,13 +14,11 @@ T = 14
 highpass = True
 section = False
 make_hist_figs = False
+make_boxplots = True
 
 t = np.arange(0, T, dt)
 Nt = t.shape[0]
-detrend = True
-scale = False
-plot_overview = True
-opt_crit = 0
+detrend = False
 
 # fn_session = '/home/erik/Downloads/gpc.pkl'
 fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
@@ -125,20 +120,27 @@ def load_recordings(load_dict):
                 di_signals.append(single_channels)
         out = np.array(di_signals[0][0]['signal_full'])
         measurement_data_original = out[0].T
-    return measurement_data_original
+        sample_frequency = np.array(di_signals[0][0]['sample_frequency'])
+
+    return measurement_data_original, sample_frequency
 
 
 
 
-# recording = load_recordings(measurement_dict_2007_150_PA_ch3)
 all_dicts = data_dicts + data_dicts_LM
+# all_dicts = [measurement_dict_2004_140_LM_1_ch2]
 if make_hist_figs:
     for k, dict_k in enumerate(all_dicts):
-
-        recording = load_recordings(dict_k)
-        sample_frequency = 1e4
+        dtI = 1.5
+        tD = 2.0
+        if dict_k['year'] == 2004 and dict_k['orientation'] == 'LM':
+            dtI = 1.2
+            tD = 3.0
+        recording, sample_frequency = load_recordings(dict_k)
         t, dt, tms_idxs, time_intervals, I_wave_times, I_wave_amps, rec_local = get_I_wave_locs(recording,
-                                                                                                sample_frequency=sample_frequency)
+                                                                                                sample_frequency=sample_frequency,
+                                                                                                dtI=dtI,
+                                                                                                tD=tD)
         tms_peak_idx, t_min1ms_idx, t_2ms_idx, t_5ms_idx = tms_idxs
         tI1, tI2, tI3, tI4, tI5, tI6 = time_intervals
         I1_times, I2_times, I3_times = I_wave_times
@@ -163,9 +165,9 @@ if make_hist_figs:
         ax.set_xlim(-1, 10)
         ax.set_xlabel('t (ms)')
         ax.set_ylabel('v (µV)')
-        ax.text(2.5, 4.0, 'D')
-        ax.text(4.0, 4.0, 'I1')
-        ax.text(5.5, 4.0, 'I2')
+        ax.text(tD + 0.5, 4.0, 'D')
+        ax.text(tD + dtI + 0.5, 4.0, 'I1')
+        ax.text(tD + 2*dtI + 0.5, 4.0, 'I2')
 
         ax = fig.add_subplot(132)
         # plot distribution of peaks in I1, I2, I3 and D interval
@@ -184,11 +186,11 @@ if make_hist_figs:
         ax = fig.add_subplot(133)
         # plot distribution of peaks in I1, I2, I3 and D interval
 
-        counts, bins = np.histogram(I1_times, bins=np.arange(I1_times.min(), I1_times.max()+dt, dt))
+        counts, bins = np.histogram(I1_times, bins=np.arange(I1_times.min()-dt, I1_times.max()+dt, dt))
         ax.stairs(counts, bins, fill=True, color='indianred', alpha=0.3)
-        counts, bins = np.histogram(I2_times, bins=np.arange(I2_times.min(), I2_times.max()+dt, dt))
+        counts, bins = np.histogram(I2_times, bins=np.arange(I2_times.min()-dt, I2_times.max()+dt, dt))
         ax.stairs(counts, bins, fill=True, color='darkorange', alpha=0.3)
-        counts, bins = np.histogram(I3_times, bins=np.arange(I3_times.min(), I3_times.max()+dt, dt))
+        counts, bins = np.histogram(I3_times, bins=np.arange(I3_times.min()-dt, I3_times.max()+dt, dt))
         ax.stairs(counts, bins, fill=True, color='teal', alpha=0.3)
         ax.legend(['D-wave peaks', 'I1-peaks', 'I2-peaks'], loc='upper right')
         ax.set_xlabel('Amplitude time (ms)')
@@ -198,16 +200,97 @@ if make_hist_figs:
         # plt.show()
         plt.savefig(f'I-wave_hists_{k}.png', dpi=200)
         print(f'saved to I-wave_hists_{k}.png')
-        a=1
+        plt.close()
 
-make_boxplots = True
 pa_box_dicts = [measurement_dict_2020_100_PA_ch3,
                 measurement_dict_2013_110_PA_ch2,
                 measurement_dict_2013_120_PA_ch2,
-                measurement_dict_2020_140_PA_ch3,
-                measurement_dict_2007_150_PA_ch3]
+                measurement_dict_2020_140_PA_ch3]
+pa_thresholds = [100, 110, 120, 140]
+lm_box_dicts = [measurement_dict_2020_120_LM_ch3,
+                measurement_dict_2004_140_LM_1_ch2]
+lm_thresholds = [120, 140]
+
 if make_boxplots:
+
+    I1_wave_times_pa = []
+    I2_wave_times_pa = []
+    I3_wave_times_pa = []
+
+    I1_wave_times_lm = []
+    I2_wave_times_lm = []
+    I3_wave_times_lm = []
+
     for k, dict_k in enumerate(pa_box_dicts):
-        sample_frequency=1e4
+        recording, sample_frequency = load_recordings(dict_k)
         t, dt, tms_idxs, time_intervals, I_wave_times, I_wave_amps, rec_local = get_I_wave_locs(recording,
                                                                                                 sample_frequency=sample_frequency)
+        I1_wave_times_pa.append(I_wave_times[0])
+        I2_wave_times_pa.append(I_wave_times[1])
+        I3_wave_times_pa.append(I_wave_times[2])
+
+    # lm 120
+    recording, sample_frequency = load_recordings(lm_box_dicts[0])
+    t, dt, tms_idxs, time_intervals, I_wave_times, I_wave_amps, rec_local = get_I_wave_locs(recording,
+                                                                                            sample_frequency=sample_frequency)
+    I1_wave_times_lm.append(I_wave_times[0])
+    I2_wave_times_lm.append(I_wave_times[1])
+    I3_wave_times_lm.append(I_wave_times[2])
+
+    # lm 140
+    recording, sample_frequency = load_recordings(lm_box_dicts[1])
+    t, dt, tms_idxs, time_intervals, I_wave_times, I_wave_amps, rec_local = get_I_wave_locs(recording,
+                                                                                            sample_frequency=sample_frequency,
+                                                                                            dtI=1.2,
+                                                                                            tD=3.0)
+    I1_wave_times_lm.append(I_wave_times[0])
+    I2_wave_times_lm.append(I_wave_times[1])
+    I3_wave_times_lm.append(I_wave_times[2])
+
+    fig = plt.figure(figsize=(14, 8))
+    ax = fig.add_subplot(231)
+    ax.boxplot(I1_wave_times_pa)
+    ax.set_xlabel('% MTR')
+    ax.set_xticklabels(pa_thresholds)
+    ax.set_title('D-wave time')
+    ax.set_ylabel('t (ms)')
+
+    ax = fig.add_subplot(232)
+    ax.boxplot(I2_wave_times_pa)
+    ax.set_xlabel('% MTR')
+    ax.set_xticklabels(pa_thresholds)
+    ax.set_title('I1-wave time')
+    ax.set_ylabel('t (ms)')
+
+    ax = fig.add_subplot(233)
+    ax.boxplot(I3_wave_times_pa)
+    ax.set_xlabel('% MTR')
+    ax.set_xticklabels(pa_thresholds)
+    ax.set_title('I2-wave time')
+    ax.set_ylabel('t (ms)')
+
+    ax = fig.add_subplot(234)
+    ax.boxplot(I1_wave_times_lm)
+    ax.set_xlabel('% MTR')
+    ax.set_xticklabels(lm_thresholds)
+    ax.set_title('D-wave time')
+    ax.set_ylabel('t (ms)')
+
+    ax = fig.add_subplot(235)
+    ax.boxplot(I2_wave_times_lm)
+    ax.set_xlabel('% MTR')
+    ax.set_xticklabels(lm_thresholds)
+    ax.set_title('I1-wave time')
+    ax.set_ylabel('t (ms)')
+
+    ax = fig.add_subplot(236)
+    ax.boxplot(I3_wave_times_lm)
+    ax.set_xlabel('% MTR')
+    ax.set_xticklabels(lm_thresholds)
+    ax.set_title('I2-wave time')
+    ax.set_ylabel('t (ms)')
+
+    plt.tight_layout()
+    plt.savefig('Iwave_latency_boxplots.png')
+    print(f'saved img to Iwave_latency_boxplots.png')
+    # plt.show()
