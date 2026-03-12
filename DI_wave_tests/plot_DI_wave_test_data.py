@@ -6,19 +6,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from Utils import plot_DI_wave_data, get_di_wave_data
+plt.rcParams["font.family"] = "serif"
+plt.rcParams["font.serif"] = ["Times New Roman"]
+
 matplotlib.use('TkAgg')
 nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
 # nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
 # nextcloud_path = '/home/erik/Downloads/DI_wave_data/DIwaves_Di_Lazzaro'
-plot = True
+plot = False
 detrend = False
-save = False
+save = True
 
 fname = 'DiLazarro_di_wave_data.hdf5'
 
-plt.rcParams["font.family"] = "serif"
-plt.rcParams["font.serif"] = ["Times New Roman"]
-def add_entry(dict_target, dict_source, orientation, threshold_type, rmt_digit, recording, rmt_value, year, name):
+
+def add_entry(dict_target, dict_source, orientation, threshold_type, rmt_digit, recording, rmt_value, year, name,
+              sample_frequency):
     if isinstance(rmt_digit, list):
         rmt_digit = rmt_digit[0]
     # init dict if necessary
@@ -44,9 +47,10 @@ def add_entry(dict_target, dict_source, orientation, threshold_type, rmt_digit, 
             signal_full = dict_source[recording][rmt_value][channel]['signal_full']
             signal_short = dict_source[recording][rmt_value][channel]['signal_short']
             dict_target[orientation][threshold_type][str(rmt_digit)][year][name][channel] = dict(signal_full=signal_full,
-                                                                                                 signal_short=signal_short)
-def save_entry(fname, dict_source, orientation, threshold_type, rmt_digit, recording, rmt_value, year, name):
-
+                                                                                                 signal_short=signal_short,
+                                                                                                 sample_frequency=sample_frequency)
+def save_entry(fname, dict_source, orientation, threshold_type, rmt_digit, recording, rmt_value, year, name,
+               sample_frequency):
 
     if isinstance(rmt_digit, list):
         rmt_digit = rmt_digit[0]
@@ -84,6 +88,8 @@ def save_entry(fname, dict_source, orientation, threshold_type, rmt_digit, recor
                     'signal_full', data=signal_full)
                 h5file[orientation][threshold_type][str(rmt_digit)][year][name][channel].create_dataset(
                             'signal_short', data=signal_short)
+                h5file[orientation][threshold_type][str(rmt_digit)][year][name][channel].create_dataset(
+                    'sample_frequency', data=sample_frequency)
     di_wave_df = pd.DataFrame.from_dict(di_wave_dict)
     file_path = os.path.abspath(__file__)
     dict_path = file_path[:-26]
@@ -237,6 +243,7 @@ for recording in di_wave_data_collection.keys():
             orientation = di_wave_data_collection[recording][rmt_value]['orientation']
             threshold_type = di_wave_data_collection[recording][rmt_value]['threshold_type']
             rmt_digit = di_wave_data_collection[recording][rmt_value]['RMT_digit']
+            sample_frequency = di_wave_data_collection[recording][rmt_value]['sample_frequency']
             add_entry(dict_target=di_wave_dict,
                       dict_source=di_wave_data_collection,
                       orientation=orientation,
@@ -245,7 +252,8 @@ for recording in di_wave_data_collection.keys():
                       recording=recording,
                       rmt_value=rmt_value,
                       year=year,
-                      name=name)
+                      name=name,
+                      sample_frequency=sample_frequency)
             if save:
                 save_entry(dict_source=di_wave_data_collection,
                           orientation=orientation,
@@ -255,5 +263,6 @@ for recording in di_wave_data_collection.keys():
                           rmt_value=rmt_value,
                           year=year,
                           name=name,
-                           fname=fname)
+                          fname=fname,
+                          sample_frequency=sample_frequency)
 

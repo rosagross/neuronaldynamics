@@ -651,7 +651,8 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
         RMT_digit = [int(match.group(1)) for s in rmt_values[k].split(' ') if (match := re.search(r'(\d+)%', s))]
 
         di_wave_data[f'{rmt_values[k]}'] = dict(time=t_ch1, time_short=t_window, RMT_digit=RMT_digit,
-                                                threshold_type=threshold_type, orientation=orientation)
+                                                threshold_type=threshold_type, orientation=orientation,
+                                                sample_frequency=sample_frequency)
 
         for i_idx, idx in enumerate(epidural_channel_idxs):
             signals_full = rmt_k_data[:, idx, :]
@@ -748,3 +749,78 @@ def argmin_2d(array):
     row_idx = int(np.floor(min_idx_1D / ncol))
     col_idx = min_idx_1D % ncol
     return row_idx, col_idx
+
+
+def get_I_wave_locs(recording, sample_frequency=1e4, t_end=10, dtI=1.5, highpass=True, section=True):
+    """
+    Function that finds local I-wave locations in dt intervals after TMS pulse
+    an input recording is sliced 2ms after the TMS pulse into sections every dtI ms
+    :param recording: np.ndarray, input signal/recording that is analysed
+    :param sample_frequency: np.float, sample frequency of recording, default=1e4
+    :param t_end: np.float, end of time window where recording is analysed, default=10ms
+    :param dtI: np.float, assumed time interval between I-waves, default=1.5ms
+    :param highpass: bool, if signal needs to be highpassed, default=True
+    :param section: bool, if the highpass is performed only on the section starting at 2ms and ending at t_end.
+     This is preferable since the large TMS signal at 0ms distorts the highpass filtered signal close to it, default=True
+    :return: I-wave charactersitics in 5 lists:
+
+    """
+    dt = 1 / sample_frequency * 1e3
+    recording_mean = recording.mean(axis=0)
+    tms_peak_idx, peak_height = scipy.signal.find_peaks(recording_mean, height=recording_mean.max() * 0.9)
+    t_min1ms_idx = int(tms_peak_idx - (1 / dt))
+    t_2ms_idx = int(tms_peak_idx + (2 / dt))
+    t_end_idx = int(tms_peak_idx + (t_end / dt))
+    t_5ms_idx = int(tms_peak_idx + (5 / dt))
+
+    if highpass:
+        if section:
+            for j in range(recording.shape[0]):
+                recording[j, t_2ms_idx:t_end_idx] = butter_highpass_filter(recording[j, t_2ms_idx:t_end_idx],
+                                                                           cutoff=0.000005, fps=1 / sample_frequency)
+            recording_mean = recording.mean(axis=0)
+        else:
+            for j in range(recording.shape[0]):
+                recording[j] = butter_highpass_filter(recording[j],cutoff=0.000005, fps=1 / sample_frequency)
+            recording_mean = recording.mean(axis=0)
+
+    t = np.arange(-1, t_end, dt)
+    recording_mean = scipy.ndimage.gaussian_filter1d(recording_mean, sigma=0.2)
+    rec_local = np.zeros((recording.shape[0], t_end_idx - t_min1ms_idx))
+    for i in range(recording.shape[0]):
+        rec_local[i] = recording[i, t_min1ms_idx:t_end_idx]
+    rec_mean_local = recording_mean[t_min1ms_idx:t_end_idx]
+
+    # rescale the outliers
+    if rec_mean_local.max() > 6:
+        rec_local = rec_local * 0.5
+        rec_mean_local = rec_mean_local * 0.5
+
+    tI1 = np.where(t > 2.0)[0][0]
+    tI2 = np.where(t > (2.0 + dtI))[0][0]
+    tI3 = np.where(t > (2.0 + 2 * dtI))[0][0]
+    tI4 = np.where(t > (2.0 + 3 * dtI))[0][0]
+    tI5 = np.where(t > (2.0 + 4 * dtI))[0][0]
+    tI6 = np.where(t > (2.0 + 5 * dtI))[0][0]
+
+    I1_amps = np.zeros(rec_local.shape[0])
+    I2_amps = np.zeros(rec_local.shape[0])
+    I3_amps = np.zeros(rec_local.shape[0])
+    for i in range(rec_local.shape[0]):
+        I1_amps[i] = rec_local[i, tI1:tI2].max()
+        I2_amps[i] = rec_local[i, tI2:tI3].max()
+        I3_amps[i] = rec_local[i, tI3:tI4].max()
+
+    I1_times = np.zeros(rec_local.shape[0])
+    I2_times = np.zeros(rec_local.shape[0])
+    I3_times = np.zeros(rec_local.shape[0])
+    for i in range(rec_local.shape[0]):
+        I1_times[i] = t[np.argmax(rec_local[i, tI1:tI2])] + 3.0  # t starts at -1
+        I2_times[i] = t[np.argmax(rec_local[i, tI2:tI3])] + (3.0 + dtI)
+        I3_times[i] = t[np.argmax(rec_local[i, tI3:tI4])] + (3.0 + 2.0 * dtI)
+    tms_idxs = [tms_peak_idx, t_min1ms_idx, t_2ms_idx, t_5ms_idx]
+    time_intervals = [tI1, tI2, tI3, tI4, tI5, tI6]
+    I_wave_times = [I1_times, I2_times, I3_times]
+    I_wave_amps = [I1_amps, I2_amps, I3_amps]
+    rec_local = [rec_local, rec_mean_local]
+    return t, dt, tms_idxs, time_intervals, I_wave_times, I_wave_amps, rec_local
