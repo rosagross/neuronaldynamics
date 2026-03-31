@@ -1,8 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from Utils import get_I_wave_locs
+import scipy
+from Utils import get_I_wave_locs, argmin_2d, butter_highpass_filter, get_peak_values
+from Model.Neck import generate_EP
 import h5py
+from tqdm.contrib import itertools
+
 matplotlib.use('TkAgg')
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = ["Times New Roman"]
@@ -212,7 +216,7 @@ lm_box_dicts = [measurement_dict_2020_120_LM_ch3,
 lm_thresholds = [120, 140]
 
 if make_boxplots:
-
+    # TODO: rename the I1 data to D wave, since it's the D wave
     I1_wave_times_pa = []
     I2_wave_times_pa = []
     I3_wave_times_pa = []
@@ -247,45 +251,258 @@ if make_boxplots:
     I2_wave_times_lm.append(I_wave_times[1])
     I3_wave_times_lm.append(I_wave_times[2])
 
+    # calculate means
+    I1_pa_time_means = np.zeros(len(I1_wave_times_pa))
+    I2_pa_time_means = np.zeros_like(I1_pa_time_means)
+    I3_pa_time_means = np.zeros_like(I1_pa_time_means)
+    for j in range(len(I1_wave_times_pa)):
+        I1_pa_time_means[j] = I1_wave_times_pa[j].mean()
+        I2_pa_time_means[j] = I2_wave_times_pa[j].mean()
+        I3_pa_time_means[j] = I3_wave_times_pa[j].mean()
+
+    I1_lm_time_means = np.zeros(len(I1_wave_times_lm))
+    I2_lm_time_means = np.zeros_like(I1_lm_time_means)
+    I3_lm_time_means = np.zeros_like(I1_lm_time_means)
+    for j in range(len(I1_wave_times_lm)):
+        I1_lm_time_means[j] = I1_wave_times_lm[j].mean()
+        I2_lm_time_means[j] = I2_wave_times_lm[j].mean()
+        I3_lm_time_means[j] = I3_wave_times_lm[j].mean()
+
+    ####################################################################################################################
+    # Look for optimal map of E-field to RMT value
+    ####################################################################################################################
+    with h5py.File('E_theta_2D_frexc_pt6.hdf5', 'r') as h5file:
+        data = np.array(h5file['E_theta_2D']) * 1e3  # conversion from 1/ms to 1/s
+
+    E_values = np.linspace(150, 400, 100)
+    theta_values = np.linspace(0, 180, 100)
+    E_mesh, theta_mesh = np.meshgrid(E_values, theta_values)
+    mesh_shapes = E_mesh.shape
+    dt = 0.01
+    dv = 0.01
+    T = 14
+    t = np.arange(0, T, dt)
+    height = 0.5
+
+    for i, theta_i in enumerate(theta_values):
+        EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=dt * 10)
+        EP = -EP
+        EP = EP / np.max(EP)
+        EP_small = np.interp(t[t < 1.0] - 0.5, t_EP, EP)
+        for j in range(data[i].shape[0]):
+            nmm_potential = scipy.signal.convolve(data[i, j], EP_small)
+            nmm_shape = data[i, j].shape[0]
+            nmm_potential_out = nmm_potential[:nmm_shape]
+
+            v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.05,
+                                              fps=int(1 / dt))  # very small cutoff
+            v_out_mean = nmm_potential_out.mean()
+            data[i, j] = v_out_hp
+
+    theta_start = 0
+    theta_end = 120
+    theta_idx_start = np.where(theta_values > theta_start)[0][0] - 1
+    theta_idx_end = np.where(theta_values > theta_end)[0][0]
+    theta_range = theta_values[theta_idx_start:theta_idx_end]
+
+    dt_I12 = np.zeros((theta_range.shape[0], E_values.shape[0]))
+    dt_I23 = np.zeros_like(dt_I12)
+    dt_I34 = np.zeros_like(dt_I12)
+    tI1 = np.zeros_like(dt_I12)
+
+    for i in range(theta_range.shape[0]):
+        for j in range(E_values.shape[0]):
+            peak_values_j = get_peak_values(t, data[i, j], find_peak_args=dict(height=height))
+            n_iwaves_j = peak_values_j['t_delta_peaks'].shape[0]
+            if n_iwaves_j < 1:
+                tI1[i, j] = np.nan
+            else:
+                tI1[i, j] = peak_values_j['peak_1_time']
+            if n_iwaves_j < 1:
+                dt_I12[i, j] = np.nan
+            else:
+                dt_I12[i, j] = peak_values_j['t_delta_peaks'][0]
+            if n_iwaves_j < 2:
+                dt_I23[i, j] = np.nan
+            else:
+                dt_I23[i, j] = peak_values_j['t_delta_peaks'][1]
+            if n_iwaves_j < 3:
+                dt_I34[i, j] = np.nan
+            else:
+                dt_I34[i, j] = peak_values_j['t_delta_peaks'][1]
+
+    delay = 0.9  # 1.3
+    rmt_array = np.array(pa_thresholds)
+    a_values = np.linspace(1.0, 2.3, 100)
+    b_values = np.linspace(0, 50, 100)
+    sqerror_theta = np.zeros((theta_range.shape[0], 100, 100))
+    a_opt = np.zeros(theta_range.shape[0])
+    b_opt = np.zeros(theta_range.shape[0])
+    opt_idxs = np.zeros((theta_range.shape[0], 2), dtype=np.int64)
+    min_sqerror = np.zeros(theta_range.shape[0])
+    sqerror = np.zeros((theta_range.shape[0], 100, 100))
+    tI1_model = tI1 + delay
+    tI2_model = tI1 + delay + dt_I12
+    tI3_model = tI1 + delay + dt_I12 + dt_I23
+
+    print('performing extensive grid search for PA fits')
+    for m, i, j in itertools.product(range(theta_range.shape[0]), range(a_values.shape[0]), range(b_values.shape[0])):
+
+        a = a_values[i]
+        b = b_values[j]
+
+        E_map = a * rmt_array + b
+        E_idxs_data = np.zeros(E_map.shape[0], dtype=np.int64)
+
+        for k in range(len(I1_wave_times_pa)):
+            E_idxs_data[k] = np.floor(np.where(E_values > E_map[k])[0][0])
+        # important I1 data is actually D wave
+        dy_t1 = np.sum((tI1_model[m, E_idxs_data] - I2_pa_time_means) ** 2)
+        dy_t2 = np.sum((tI2_model[m, E_idxs_data] - I3_pa_time_means) ** 2)
+        # dy_t3 = np.sum((tI3_model[m, E_idxs_data] - I3_pa_time_means) ** 2)
+
+        sum_dy = dy_t1 + dy_t2
+
+        sqerror[m, i, j] = sum_dy
+
+        if i == a_values.shape[0] - 1 and j == b_values.shape[0] - 1:
+            opt_idxs[m] = argmin_2d(sqerror[m])
+            min_sqerror[m] = np.nanmin(sqerror[m])
+            a_opt[m] = a_values[opt_idxs[m, 0]]
+            b_opt[m] = b_values[opt_idxs[m, 1]]
+        # E_map_opt = a_opt[k]*rmt_array + b_opt[k]
+    opt_theta_idx = np.argmin(min_sqerror)
+    a_theta_opt = a_opt[opt_theta_idx]
+    b_theta_opt = b_opt[opt_theta_idx]
+    E_map_opt_pa = a_theta_opt * rmt_array + b_theta_opt
+    pa_theta = theta_range[opt_theta_idx]
+    pa_tI1 = tI1_model[opt_theta_idx]
+    pa_tI2 = tI2_model[opt_theta_idx]
+    print(f'opt angle pa: {pa_theta}')
+
+    # lm
+    theta_start = 30
+    theta_end = 150
+    theta_idx_start = np.where(theta_values > theta_start)[0][0] - 1
+    theta_idx_end = np.where(theta_values > theta_end)[0][0]
+    theta_range = theta_values[theta_idx_start:theta_idx_end]
+
+    dt_I12 = np.zeros((theta_range.shape[0], E_values.shape[0]))
+    dt_I23 = np.zeros_like(dt_I12)
+    dt_I34 = np.zeros_like(dt_I12)
+    tI1 = np.zeros_like(dt_I12)
+
+    for i in range(theta_range.shape[0]):
+        for j in range(E_values.shape[0]):
+            peak_values_j = get_peak_values(t, data[i, j], find_peak_args=dict(height=height))
+            n_iwaves_j = peak_values_j['t_delta_peaks'].shape[0]
+            if n_iwaves_j < 1:
+                tI1[i, j] = np.nan
+            else:
+                tI1[i, j] = peak_values_j['peak_1_time']
+            if n_iwaves_j < 1:
+                dt_I12[i, j] = np.nan
+            else:
+                dt_I12[i, j] = peak_values_j['t_delta_peaks'][0]
+            if n_iwaves_j < 2:
+                dt_I23[i, j] = np.nan
+            else:
+                dt_I23[i, j] = peak_values_j['t_delta_peaks'][1]
+            if n_iwaves_j < 3:
+                dt_I34[i, j] = np.nan
+            else:
+                dt_I34[i, j] = peak_values_j['t_delta_peaks'][1]
+    rmt_array = np.array(lm_thresholds)
+    a_values = np.linspace(1.0, 2.3, 100)
+    b_values = np.linspace(0, 50, 100)
+    sqerror_theta = np.zeros((theta_range.shape[0], 100, 100))
+    a_opt = np.zeros(theta_range.shape[0])
+    b_opt = np.zeros(theta_range.shape[0])
+    opt_idxs = np.zeros((theta_range.shape[0], 2), dtype=np.int64)
+    min_sqerror = np.zeros(theta_range.shape[0])
+    sqerror = np.zeros((theta_range.shape[0], 100, 100))
+    tI1_model = tI1 + delay
+    tI2_model = tI1 + delay + dt_I12
+    tI3_model = tI1 + delay + dt_I12 + dt_I23
+
+    print('performing extensive grid search for LM fits')
+    for m, i, j in itertools.product(range(theta_range.shape[0]), range(a_values.shape[0]), range(b_values.shape[0])):
+
+        a = a_values[i]
+        b = b_values[j]
+
+        E_map = a * rmt_array + b
+        E_idxs_data = np.zeros(E_map.shape[0], dtype=np.int64)
+
+        for k in range(len(I1_wave_times_lm)):
+            E_idxs_data[k] = np.floor(np.where(E_values > E_map[k])[0][0])
+        # important I1 data is actually D wave
+        dy_t1 = np.sum((tI1_model[m, E_idxs_data] - I2_lm_time_means) ** 2)
+        dy_t2 = np.sum((tI2_model[m, E_idxs_data] - I3_lm_time_means) ** 2)
+        # dy_t3 = np.sum((tI3_model[m, E_idxs_data] - I3_pa_time_means) ** 2)
+
+        sum_dy = dy_t1 + dy_t2
+
+        sqerror[m, i, j] = sum_dy
+
+        if i == a_values.shape[0] - 1 and j == b_values.shape[0] - 1:
+            opt_idxs[m] = argmin_2d(sqerror[m])
+            min_sqerror[m] = np.nanmin(sqerror[m])
+            a_opt[m] = a_values[opt_idxs[m, 0]]
+            b_opt[m] = b_values[opt_idxs[m, 1]]
+        # E_map_opt = a_opt[k]*rmt_array + b_opt[k]
+    opt_theta_idx = np.argmin(min_sqerror)
+    a_theta_opt = a_opt[opt_theta_idx]
+    b_theta_opt = b_opt[opt_theta_idx]
+    E_map_opt_lm = a_theta_opt * rmt_array + b_theta_opt
+
+    lm_theta = theta_range[opt_theta_idx]
+    lm_tI1 = tI1_model[opt_theta_idx]
+    lm_tI2 = tI2_model[opt_theta_idx]
+    print(f'opt angle lm: {lm_theta}')
+
+    ####################################################################################################################
+    # Do Boxplots
+    ####################################################################################################################
     fig = plt.figure(figsize=(14, 8))
     ax = fig.add_subplot(231)
     ax.boxplot(I1_wave_times_pa)
-    ax.set_xlabel('% MTR')
+    ax.set_xlabel('% RMT')
     ax.set_xticklabels(pa_thresholds)
     ax.set_title('D-wave time')
     ax.set_ylabel('t (ms)')
 
     ax = fig.add_subplot(232)
     ax.boxplot(I2_wave_times_pa)
-    ax.set_xlabel('% MTR')
+    ax.set_xlabel('% RMT')
     ax.set_xticklabels(pa_thresholds)
     ax.set_title('I1-wave time')
     ax.set_ylabel('t (ms)')
 
     ax = fig.add_subplot(233)
     ax.boxplot(I3_wave_times_pa)
-    ax.set_xlabel('% MTR')
+    ax.set_xlabel('% RMT')
     ax.set_xticklabels(pa_thresholds)
     ax.set_title('I2-wave time')
     ax.set_ylabel('t (ms)')
 
     ax = fig.add_subplot(234)
     ax.boxplot(I1_wave_times_lm)
-    ax.set_xlabel('% MTR')
+    ax.set_xlabel('% RMT')
     ax.set_xticklabels(lm_thresholds)
     ax.set_title('D-wave time')
     ax.set_ylabel('t (ms)')
 
     ax = fig.add_subplot(235)
     ax.boxplot(I2_wave_times_lm)
-    ax.set_xlabel('% MTR')
+    ax.set_xlabel('% RMT')
     ax.set_xticklabels(lm_thresholds)
     ax.set_title('I1-wave time')
     ax.set_ylabel('t (ms)')
 
     ax = fig.add_subplot(236)
     ax.boxplot(I3_wave_times_lm)
-    ax.set_xlabel('% MTR')
+    ax.set_xlabel('% RMT')
     ax.set_xticklabels(lm_thresholds)
     ax.set_title('I2-wave time')
     ax.set_ylabel('t (ms)')
@@ -294,3 +511,71 @@ if make_boxplots:
     plt.savefig('Iwave_latency_boxplots.png')
     print(f'saved img to Iwave_latency_boxplots.png')
     # plt.show()
+
+    # box plots with E field model data
+    fig = plt.figure(figsize=(14, 8))
+    ax = fig.add_subplot(231)
+    ax.boxplot(I1_wave_times_pa, positions=E_map_opt_pa, widths=20)
+    ax.set_xticklabels([f'{k:.0f}' for k in E_map_opt_pa])
+    ax.set_xlabel('|E| V/m')
+    ax.set_xlim(200, 400)
+    ax.set_title('D-wave time')
+    ax.set_ylabel('t (ms)')
+
+    ax = fig.add_subplot(232)
+    ax.boxplot(I2_wave_times_pa, positions=E_map_opt_pa, widths=20)
+    ax.set_xticklabels([f'{k:.0f}' for k in E_map_opt_pa])
+    ax.set_xlabel('|E| V/m')
+    ax.set_xlim(200, 400)
+    ax.plot(E_values, pa_tI1, label='model')
+    ax.legend()
+    ax.set_ylim(3, 6.5)
+    ax.set_title('I1-wave time')
+    ax.set_ylabel('t (ms)')
+
+    ax = fig.add_subplot(233)
+    ax.boxplot(I3_wave_times_pa, positions=E_map_opt_pa, widths=20)
+    ax.set_xticklabels([f'{k:.0f}' for k in E_map_opt_pa])
+    ax.set_xlabel('|E| V/m')
+    ax.set_xlim(200, 400)
+    ax.plot(E_values, pa_tI2, label='model')
+    ax.legend()
+    ax.set_ylim(5, 7)
+    ax.set_title('I2-wave time')
+    ax.set_ylabel('t (ms)')
+
+    # lm
+
+    ax = fig.add_subplot(234)
+    ax.boxplot(I1_wave_times_lm, positions=E_map_opt_lm, widths=20)
+    ax.set_xticklabels([f'{k:.0f}' for k in E_map_opt_lm])
+    ax.set_xlabel('|E| V/m')
+    ax.set_xlim(200, 400)
+    ax.set_title('D-wave time')
+    ax.set_ylabel('t (ms)')
+
+    ax = fig.add_subplot(235)
+    ax.boxplot(I2_wave_times_lm, positions=E_map_opt_lm, widths=20)
+    ax.set_xticklabels([f'{k:.0f}' for k in E_map_opt_lm])
+    ax.set_xlabel('|E| V/m')
+    ax.set_xlim(200, 400)
+    ax.plot(E_values, lm_tI1, label='model')
+    ax.legend()
+    ax.set_ylim(3, 6.5)
+    ax.set_title('I1-wave time')
+    ax.set_ylabel('t (ms)')
+
+    ax = fig.add_subplot(236)
+    ax.boxplot(I3_wave_times_lm, positions=E_map_opt_lm, widths=20)
+    ax.set_xticklabels([f'{k:.0f}' for k in E_map_opt_lm])
+    ax.set_xlabel('|E| V/m')
+    ax.set_xlim(200, 400)
+    ax.set_ylim(5, 7)
+    ax.plot(E_values, lm_tI2, label='model')
+    ax.legend()
+    ax.set_title('I2-wave time')
+    ax.set_ylabel('t (ms)')
+
+    plt.tight_layout()
+    plt.savefig('Iwave_e_field_boxplots.png')
+    print(f'saved img to Iwave_e_field_boxplots.png')
