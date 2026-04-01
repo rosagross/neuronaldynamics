@@ -925,6 +925,7 @@ class Nykamp_Model_1():
 
             v_range_orig = self.v.max() - self.v.min()
             v_range_new = 1.0
+            hu_scaling_factor = dv_/self.dv
 
             for i in range(len(self.population_type)):
             # initial dsitribution
@@ -1061,8 +1062,7 @@ class Nykamp_Model_1():
                     elif self.input_type == 'stochastic-current':
                         ################################################################################################
                         # EXTERNAL COEFFS
-                        # Additional external coefficients and pdfs to handle constant current input as dirac
-                        # distributed in voltage space
+                        # Additional external coefficients and pdfs to handle random current input with mean and variance
                         ################################################################################################
                         v_ext = self.i_ext[j, i] / self.g_leak[j] * 1e3  # conversion from V to mV
                         sigma = self.current_sigma[j, i]**2/self.tau_mem[j]
@@ -1072,6 +1072,7 @@ class Nykamp_Model_1():
                         self.c2eext = np.repeat(sigma, v_shape)
                         self.c2eext_v = 0
 
+                        # This part is not used in the Hu-solver
                         dirac_index = np.where(self.v > self.u_reset)[0][0]  # insert a v_reset
                         g_eext = self.gauss_func(x=self.v, mu=self.v[dirac_index], sigma=0.1)
                         g_eext[:10] = 0
@@ -1219,8 +1220,8 @@ class Nykamp_Model_1():
                             upper = np.zeros(Nx - 1)
 
                             # conversion of coefficients from Nykamp to Hu-formulation
-                            drift_coeff_vec = -np.sum(- v_in[exc_idxs, j, i]) * c1ee_v + np.sum(v_in[inh_idxs, j, i]) * c1ei_v +\
-                                          self.c1eext
+                            drift_coeff_vec = (-np.sum(- v_in[exc_idxs, j, i]) * c1ee_v + np.sum(v_in[inh_idxs, j, i]) * c1ei_v +\
+                                          self.c1eext) * hu_scaling_factor * 2e4
                             drift_coeff = drift_coeff_vec[0]
 
                             # TODO: find a way around this once voltage dependent components play a role
@@ -1277,7 +1278,7 @@ class Nykamp_Model_1():
                             rho[j, :, i] = scipy.sparse.linalg.spsolve(A, b)
 
 
-                            # firing rate / outgoing flux
+                            # firing rate / outgoing flux / spike density
                             # if i > 1:
                             #     r[i] = (u[i-2].sum() - u[i-1].sum())
                             r[j, i] = ((diffusion_coeff / dv_) * (rho[j, -2, i-1]) +
@@ -1677,22 +1678,24 @@ class Nykamp_Model_1():
                                     cmap="jet", linewidth=0, antialiased=False, rcount=100, ccount=100)
                     ax.set_zlim3d(0, 1)
 
-                ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})")
-                ax.set_xlabel("t (ms)")
-                ax.set_ylabel("Membrane potential (mV)")
+                ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})", fontsize=self.labelsize)
+                ax.set_xlabel("t (ms)", fontsize=self.labelsize)
+                ax.set_ylabel("Membrane potential (mV)", fontsize=self.labelsize)
+                ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
 
                 ax = fig.add_subplot(n_plots, 2, plot_loc_2)
                 ax.plot(t_plot, r_plot[plot_idx] * 1000)
-                ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
-                ax.set_ylabel("Firing rate (Hz)")
-                ax.set_xlabel("t (ms)")
+                ax.set_title(f"Population activity ({str(p_types[plot_idx])})", fontsize=self.labelsize)
+                ax.set_ylabel("Spike density (1/s)", fontsize=self.labelsize)
+                ax.set_xlabel("t (ms)", fontsize=self.labelsize)
+                ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
                 if crop_rate:
                     ax.set_ylim(0, np.max(1.2*r_plot[plot_idx, 50:] * 1000))
                 if plot_input:
                     rate_height = np.max(r_plot[plot_idx, 50:] * 1000)
                     i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
                     ax.plot(t_plot, i_in_plot)
-                    ax.legend(['rate', 'input'])
+                    ax.legend(['d', 'I'])
 
                 ax.grid()
             plt.tight_layout()
@@ -1724,7 +1727,7 @@ class Nykamp_Model_1():
 
                 ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})")
                 ax.set_xlabel("t (ms)", fontsize=self.labelsize)
-                ax.set_ylabel("Membrane potential (mM)", fontsize=self.labelsize)
+                ax.set_ylabel("Membrane potential (mV)", fontsize=self.labelsize)
                 ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
                 plt.tight_layout()
                 if savefig:

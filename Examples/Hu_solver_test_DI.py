@@ -6,8 +6,12 @@ from Model.Nykamp_Model import Nykamp_Model_1
 from Utils import get_peak_values
 matplotlib.use('TkAgg')
 
+# plt.rcParams["font.family"] = "serif"
+# plt.rcParams["font.serif"] = ["Times New Roman"]
+
 plot_nykamp_basic = False
 plot_di_model = True
+save_figs = False
 
 dt = 0.01
 dv = 0.01
@@ -20,13 +24,6 @@ if plot_nykamp_basic:
 
     a = 0.1
     input_function =  a * ((2 * np.ones(Nt) + 1.5 * np.sin(t / 3)) + np.exp(-(t - 1.2) ** 2 / 0.1))
-    # t_off = 10
-    # t_again = 40
-    # off_idx = np.where(t > t_off)
-    ##  reactivation for T=50
-    # again_idx = np.where(t > t_again)[0][0]
-    # input_function[off_idx] = 0
-    # input_function[again_idx:] = input_function[0:input_function.shape[0] - again_idx]
 
     model_parameters = {}
     model_parameters['connectivity_matrix'] = 0 * np.array([[1 / 2]])
@@ -78,7 +75,7 @@ if plot_di_model:
     # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
     hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
 
-    simulation_name = 'CNS26_example'
+    simulation_name = '26_04_01_test'
 
     # [3.80187468e+02 6.24947346e-01 9.15432571e-01 6.77733943e-01
     #  5.89647134e-03 2.89137701e-01 3.55730239e+00 1.71540732e-06
@@ -93,7 +90,6 @@ if plot_di_model:
     # 'pdf_offset', 'pdf_sigma', 'pdf_weight', 'i_scale',
     #  'current_sigma']
     #TODO: make effort to load from logs of optimization
-    # check PA-140%-2020-ch_idx_0
     measurement_dict_2020_140_PA_ch3 = dict(orientation='PA', threshold=140, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2020_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2020_100_PA_ch3 = dict(orientation='PA', threshold=100, year=2020, hdf5_path=hdf5_path, sigma=1.0)
@@ -119,7 +115,7 @@ if plot_di_model:
     measurement_dict = dict(orientation='PA', threshold=120, year=2013, hdf5_path=hdf5_path, sigma=1.0, channel=0)
     parameters = {'intensity': 250, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.6, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': False, 'min_delay': 5,
-                  'test_signal_from_file': True, 'i_scale': 5.148136e-6, 'detrend': True, 'plot_detrend': False,
+                  'test_signal_from_file': True, 'i_scale': 5.148136e-9, 'detrend': True, 'plot_detrend': False,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'mind_delay': 0,
                   'theta': 90, 'delay_signal':True,
                   'file_args': measurement_dict_2020_140_PA_ch3,
@@ -147,11 +143,10 @@ if plot_di_model:
     di_model = DI_wave_simulation(parameters=parameters, logname=None)
     # di_model.get_test_signal(plot=True, from_file=True, hdf5_args=di_model.file_args)
     di_model.simulate()
-    plt.rcParams["font.family"] = "serif"
-    plt.rcParams["font.serif"] = ["Times New Roman"]
-    di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=False, z_limit=0.0018, animate=False, savefig=True)
+
+    di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.0018, animate=False, savefig=save_figs)
     di_model.labelsize=20
-    di_model.plot_input_current(savefig=True)
+    di_model.plot_input_current(savefig=save_figs)
     voltage_signal = di_model.mass_model_v_out
     # peak_values = get_peak_values(t, voltage_signal, find_peak_args=dict(height=0.5), plot=True)
     # print(f'{peak_values["t_delta_peaks"]}')
@@ -161,18 +156,19 @@ if plot_di_model:
     # print(f"change in rho: {drho}")
     # print(f'rho end: {np.sum(rhos[0, :, -1])}')
     di_model.labelsize=17
-    di_model.plot_validation(fixed_ylim=False, save_fig=True, labels=['Population Model', 'Measurement'])
+    di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'])
     di_model.mass_model.clean()
-    # parameters['intensity'] = 200
-    parameters['theta'] = 30
-    parameters['name'] = 'CNS_26_example_PA'
-    di_model = DI_wave_simulation(parameters=parameters)
-    di_model.simulate()
-    di_model.plot_voltage(savefig=True)
-    di_model.mass_model.clean()
-    parameters['theta'] = 150
-    parameters['name'] = 'CNS_26_example_LM'
-    di_model = DI_wave_simulation(parameters=parameters)
-    di_model.simulate()
-    di_model.plot_voltage(savefig=True)
-    di_model.mass_model.clean()
+
+    # extra PA, LM examples
+    # parameters['theta'] = 30
+    # parameters['name'] = 'CNS_26_example_PA'
+    # di_model = DI_wave_simulation(parameters=parameters)
+    # di_model.simulate()
+    # di_model.plot_voltage(savefig=save_figs)
+    # di_model.mass_model.clean()
+    # parameters['theta'] = 150
+    # parameters['name'] = 'CNS_26_example_LM'
+    # di_model = DI_wave_simulation(parameters=parameters)
+    # di_model.simulate()
+    # di_model.plot_voltage(savefig=save_figs)
+    # di_model.mass_model.clean()

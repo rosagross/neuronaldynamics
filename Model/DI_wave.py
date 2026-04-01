@@ -103,6 +103,8 @@ class DI_wave_simulation():
             self.input_current = self.session.gpc[0].get_approximation(self.gpc_coeffs, self.grid.coords_norm) * self.i_scale
             self.input_current = self.input_current.flatten()
             # self.input_current *= 1e6 # convert to µA from A
+            if self.input_current.min() < -0.2 * self.i_scale:
+                warnings.warn('Negative current in gpc model detected, will be set to zero for relevant time steps')
             self.input_current[np.where(self.input_current < 0)[0]] = 0
             self.input_current = np.interp(self.t, self.t_gpc, self.input_current)  # interpolate to desired time
         init_nykamp_parameters.update(self.nykamp_parameters)
@@ -211,6 +213,7 @@ class DI_wave_simulation():
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
+        plt.tight_layout()
         if savefig:
             plt.savefig(self.name + 'input_current.png')
         else:
@@ -461,7 +464,7 @@ class DI_wave_simulation():
         # plt.legend(['nykamp rate', 'nykamp_potential', 'D-I-wave test function'])
         ax.set_title(f'nrmse: {self.error:.4f}')
         ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
-
+        plt.tight_layout()
         if save_fig:
             plt.savefig(self.name + '_validation.png')
             plt.close()

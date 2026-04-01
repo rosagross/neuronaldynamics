@@ -521,6 +521,7 @@ if make_boxplots:
     ax.set_xlim(200, 400)
     ax.set_title('D-wave time')
     ax.set_ylabel('t (ms)')
+    ax.text(150, 2.7, 'PA', rotation=90, fontsize=14)
 
     ax = fig.add_subplot(232)
     ax.boxplot(I2_wave_times_pa, positions=E_map_opt_pa, widths=20)
@@ -544,6 +545,7 @@ if make_boxplots:
     ax.set_title('I2-wave time')
     ax.set_ylabel('t (ms)')
 
+
     # lm
 
     ax = fig.add_subplot(234)
@@ -553,6 +555,8 @@ if make_boxplots:
     ax.set_xlim(200, 400)
     ax.set_title('D-wave time')
     ax.set_ylabel('t (ms)')
+
+    ax.text(150, 2.95, 'LM', rotation=90, fontsize=14)
 
     ax = fig.add_subplot(235)
     ax.boxplot(I2_wave_times_lm, positions=E_map_opt_lm, widths=20)
@@ -576,6 +580,10 @@ if make_boxplots:
     ax.set_title('I2-wave time')
     ax.set_ylabel('t (ms)')
 
+
+
     plt.tight_layout()
+    plt.subplots_adjust(left=0.10)
+
     plt.savefig('Iwave_e_field_boxplots.png')
     print(f'saved img to Iwave_e_field_boxplots.png')
