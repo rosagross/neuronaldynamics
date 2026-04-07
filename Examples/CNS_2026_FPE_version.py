@@ -61,7 +61,7 @@ di_model.plot_input_current(savefig=save_figs)
 voltage_signal = di_model.mass_model_v_out
 
 di_model.labelsize=17
-di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'])
+di_model.plot_validation(fixed_ylim=True, save_fig=save_figs, labels=['Population Model', 'Measurement'])
 di_model.mass_model.clean()
 
 # extra PA, LM examples

@@ -141,7 +141,7 @@ class DI_wave_simulation():
         nmm_potential_out = nmm_potential[:nmm_shape]
 
         if self.enable_high_pass:
-            v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.05, fps=int(1 / self.dt))  # very small cutoff
+            v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.000005, fps=int(1 / self.dt))  # very small cutoff
             v_out_mean = nmm_potential_out.mean()
             # hp_mean = v_out_hp.mean()  # reset mean to 0
             # if hp_mean > 1:
@@ -295,103 +295,111 @@ class DI_wave_simulation():
                 measurement_data_original = np.array(di_signals[0][0]['signal_short'])
 
             # procedure to find end and start of signal, get rid of D-wave and unwanted peaks
-            t = times[0]
-            detrend_thr = 0.001
-            d_wave_width = 1.5
-            if (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 140 and
-                    data_dict['channel'] == 0):
-                idx_start = 0
-                idx_end = 87
-                height_d_wave = 1
-                d_wave_width = 1.0
-                detrending = False
-            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 120 and
-                    data_dict['channel'] == 0):
-                idx_start = 0
-                idx_end = t.shape[0]
-                height_d_wave = 1
-                detrending = True
-            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 100 and
-                    data_dict['channel'] == 0):
-                idx_start = 0
-                idx_end = 90
-                height_d_wave = 1.05
-                detrending = False
-            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2007 and data_dict['threshold'] == 120 and
-                    data_dict['channel'] == 0):
-                idx_start = 0
-                idx_end = t.shape[0]
-                height_d_wave = 0.5
-                detrending = False
-            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2007 and data_dict['threshold'] == 150 and
-                    data_dict['channel'] == 0):
-                idx_start = 0
-                idx_end = t.shape[0]
-                height_d_wave = 1.0
-                detrending = True
-                detrend_thr = 0.0002
-            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2004 and data_dict['threshold'] == 154):
-                idx_start = 0
-                idx_end = t.shape[0]
-                height_d_wave = 0.4
-                detrending = False
-            elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2004 and data_dict['threshold'] == 146):
-                idx_start = 0
-                idx_end = t.shape[0]
-                height_d_wave = 0.1
-                detrending = True
-                detrend_thr = 1e-4
-            elif (data_dict['orientation'] == 'LM'):
-                height_d_wave = measurement_data_original.max()*0.7
-                idx_start = 0 #int(1/self.dt)
-                idx_end = t.shape[0]
-                detrending = False
-            # elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2004 and data_dict['threshold'] == 150):
-            #     idx_start = 0
-            #     idx_end = t.shape[0]
-            #     height_d_wave = 0.1
-            #     detrending = False
-            else:
-                idx_start = 0
-                idx_end = t.shape[0]
-                height_d_wave = 1
-                detrending = False
-                d_wave_width = 2.0
-
-
-            measurement_data = measurement_data_original[idx_start:idx_end].copy()
-
-            t = t[idx_start:idx_end]
-            measurement_data_filtered = scipy.ndimage.gaussian_filter1d(measurement_data, sigma=data_dict['sigma'])
             if self.detrend:
-                d_wave_idx = scipy.signal.find_peaks(measurement_data, height=height_d_wave)[0][0]
+                t = times[0]
+                detrend_thr = 0.001
+                d_wave_width = 1.5
+                if (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 140 and
+                        data_dict['channel'] == 0):
+                    idx_start = 0
+                    idx_end = 87
+                    height_d_wave = 1
+                    d_wave_width = 1.0
+                    detrending = False
+                elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 120 and
+                        data_dict['channel'] == 0):
+                    idx_start = 0
+                    idx_end = t.shape[0]
+                    height_d_wave = 1
+                    detrending = True
+                elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2020 and data_dict['threshold'] == 100 and
+                        data_dict['channel'] == 0):
+                    idx_start = 0
+                    idx_end = 90
+                    height_d_wave = 1.05
+                    detrending = False
+                elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2007 and data_dict['threshold'] == 120 and
+                        data_dict['channel'] == 0):
+                    idx_start = 0
+                    idx_end = t.shape[0]
+                    height_d_wave = 0.5
+                    detrending = False
+                elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2007 and data_dict['threshold'] == 150 and
+                        data_dict['channel'] == 0):
+                    idx_start = 0
+                    idx_end = t.shape[0]
+                    height_d_wave = 1.0
+                    detrending = True
+                    detrend_thr = 0.0002
+                elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2004 and data_dict['threshold'] == 154):
+                    idx_start = 0
+                    idx_end = t.shape[0]
+                    height_d_wave = 0.4
+                    detrending = False
+                elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2004 and data_dict['threshold'] == 146):
+                    idx_start = 0
+                    idx_end = t.shape[0]
+                    height_d_wave = 0.1
+                    detrending = True
+                    detrend_thr = 1e-4
+                elif (data_dict['orientation'] == 'LM'):
+                    height_d_wave = measurement_data_original.max()*0.7
+                    idx_start = 0 #int(1/self.dt)
+                    idx_end = t.shape[0]
+                    detrending = False
+                # elif (data_dict['orientation'] == 'PA' and data_dict['year'] == 2004 and data_dict['threshold'] == 150):
+                #     idx_start = 0
+                #     idx_end = t.shape[0]
+                #     height_d_wave = 0.1
+                #     detrending = False
+                else:
+                    idx_start = 0
+                    idx_end = t.shape[0]
+                    height_d_wave = 1
+                    detrending = False
+                    d_wave_width = 2.0
+
+
+                measurement_data = measurement_data_original[idx_start:idx_end].copy()
+
+                t = t[idx_start:idx_end]
+                measurement_data_filtered = scipy.ndimage.gaussian_filter1d(measurement_data, sigma=data_dict['sigma'])
+                if self.detrend:
+                    d_wave_idx = scipy.signal.find_peaks(measurement_data, height=height_d_wave)[0][0]
+                else:
+                    d_wave_idx = scipy.signal.find_peaks(measurement_data_filtered, height=height_d_wave)[0][0]
+                if highpass:
+                    measurement_data_filtered = butter_highpass_filter(measurement_data_filtered,
+                                                        cutoff=hp_cutoff, fps=int(1/self.dt))
+                    # measurement_data_filtered -= measurement_data_filtered.mean()
+                t_d_wave = t[d_wave_idx]
+                d_wave_start_idx = np.where(t>t_d_wave)[0][0]
+                # d_wave_peak = measurement_data[d_wave_start_idx]
+                # d_wave_start_idx = np.where(t>t_d_wave-0.85)[0][0]
+                d_wave_end_idx = np.where(t>t_d_wave+(d_wave_width/2))[0][0]
+                # measurement_data[d_wave_start_idx:d_wave_end_idx] = d_wave_peak*0.05
+
+                if detrending and self.detrend:
+                    measurement_data_filtered = detrend(t, measurement_data_filtered,
+                                                        find_peaks_args=dict(threshold=detrend_thr), plot=False)
+                    measurement_data_filtered[measurement_data_filtered<0] = 0
+                measurement_data_filtered[:d_wave_end_idx] = 0
+                measurement_data_filtered[-1] = 0
+                if plot_d_wave_detection:
+                    plt.plot(t, measurement_data_filtered)
+                    plt.plot(t, measurement_data_original[idx_start:idx_end], alpha=0.4, color='k', linestyle='--')
+                    plt.xlabel('t (ms)')
+                    plt.ylabel('v (µV)')
+                    plt.title(f"{data_dict['orientation']} {data_dict['threshold']} {data_dict['year']} {data_dict['channel']+2}")
+                    plt.scatter(t[d_wave_idx], measurement_data_original[idx_start:idx_end][d_wave_idx], marker='x', color='r')
+                    plt.show()
             else:
                 d_wave_idx = scipy.signal.find_peaks(measurement_data_filtered, height=height_d_wave)[0][0]
-            if highpass:
-                measurement_data_filtered = butter_highpass_filter(measurement_data_filtered,
-                                                    cutoff=hp_cutoff, fps=int(1/self.dt))
-                # measurement_data_filtered -= measurement_data_filtered.mean()
-            t_d_wave = t[d_wave_idx]
-            d_wave_start_idx = np.where(t>t_d_wave)[0][0]
-            # d_wave_peak = measurement_data[d_wave_start_idx]
-            # d_wave_start_idx = np.where(t>t_d_wave-0.85)[0][0]
-            d_wave_end_idx = np.where(t>t_d_wave+(d_wave_width/2))[0][0]
-            # measurement_data[d_wave_start_idx:d_wave_end_idx] = d_wave_peak*0.05
 
-            if detrending and self.detrend:
-                measurement_data_filtered = detrend(t, measurement_data_filtered,
-                                                    find_peaks_args=dict(threshold=detrend_thr), plot=False)
-                measurement_data_filtered[measurement_data_filtered<0] = 0
-            measurement_data_filtered[:d_wave_end_idx] = 0
-            measurement_data_filtered[-1] = 0
-            if plot_d_wave_detection:
-                plt.plot(t, measurement_data_filtered)
-                plt.plot(t, measurement_data_original[idx_start:idx_end], alpha=0.4, color='k', linestyle='--')
-                plt.xlabel('t (ms)')
-                plt.ylabel('v (µV)')
-                plt.title(f"{data_dict['orientation']} {data_dict['threshold']} {data_dict['year']} {data_dict['channel']+2}")
-                plt.scatter(t[d_wave_idx], measurement_data_original[idx_start:idx_end][d_wave_idx], marker='x', color='r')
-                plt.show()
+                    # measurement_data_filtered -= measurement_data_filtered.mean()
+                t_d_wave = t[d_wave_idx]
+                d_wave_start_idx = np.where(t > t_d_wave)[0][0]
+                # TODO: work on this
 
             self.target = np.interp(self.t, t, measurement_data_filtered)
             # take caution when using this detrending
@@ -439,10 +447,12 @@ class DI_wave_simulation():
         else:
             label1, label2 = labels[0], labels[1]
 
-        self.mass_model_v_out[self.mass_model_v_out<0] = 0
-
         v_shade = self.mass_model_v_out.copy()
         abs_signal = self.target_aligned + self.mass_model_v_out
+
+        if self.detrend == True:
+            self.mass_model_v_out[self.mass_model_v_out<0] = 0
+
         non_zero_mask = np.where(abs_signal > 1e-3)
         v_shade[non_zero_mask] = self.target_aligned[non_zero_mask]
 
@@ -451,8 +461,9 @@ class DI_wave_simulation():
         ax.plot(self.t, self.mass_model_v_out, linewidth=2.0, color='indianred')
         ax.plot(self.t, self.target_aligned, linewidth=2.0, color='darkslateblue', linestyle='-.')
         ax.fill_between(self.t, self.mass_model_v_out, v_shade, alpha=0.3, color='k')
-        ax.set_xlim((3, 14))
-        ax.set_ylim((-0.2, self.target_aligned.max()*1.1))
+        if self.detrend == True:
+            ax.set_xlim((3, 14))
+        # ax.set_ylim((-0.2, self.target_aligned.max()*1.1))
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         # ax.grid()

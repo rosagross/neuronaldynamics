@@ -114,8 +114,8 @@ if plot_di_model:
     # data_dicts = [measurement_dict_2004_146_PA_2_ch2, measurement_dict_2004_150_PA_1_ch2]
     measurement_dict = dict(orientation='PA', threshold=120, year=2013, hdf5_path=hdf5_path, sigma=1.0, channel=0)
     parameters = {'intensity': 250, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.6, 'plot_align': False,
-                  'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': False, 'min_delay': 5,
-                  'test_signal_from_file': True, 'i_scale': 5.148136e-9, 'detrend': True, 'plot_detrend': False,
+                  'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': True, 'min_delay': 5,
+                  'test_signal_from_file': True, 'i_scale': 5.148136e-9, 'detrend': False, 'plot_detrend': False,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'mind_delay': 0,
                   'theta': 90, 'delay_signal':True,
                   'file_args': measurement_dict_2020_140_PA_ch3,
@@ -144,9 +144,9 @@ if plot_di_model:
     # di_model.get_test_signal(plot=True, from_file=True, hdf5_args=di_model.file_args)
     di_model.simulate()
 
-    di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.0018, animate=False, savefig=save_figs)
+    # di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.0018, animate=False, savefig=save_figs)
     di_model.labelsize=20
-    di_model.plot_input_current(savefig=save_figs)
+    # di_model.plot_input_current(savefig=save_figs)
     voltage_signal = di_model.mass_model_v_out
     # peak_values = get_peak_values(t, voltage_signal, find_peak_args=dict(height=0.5), plot=True)
     # print(f'{peak_values["t_delta_peaks"]}')
