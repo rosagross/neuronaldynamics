@@ -17,35 +17,37 @@ if __name__ == "__main__":
     hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
     results_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_model\\run_2026_01_28"
 
-    simulation_name = '_diw_opt_hu_28_01_26'
-    measurement_dict_2020_140_PA_ch3 = dict(orientation='PA', threshold=140, year=2020, hdf5_path=hdf5_path, sigma=1.0)
-    measurement_dict_2020_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2020, hdf5_path=hdf5_path, sigma=1.0)
+    simulation_name = 'paper_iwave_opt'
+    # PA
     measurement_dict_2020_100_PA_ch3 = dict(orientation='PA', threshold=100, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2013_110_PA_ch2 = dict(orientation='PA', threshold=110, year=2013, hdf5_path=hdf5_path, sigma=1.0,
                                             channel=0)
     measurement_dict_2013_110_PA_ch3 = dict(orientation='PA', threshold=110, year=2013, hdf5_path=hdf5_path, sigma=1.0,
                                             channel=1)
+    measurement_dict_2020_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2007_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2007, hdf5_path=hdf5_path, sigma=1.0)
+    measurement_dict_2020_140_PA_ch3 = dict(orientation='PA', threshold=140, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2007_150_PA_ch3 = dict(orientation='PA', threshold=150, year=2007, hdf5_path=hdf5_path, sigma=1.0)
-    measurement_dict_2004_154_PA_2_ch2 = dict(orientation='PA', threshold=154, year=2004, hdf5_path=hdf5_path,
-                                              sigma=1.0)
-    measurement_dict_2004_146_PA_2_ch2 = dict(orientation='PA', threshold=146, year=2004, hdf5_path=hdf5_path,
-                                              sigma=1.0)
-    measurement_dict_2004_150_PA_1_ch2 = dict(orientation='PA', threshold=150, year=2004, hdf5_path=hdf5_path,
-                                              sigma=0.1)
+    # LM
+    measurement_dict_2020_120_LM_ch3 = dict(orientation='LM', threshold=120, year=2020, hdf5_path=hdf5_path, sigma=1.0,
+                                            channel=0)
+    measurement_dict_2020_120_LM_ch4 = dict(orientation='LM', threshold=120, year=2020, hdf5_path=hdf5_path, sigma=1.0,
+                                            channel=1)
+    measurement_dict_2004_140_LM_1_ch2 = dict(orientation='LM', threshold=140, year=2004, hdf5_path=hdf5_path,
+                                              sigma=0.1, channel=0)
 
-
-    data_dicts = [measurement_dict_2020_140_PA_ch3,
-                  measurement_dict_2020_120_PA_ch3,
-                  measurement_dict_2020_100_PA_ch3,
+    data_dicts_pa = [measurement_dict_2020_100_PA_ch3,
                   measurement_dict_2013_110_PA_ch2,
                   measurement_dict_2013_110_PA_ch3,
+                  measurement_dict_2020_120_PA_ch3,
                   measurement_dict_2007_120_PA_ch3,
-                  measurement_dict_2007_150_PA_ch3,
-                  measurement_dict_2004_154_PA_2_ch2,
-                  measurement_dict_2004_146_PA_2_ch2,
-                  measurement_dict_2004_150_PA_1_ch2]
-    for i_dict, dict in enumerate(data_dicts):
+                  measurement_dict_2020_140_PA_ch3,
+                  measurement_dict_2007_150_PA_ch3]
+
+    data_dicts_lm = [measurement_dict_2020_120_LM_ch3,
+                     measurement_dict_2020_120_LM_ch4,
+                     measurement_dict_2004_140_LM_1_ch2]
+    for i_dict, dict in enumerate(data_dicts_pa):
         print('###################################################################### \n'
               '###################################################################### \n'
               '###################################################################### \n'

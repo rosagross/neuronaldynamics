@@ -367,7 +367,7 @@ def DI_wave_test_function(t, intensity, t0=5, dt=1.4, width=0.25):
 
     return y
 
-def cross_correlation_align(x1, x2, plot=False, mode='default', max_shift=int(1e12)):
+def cross_correlation_align(x1, x2, plot=False, mode='default', max_shift=1.0):
     """
     Function that aligns two signals and computes the nrmse and difference between the two signals after alignment.
     Alignment is done by calculating the maximal cross correlation and then moving the second signal 2 times in the

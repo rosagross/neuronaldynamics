@@ -39,7 +39,7 @@ class DI_wave_simulation():
         self.test_func_t0 = 0.2  # start time of test function in ms
         self.test_func_dt = 1.5  # inter-peak time interval set in test function in ms
         self.test_func_width = 0.3  # width of peaks set in test function in ms
-        self.max_shift_validation = 3 # default of 3ms max shift for comparing DI wave
+        self.max_shift_validation = 1.5 # default of 0.5ms max shift for comparing DI wave
 
         self.create_convolution_plot = False
         self.save_plots = False
@@ -141,20 +141,20 @@ class DI_wave_simulation():
         nmm_potential_out = nmm_potential[:nmm_shape]
 
         if self.enable_high_pass:
-            v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.000005, fps=int(1 / self.dt))  # very small cutoff
-            v_out_mean = nmm_potential_out.mean()
-            # hp_mean = v_out_hp.mean()  # reset mean to 0
-            # if hp_mean > 1:
-            #     v_out_hp -= hp_mean
-            # else:
-            #     v_out_hp += hp_mean
-            t_4ms_idx = np.where(self.t>4)[0][0]
-            v_out_hp_after_4ms = v_out_hp[t_4ms_idx:]
-            peaks = scipy.signal.find_peaks(-v_out_hp_after_4ms)[0]
-            peaks_v = v_out_hp_after_4ms[peaks]
-            v_out_hp -= np.mean(peaks_v)
-            # v_out_hp += v_out_mean/8  # rescale to original height (a bit?)
-            # v_out_hp[v_out_hp < 0] = 0
+            v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.1, fps=int(1 / self.dt))  # very small cutoff
+            # v_out_mean = nmm_potential_out.mean()
+            # # hp_mean = v_out_hp.mean()  # reset mean to 0
+            # # if hp_mean > 1:
+            # #     v_out_hp -= hp_mean
+            # # else:
+            # #     v_out_hp += hp_mean
+            # t_4ms_idx = np.where(self.t>4)[0][0]
+            # v_out_hp_after_4ms = v_out_hp[t_4ms_idx:]
+            # peaks = scipy.signal.find_peaks(-v_out_hp_after_4ms)[0]
+            # peaks_v = v_out_hp_after_4ms[peaks]
+            # v_out_hp -= np.mean(peaks_v)
+            # # v_out_hp += v_out_mean/8  # rescale to original height (a bit?)
+            # # v_out_hp[v_out_hp < 0] = 0
             nmm_potential_out = v_out_hp
         if self.detrend:
             # for find peaks in detrend: distance should be about 1ms, int(2/self.dt) as index
@@ -258,7 +258,10 @@ class DI_wave_simulation():
             self.target = np.interp(self.t, t, mean_DI_waves_detrend[:, 0])
             # plt.plot(t, mean_DI_waves_detrend[:, 0])
         elif fname.split('.')[1] == 'hdf5' or fname.split('.')[1] == 'h5':
-            hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+            if self.detrend:
+                hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+            else:
+                hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
             data_dict = dict(orientation='PA', threshold=100, year=2020, threshold_type='RMT', channel=0, subject=0,
                              hdf5_path=hdf5_path, sigma=1)
             data_dict.update(self.file_args)
@@ -394,12 +397,27 @@ class DI_wave_simulation():
                     plt.scatter(t[d_wave_idx], measurement_data_original[idx_start:idx_end][d_wave_idx], marker='x', color='r')
                     plt.show()
             else:
-                d_wave_idx = scipy.signal.find_peaks(measurement_data_filtered, height=height_d_wave)[0][0]
-
-                    # measurement_data_filtered -= measurement_data_filtered.mean()
-                t_d_wave = t[d_wave_idx]
-                d_wave_start_idx = np.where(t > t_d_wave)[0][0]
-                # TODO: work on this
+                t = times[0]
+                dt_data = np.diff(t)[0]
+                d_wave_time = 3.5
+                if (data_dict['orientation'] == 'PA' and data_dict['year'] == 2007):
+                    d_wave_time = 3.0
+                idx_t_dwave_end = np.where(t > d_wave_time)[0][0]
+                measurement_data_i_waves = measurement_data_original.copy()
+                measurement_data_i_waves[:idx_t_dwave_end] = 0
+                if measurement_data_i_waves.max() > 6:
+                    measurement_data_i_waves /= 3
+                measurement_data_smooth = scipy.ndimage.gaussian_filter1d(measurement_data_i_waves, sigma=data_dict['sigma'])
+                measurement_data_filtered = butter_highpass_filter(measurement_data_smooth,
+                                                        cutoff=0.1, fps=int(1/dt_data))
+                if plot_d_wave_detection:
+                    plt.plot(t, measurement_data_filtered)
+                    plt.plot(t, measurement_data_original, alpha=0.4, color='k', linestyle='--')
+                    plt.xlabel('t (ms)')
+                    plt.ylabel('v (µV)')
+                    plt.title(
+                        f"{data_dict['orientation']} {data_dict['threshold']} {data_dict['year']} {data_dict['channel'] + 2}")
+                    plt.show()
 
             self.target = np.interp(self.t, t, measurement_data_filtered)
             # take caution when using this detrending
