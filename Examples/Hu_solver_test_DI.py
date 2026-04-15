@@ -77,7 +77,7 @@ if plot_di_model:
     # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
     hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
 
-    simulation_name = '26_04_15_test'
+    simulation_name = '26_04_16_test'
 
     # [3.80187468e+02 6.24947346e-01 9.15432571e-01 6.77733943e-01
     #  5.89647134e-03 2.89137701e-01 3.55730239e+00 1.71540732e-06
@@ -140,7 +140,7 @@ if plot_di_model:
                   'test_signal_from_file': True, 'i_scale': 5.148136e-9, 'detrend': False, 'plot_detrend': False,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'mind_delay': 0,
                   'theta': 0, 'delay_signal':True, 'delay': 0.9, 'error_mode': 'true',
-                  'file_args': measurement_dict_2020_140_PA_ch3,
+                  'file_args': measurement_dict_2020_120_PA_ch3,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
@@ -169,7 +169,7 @@ if plot_di_model:
     di_model.get_test_signal(from_file=True)
     di_model.simulate()
 
-    # di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.0018, animate=False, savefig=save_figs)
+    di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.0018, animate=False, savefig=save_figs)
     di_model.labelsize=20
     # di_model.plot_input_current(savefig=save_figs)
     voltage_signal = di_model.mass_model_v_out
