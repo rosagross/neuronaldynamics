@@ -477,6 +477,7 @@ class DI_wave_simulation():
         else:
             v_shade = self.target_aligned
 
+
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(self.t, self.mass_model_v_out, linewidth=2.0, color='indianred')
