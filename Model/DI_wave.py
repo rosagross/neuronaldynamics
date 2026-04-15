@@ -472,7 +472,10 @@ class DI_wave_simulation():
             self.mass_model_v_out[self.mass_model_v_out<0] = 0
 
         non_zero_mask = np.where(abs_signal > 1e-3)
-        v_shade[non_zero_mask] = self.target_aligned[non_zero_mask]
+        if self.detrend:
+            v_shade[non_zero_mask] = self.target_aligned[non_zero_mask]
+        else:
+            v_shade = self.target_aligned
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
