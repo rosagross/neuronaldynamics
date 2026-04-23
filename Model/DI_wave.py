@@ -296,7 +296,7 @@ class DI_wave_simulation():
             data_dict = dict(orientation='PA', threshold=100, year=2020, threshold_type='RMT', channel=0, subject=0,
                              hdf5_path=hdf5_path, sigma=1)
             data_dict.update(self.file_args)
-            d_wave_width = 1.8
+
             with h5py.File(data_dict['hdf5_path'], 'r') as h5file:
                 name_h5group = h5file[data_dict['orientation']][data_dict['threshold_type']][str(data_dict['threshold'])][str(data_dict['year'])]
                 name_dict = dict(name_h5group)
@@ -328,6 +328,9 @@ class DI_wave_simulation():
                         di_signals.append(single_channels)
                 measurement_data_original = np.array(di_signals[0][0]['signal_short'])
 
+
+            # options for detrending
+            d_wave_width = 1.8
             # procedure to find end and start of signal, get rid of D-wave and unwanted peaks
             if self.detrend:
                 t = times[0]
@@ -428,6 +431,7 @@ class DI_wave_simulation():
                     plt.scatter(t[d_wave_idx], measurement_data_original[idx_start:idx_end][d_wave_idx], marker='x', color='r')
                     plt.show()
             else:
+                # highpass version
                 t = times[0]
                 dt_data = np.diff(t)[0]
                 d_wave_time = 3.5
@@ -435,8 +439,10 @@ class DI_wave_simulation():
                     d_wave_time = 3.0
                 idx_t_dwave_end = np.where(t > d_wave_time)[0][0]
                 measurement_data_i_waves = measurement_data_original.copy()
+                # filter out d-wave data
                 measurement_data_i_waves[:idx_t_dwave_end] = 0
                 if measurement_data_i_waves.max() > 6:
+                    # hotfix
                     measurement_data_i_waves /= 3
                 measurement_data_smooth = scipy.ndimage.gaussian_filter1d(measurement_data_i_waves, sigma=data_dict['sigma'])
                 measurement_data_filtered = butter_highpass_filter(measurement_data_smooth,
