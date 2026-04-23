@@ -67,6 +67,8 @@ class DI_wave_simulation():
         self.delay_signal = False
         self.delay = 2
         self.labelsize=15
+        self.paired_pulse = False
+        self.pp_interval = 20
 
         if logname != None:
             self.load_from_file(logname=logname)
@@ -111,6 +113,10 @@ class DI_wave_simulation():
             warnings.warn('No session for gpc model supplied, no input current was computed!')#
             self.input_current = np.zeros_like(self.t)
         init_nykamp_parameters.update(self.nykamp_parameters)
+        if self.paired_pulse:
+            pulse_2 = delay_signal(self.input_current, delay=self.pp_interval, dt=self.dt)
+            self.input_current += pulse_2
+        
         self.nykamp_parameters = init_nykamp_parameters
         self.nykamp_parameters['input_function'] = self.input_current
         self.mass_model = Nykamp_Model_1(parameters=self.nykamp_parameters)
@@ -210,10 +216,10 @@ class DI_wave_simulation():
     def plot_input_current(self, savefig=False):
         fig = plt.figure(figsize=(7, 5))
         ax = fig.add_subplot(111)
-        ax.plot(self.t, self.input_current*1e6, linewidth=2, c='teal') #hotfixes...
+        ax.plot(self.t, self.input_current*1e9, linewidth=2, c='teal') #hotfixes...
         ax.set_xlabel('time (ms)', fontsize=self.labelsize)
         ax.set_ylabel('Current (nA)', fontsize=self.labelsize)
-        ax.set_ylim(0, self.input_current.max()*1e6*1.1)
+        ax.set_ylim(0, self.input_current.max()*1e9*1.1)
         ax.set_xlim((0, self.t.max()))
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
@@ -497,7 +503,11 @@ class DI_wave_simulation():
             self.mass_model_v_out[self.mass_model_v_out<0] = 0
 
         non_zero_mask = np.where(abs_signal > 1e-3)
-        v_shade[non_zero_mask] = self.target_aligned[non_zero_mask]
+        if self.detrend:
+            v_shade[non_zero_mask] = self.target_aligned[non_zero_mask]
+        else:
+            v_shade = self.target_aligned
+
 
         fig = plt.figure()
         ax = fig.add_subplot(111)

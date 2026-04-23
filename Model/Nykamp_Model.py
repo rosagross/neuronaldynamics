@@ -1668,14 +1668,14 @@ class Nykamp_Model_1():
                     if z_limit is None:
                         z_limit = np.abs(rho_plot[plot_idx]).max()
                     z_min, z_max = 0, z_limit
-                    c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='viridis', vmin=z_min, vmax=z_max)
+                    c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='gnuplot2', vmin=z_min, vmax=z_max)
                     fig.colorbar(c, ax=ax)
 
                 else:
                     ax = fig.add_subplot(n_plots, 2, plot_loc_1, projection='3d')
                     X, Y = np.meshgrid(t_plot, v)
                     ax.plot_surface(X, Y, rho_plot[plot_idx],
-                                    cmap="jet", linewidth=0, antialiased=False, rcount=100, ccount=100)
+                                    cmap="gnuplot2", linewidth=0, antialiased=False, rcount=100, ccount=100)
                     ax.set_zlim3d(0, 1)
 
                 ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})", fontsize=self.labelsize)
