@@ -156,12 +156,12 @@ if plot_di_model:
                                         'current_sigma': 12,
                                         'verbose': 1}}
 
-    for i_dict, dict in enumerate(data_dicts):
-        parameters['file_args'] = dict
-        di_model = DI_wave_simulation(parameters=parameters, logname=None)
-        di_model.get_test_signal(plot=False, from_file=True, hdf5_args=di_model.file_args, plot_d_wave_detection=True)
-        di_model.simulate()
-        di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'])
+    # for i_dict, dict in enumerate(data_dicts):
+    #     parameters['file_args'] = dict
+    #     di_model = DI_wave_simulation(parameters=parameters, logname=None)
+    #     di_model.get_test_signal(plot=False, from_file=True, hdf5_args=di_model.file_args, plot_d_wave_detection=True)
+    #     di_model.simulate()
+    #     di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'])
 
     di_model = DI_wave_simulation(parameters=parameters, logname=None)
     # di_model.get_test_signal(plot=True, from_file=True, hdf5_args=di_model.file_args)

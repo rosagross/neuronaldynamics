@@ -47,7 +47,9 @@ if __name__ == "__main__":
     data_dicts_lm = [measurement_dict_2020_120_LM_ch3,
                      measurement_dict_2020_120_LM_ch4,
                      measurement_dict_2004_140_LM_1_ch2]
-    for i_dict, dict in enumerate(data_dicts_pa):
+
+    data_dicts_full = data_dicts_pa + data_dicts_lm
+    for i_dict, dict in enumerate(data_dicts_full):
         print('###################################################################### \n'
               '###################################################################### \n'
               '###################################################################### \n'
@@ -56,10 +58,10 @@ if __name__ == "__main__":
         simulation_name = os.path.join(results_path, simulation_name)
         print(f'name: {simulation_name}')
         parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
-                      'test_func_intensity': 2.0, 'test_func_t0': 0.25, 'max_shift_validation': 4,
-                      'test_signal_from_file': True, 'i_scale': 5.148136e-6, 'error_mode': 'a',
-                      'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'enable_high_pass': False,
-                      'detrend': True,
+                      'test_func_intensity': 2.0, 'test_func_t0': 0.25, 'max_shift_validation': 1.0,
+                      'test_signal_from_file': True, 'i_scale': 5.148136e-9, 'error_mode': 'a',
+                      'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'enable_high_pass': True,
+                      'detrend': False, 'delay_signal': True, 'delay': 0.9,
                       'file_args': dict,
                       'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                             'tau_ref': [0],
@@ -74,9 +76,9 @@ if __name__ == "__main__":
         di_model = DI_wave_simulation(parameters=parameters, logname=None)
 
 
-        model_parameters = ['intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex', 'pdf_offset', 'pdf_sigma',
+        model_parameters = ['theta', 'intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex', 'pdf_offset', 'pdf_sigma',
                              'current_sigma']
-        model_parameter_bounds = [[200, 400], [0.25, 0.75], [0.9, 1.0], [0.2, 0.8], [0, 12], [0.01, 5], [0, 5]]
+        model_parameter_bounds = [[0, 180], [200, 400], [0.25, 0.75], [0.9, 1.0], [0.2, 0.8], [0, 12], [0.01, 5], [0, 5]]
 
         opt_parameters = parameters.copy()
         opt_parameters['optimizer'] = 'hierarchical'

@@ -97,7 +97,7 @@ class DI_wave_simulation():
 
         self.create_coords()
         self.update_gpc_time()
-        if self.use_gpc:
+        if (self.use_gpc and self.fn_session!=None):
             self.load_gpc_session()
             self.grid = pygpc.RandomGrid(parameters_random=self.session.parameters_random, coords=self.coords)
             self.input_current = self.session.gpc[0].get_approximation(self.gpc_coeffs, self.grid.coords_norm) * self.i_scale
@@ -107,10 +107,15 @@ class DI_wave_simulation():
                 warnings.warn('Negative current in gpc model detected, will be set to zero for relevant time steps')
             self.input_current[np.where(self.input_current < 0)[0]] = 0
             self.input_current = np.interp(self.t, self.t_gpc, self.input_current)  # interpolate to desired time
+        elif self.fn_session == None:
+            warnings.warn('No session for gpc model supplied, no input current was computed!')#
+            self.input_current = np.zeros_like(self.t)
         init_nykamp_parameters.update(self.nykamp_parameters)
         self.nykamp_parameters = init_nykamp_parameters
         self.nykamp_parameters['input_function'] = self.input_current
         self.mass_model = Nykamp_Model_1(parameters=self.nykamp_parameters)
+
+
 
 
     def simulate(self, r_file=None):
@@ -238,6 +243,25 @@ class DI_wave_simulation():
 
     def get_test_signal(self, plot=False, from_file=False, fname='s2020_043_CNS2023.mat', hdf5_args=None,
                         highpass=False, hp_cutoff=1.5, plot_d_wave_detection=False):
+        """
+        Function that loads test signals for DI-wave simulation
+        It is divided into three major options: from_file or not (if not a toy model that qualitatively resembles DI-waves
+        is loaded) if fro_file is true and a .mat file is loaded, then further processing is skipped, and it is assumed
+        to be the prepared detrended .mat file from Vincent, if an hdf5 or h5 file is loaded, than it is assumed to be
+        the general database of DI-wave data from DiLazzaro and is loaded accordingly. For the latter one there are two
+        major optios: detrending or highpass filtering. In case of detrending there are unique settings for almost all
+        data sets in PA to load them, for highpass filtering there is almost no extra settings needed for each time
+        series
+        :param plot: bool: option to plot the output or not
+        :param from_file:  bool: option to load real data from a file or load the toy model
+        :param fname: string: filename
+        :param hdf5_args: dict: dictionary of all parameters to find the data (i.e. in a larger hdf5 file)
+        :param highpass: option to use the highpass (can be overwritten from the "enable_high_pass" option of the class
+         DI_wave_simulation
+        :param hp_cutoff: cutoff of the highpass (is sometimes not used!)
+        :param plot_d_wave_detection: option to plot the DI-wave detection and the original data side by side
+        """
+
         if self.enable_high_pass and not highpass:
             highpass=True
         if self.file_args != None and "hdf5_path" in self.file_args.keys():
@@ -262,6 +286,7 @@ class DI_wave_simulation():
                 hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
             else:
                 hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
+            # set initial path for data (works on my pc only atm)
             data_dict = dict(orientation='PA', threshold=100, year=2020, threshold_type='RMT', channel=0, subject=0,
                              hdf5_path=hdf5_path, sigma=1)
             data_dict.update(self.file_args)
