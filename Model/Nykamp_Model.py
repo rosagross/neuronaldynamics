@@ -1233,7 +1233,7 @@ class Nykamp_Model_1():
 
                             # discretization for Hu-2021
                             c = diffusion_coeff * self.dt / dv_
-                            critval = 1.5 * (drift_coeff / 5) / 3
+                            critval = 0.3 * (drift_coeff / 5)
                             if c < critval:
                                 c = critval
                                 diffusion_coeff_original = diffusion_coeff.copy()

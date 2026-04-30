@@ -115,7 +115,7 @@ class DI_wave_simulation():
         init_nykamp_parameters.update(self.nykamp_parameters)
         if self.paired_pulse:
             pulse_2 = delay_signal(self.input_current, delay=self.pp_interval, dt=self.dt)
-            self.input_current += pulse_2
+            self.input_current += pulse_2# /2 # test second pulse being subthreshold
         
         self.nykamp_parameters = init_nykamp_parameters
         self.nykamp_parameters['input_function'] = self.input_current
