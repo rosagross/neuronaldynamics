@@ -74,13 +74,13 @@ if plot_nykamp_basic:
     plt.show()
 
 if plot_di_model:
-    fn_session = '/home/erik/Downloads/gpc.pkl'
+    # fn_session = '/home/erik/Downloads/gpc.pkl'
     # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-    # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-    # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
     # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
     # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-    hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
+    # hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
 
     simulation_name = '26_04_30_test'
 

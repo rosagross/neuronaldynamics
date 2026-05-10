@@ -605,8 +605,12 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
         # find emg channel and detect large spike related to TMS
         if epidural_channel_idxs[0] == 0:
             mean_ch_emg = rmt_k_data[:, 1, :].mean(axis=1)
+            emg_data = rmt_k_data[:, 1, :]
+            emg_ch_idx = 1
         else:
             mean_ch_emg = rmt_k_data[:, 0, :].mean(axis=1)
+            emg_data = rmt_k_data[:, 0, :]
+            emg_ch_idx = 0
         tms_peak_idx, tms_peaks = find_peaks(mean_ch_emg, height=emg_peak_height)
         if len(tms_peak_idx) == 0:
             tms_peak_idx, tms_peaks = find_peaks(-mean_ch_emg, height=emg_peak_height)
@@ -677,11 +681,14 @@ def get_di_wave_data(data, rmt_names, epidural_channel_idxs, rmt_values, sample_
             channel_name = di_wave_data['channel_names'][idx]
             di_wave_data[rmt_values[k]][channel_name] = dict(signal_full=signals_full, signal_short=ax_mean,
                                                              data_name=rmt_names[k])
+
             # di_wave_data[f'{rmt_values[k]}'][di_wave_data_name_temp]['mean_window'] = ax_mean
             di_wave_full_name = f'{di_wave_data["name"]}--{rmt_val}--{channel_name}'
             # plt.plot(t_window, ax_mean)
             # plt.title(di_wave_full_name)
             # plt.show()
+        # hotfix to add EMG signal for now
+        di_wave_data[rmt_values[k]]['EMG'] = dict(signal_full=emg_data, signal_mean=mean_ch_emg)
     return di_wave_data
 
 def delay_signal(signal, delay, dt):
