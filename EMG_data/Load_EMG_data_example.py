@@ -7,7 +7,6 @@ plotting is done via matplotlib, additional smoothing can be done via scipy.ndim
 import numpy as np
 import h5py
 import os
-from scipy.ndimage import gaussian_filter1d
 import matplotlib.pyplot as plt
 # hdf5_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
 hdf5_path = '/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5'
