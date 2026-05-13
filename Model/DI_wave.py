@@ -580,7 +580,7 @@ class DI_wave_simulation():
         with open(logname, 'r') as stream:
             self.parameters = yaml.load(stream, Loader=yaml.Loader)
 
-    def optimize(self, optimizer='hierarchical', opt_params={}):
+    def optimize(self, optimizer='hierarchical', opt_params={}, opt_directory='optimization_temp'):
 
         if optimizer == 'hierarchical':
             self.__init__(parameters=opt_params)
@@ -589,6 +589,7 @@ class DI_wave_simulation():
             opt_params['simulation_class'] = self
             opt_params['simulate'] = self.simulate
             self.optimimization_algorithm = Hierarchical_Random(parameters=opt_params)
+            self.optimimization_algorithm.results_folder = opt_directory
             self.optimimization_algorithm.run()
         elif optimizer == 'GA':
             self.__init__(parameters=opt_params)

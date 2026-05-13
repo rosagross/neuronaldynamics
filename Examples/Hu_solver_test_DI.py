@@ -137,7 +137,7 @@ if plot_di_model:
     measurement_dict = dict(orientation='PA', threshold=120, year=2013, hdf5_path=hdf5_path, sigma=1.0, channel=0)
     parameters = {'intensity': 250, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.6, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': True, 'min_delay': 5,
-                  'test_signal_from_file': True, 'i_scale': 5.148136e-9, 'detrend': False, 'plot_detrend': False,
+                  'test_signal_from_file': True, 'i_scale': 5.148136e-9*3, 'detrend': False, 'plot_detrend': False,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'mind_delay': 0,
                   'theta': 0, 'delay_signal':True, 'delay': 0.9, 'error_mode': 'true',
                   'file_args': measurement_dict_2020_120_PA_ch3,
@@ -147,14 +147,14 @@ if plot_di_model:
                                         'input_type': 'stochastic-current',
                                         'static_noise': True,
                                         'init_pdf_offset': 0,
-                                        'init_pdf_sigma': 0.1,
+                                        'init_pdf_sigma': 2.5,
                                         'init_pdf_weight': 0,
                                         'delay_kernel_type': 'alpha',
                                         'delay_kernel_parameters': {'n_alpha': 9, 'tau_alpha': 1/3},
                                         'dv': dv,
                                         'dt': dt,
                                         'solver': 'Hu-2021',
-                                        'current_sigma': 12,
+                                        'current_sigma': 6,
                                         'verbose': 1}}
 
     # for i_dict, dict in enumerate(data_dicts):

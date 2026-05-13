@@ -111,7 +111,9 @@ class Hierarchical_Random(Optimizer):
 
             orig_name = self.simulation_class.mass_model.name
             if self.save_results:
-                run_name = os.path.join(self.results_folder, f'diw_sim_opt_hu_{i}_{k}')
+                param_str_list = [self.model_parameters[s]+'_' + f'{param_values[s, k]:.2f}' for s in range(self.n_param)]
+                param_str = '_'.join(param_str_list)
+                run_name = os.path.join(self.results_folder, f'diw_sim_opt_hu_{i}_{k}_' + param_str)
                 # self.simulation_class.save_log(log_name=run_name)
                 self.simulation_class.name = run_name
                 self.simulation_class.plot_validation(save_fig=True)

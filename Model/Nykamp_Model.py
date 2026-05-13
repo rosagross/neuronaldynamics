@@ -810,7 +810,7 @@ class Nykamp_Model_1():
             # compute g_leak from tau and capacitance
             # self.g_leak = [1e-5]*self.n_populations
             # self.g_leak = self.c_mem/self.tau_mem * 1e-3  # (conversion to mS from µS)
-            self.g_leak = self.c_mem/(np.array(self.tau_mem)*1e-3)  # (conversion from ms t s for tau_mem)
+            self.g_leak = (np.array(self.tau_mem)*1e-3) * self.c_mem  # (conversion from ms t s for tau_mem)
 
         if self.synapse_pdf_type == 'gamma':
             self.synapse_pdf_params = np.array([self.var_coeff_gamma, self.mu_gamma])
@@ -950,6 +950,7 @@ class Nykamp_Model_1():
 
         c_count = 0
         c_v_warn_count = 0
+        added_noise = np.zeros(self.t.shape[0] - 1)
 
         # Determine population dynamics (diffusion approximation)
         for i, t_ in enumerate(tqdm(self.t[:-1], f"simulating {self.population_type} neuron populations for"
@@ -1221,7 +1222,7 @@ class Nykamp_Model_1():
 
                             # conversion of coefficients from Nykamp to Hu-formulation
                             drift_coeff_vec = (-np.sum(- v_in[exc_idxs, j, i]) * c1ee_v + np.sum(v_in[inh_idxs, j, i]) * c1ei_v +\
-                                          self.c1eext) * hu_scaling_factor * 2e4
+                                          self.c1eext) * hu_scaling_factor
                             drift_coeff = drift_coeff_vec[0]
 
                             # TODO: find a way around this once voltage dependent components play a role
@@ -1240,11 +1241,13 @@ class Nykamp_Model_1():
                                 diffusion_coeff = c * dv_ / self.dt
                                 sigma_orig = np.sqrt(diffusion_coeff_original * 2 * self.tau_mem[j])
                                 sigma_new = np.sqrt(diffusion_coeff * 2 * self.tau_mem[j])
+                                added_noise[i] = sigma_new
                                 if c_count < 1 & self.verbose > 0:
                                     c_count += 1
-                                    print(f'resetting diffusion_coeff from {diffusion_coeff_original} to'
-                                          f' {diffusion_coeff:.5f} (sigma_v from {sigma_orig:.5f} to {sigma_new:.5f}) to achieve numerical stability')
-
+                                    print(f'increasing diffusion_coeff from to achieve numerical stability at noise val {sigma_orig:.5f}mV')
+                            # {diffusion_coeff_original} to {diffusion_coeff:.5f} (sigma_v from {sigma_orig:.5f} to {sigma_new:.5f})
+                            if i == self.t.shape[0] - 2:
+                                print(f'largest noise value encountered :{added_noise.max():.5f}mV')
                             # Scharfetter-Gummel Flux
                             Ms = self.SG_Flux(v_, drift_coeff, diffusion_coeff, x_rest=u_rest_)
 

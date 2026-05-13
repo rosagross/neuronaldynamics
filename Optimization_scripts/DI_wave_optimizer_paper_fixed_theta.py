@@ -78,9 +78,9 @@ if __name__ == "__main__":
         di_model = DI_wave_simulation(parameters=parameters, logname=None)
 
 
-        model_parameters = ['theta', 'intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex', 'pdf_offset', 'pdf_sigma',
+        model_parameters = ['intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex', 'pdf_offset', 'pdf_sigma',
                              'current_sigma']
-        model_parameter_bounds = [[0, 180], [200, 400], [0.25, 0.75], [0.9, 1.0], [0.2, 0.8], [0, 12], [0.1, 15], [0, 15]]
+        model_parameter_bounds = [[200, 400], [0.25, 0.75], [0.9, 1.0], [0.2, 0.8], [0, 12], [0.1, 15], [0, 15]]
 
         opt_parameters = parameters.copy()
         opt_parameters['optimizer'] = 'hierarchical'
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         opt_parameters['nykamp_parameters']['tqdm_disable'] = True
         opt_parameters['save_results'] = True
 
-        di_model.optimize(opt_params=opt_parameters)
+        di_model.optimize(opt_params=opt_parameters, opt_directory='opt_temp_no_theta')
         opt_params = di_model.optimimization_algorithm.optimum
         print(f'optimal params recovered: {opt_params}')
 
