@@ -66,10 +66,11 @@ opt_params['simulate'] = testfunction.simulate
 opt_params['bounds'] = [[-2, 1], [-1, 3]]
 opt_params['x_out'] = 'y'
 opt_params['reference'] = 0
-opt_params['n_iter'] = 20
-opt_params['N1'] = 20
-opt_params['N1'] = 20
-opt_params['tolerance'] = 1e18
+opt_params['n_iter'] = 50
+opt_params['N1'] = 100
+opt_params['N2'] = 100
+opt_params['tolerance'] = 1e-10
+opt_params['single_run_tol'] = 1e-8
 optimizer = GA(parameters=opt_params)
 # opt_params['max_iter'] = 1000
 # optimizer = Hierarchical_Random(parameters=opt_params)
@@ -107,6 +108,7 @@ def animate_sol(params):
     ani = animation.FuncAnimation(fig=fig, func=update, frames=params.shape[0], interval=1)
     # plt.show()
     ani.save(filename='rosenbrock.gif', writer="pillow")
+    print(f'saved convergence in 2D to rosenbrock.gif')
     plt.close()
 
 

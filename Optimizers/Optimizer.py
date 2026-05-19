@@ -157,6 +157,27 @@ class Hierarchical_Random(Optimizer):
                     print(f'error not smaller than {previous_min_error:.4f}-{self.noise_term}')
 
 class GA(Optimizer):
+    """
+    Python implementation of a stoachstic gradient descent algorithm
+        - parameters:
+        - model_parameters:
+        - simulation_class:
+        - op:
+        - n_iter:
+        - x_out:
+        - reference:
+        - tolerance:
+        - single_run_tol:
+        - verbose:
+        - bounds:
+        - N1:
+        - N2:
+        - N3:
+        - errors:
+        - parameter_evolution:
+
+
+    """
     def __init__(self, parameters):
         super().__init__(parameters=parameters)
         self.parameters = parameters
@@ -168,6 +189,7 @@ class GA(Optimizer):
         self.x_out = 'y'
         self.reference = None
         self.tolerance = 0.05
+        self.single_run_tol = 1e-5
         self.verbose = 0
 
         self.bounds = None
@@ -223,7 +245,7 @@ class GA(Optimizer):
         print('======== Initialization ========')
         P = self.population(self.N1, nParams, LR, UR)  # generate[60 x nParams] random solutions
         # P = [P, solution_ini]  # add pre - selected solutions
-        E, _, R = self.evaluation(P, self.reference) # E: evaluation fitness, R: residual, error
+        E, R, _ = self.evaluation(P, self.reference) # E: evaluation fitness, R: residual, error
         P, E, R = self.selection_best(P, E, R, self.N1, self.op)
         R1 = R[0]
         if isinstance(R1, (int, float)):
@@ -276,10 +298,9 @@ class GA(Optimizer):
             R_[index] = R_grd[index]
             P = np.vstack((P, P_))  # [(60 + nParams) x nParams] solutions
             E = np.hstack((E, E_))
-            if len(R.shape) > 1 : # [1 x(60 + nParams)] cost
-                R = np.vstack((R, R_))  # [timepoints x(60 + nParams)] residual
-            else:
-                R = np.hstack((R, R_))
+            if not len(R.shape) > 1 : # [1 x(60 + nParams)] cost
+                R = R[:, np.newaxis]
+            R = np.vstack((R, R_)) # [timepoints x(60 + nParams)] residual
             print('done')
 
             # # # # # # # # # #
@@ -331,7 +352,7 @@ class GA(Optimizer):
             w+=1
 
             # stop: good fit
-            if KS[-1] < 0.01:
+            if KS[-1] < self.single_run_tol:
                 break
         print(f'best param set {KP[-1]} with error: {KS[-1]}')
         self.optimum = KP[-1]
@@ -576,7 +597,7 @@ class GA(Optimizer):
             error_.append(r_test.copy())
             j += 1
 
-            if len(fit_) > 1 and op * (fit_[-1] - fit_[-2]) < tol:
+            if len(fit_) > 1 and np.abs(fit_[-1] - fit_[-2]) < tol:
                 print(f"Quit: improvement < tol({tol})")
                 break
 
@@ -722,7 +743,8 @@ class GA(Optimizer):
             P = X[j]
             start_time = time.time()
             h_out = self.function_call(P)
-            error = nrmse(h_out, y)
+            # error = nrmse(y, h_out)
+            error = np.abs(y-h_out)
             fit = np.sum(error**2)
             end_time = time.time()
             sim_time = end_time-start_time
