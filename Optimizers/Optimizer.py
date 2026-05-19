@@ -19,6 +19,7 @@ class Optimizer():
         self.optimum = None
         self.results_folder = 'optimization_temp'
         self.save_results = False
+        self.__dict__.update(parameters)
         # self.simulate = lambda self.opt_paramters[0]: x
 
 class Hierarchical_Random(Optimizer):
