@@ -1246,7 +1246,7 @@ class Nykamp_Model_1():
                                     c_count += 1
                                     print(f'increasing diffusion_coeff from to achieve numerical stability at noise val {sigma_orig:.5f}mV')
                             # {diffusion_coeff_original} to {diffusion_coeff:.5f} (sigma_v from {sigma_orig:.5f} to {sigma_new:.5f})
-                            if i == self.t.shape[0] - 2:
+                            if i == self.t.shape[0] - 2 and c_count > 0:
                                 print(f'largest noise value encountered :{added_noise.max():.5f}mV')
                             # Scharfetter-Gummel Flux
                             Ms = self.SG_Flux(v_, drift_coeff, diffusion_coeff, x_rest=u_rest_)

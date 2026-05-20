@@ -249,7 +249,7 @@ class GA(Optimizer):
         E, R, _ = self.evaluation(P, self.reference) # E: evaluation fitness, R: residual, error
         # TODO: check if R- residual is kept through this evaluation (why is R not shape x_shape x t_shape?)
         P, E, R = self.selection_best(P, E, R, self.N1, self.op)
-        R1 = R[0]
+        R1 = R[0]  # R1 is the best residual from the population P (selection_best)
         if isinstance(R1, (int, float)):
             R1 = np.array([[R1]])
         print('done')
@@ -271,7 +271,7 @@ class GA(Optimizer):
             print('======= single-parameter mutation ========')
             P_ = self.mutation_single(P[0, :], LR, UR)
 
-            E_, _, R_ = self.evaluation(P_, self.reference)
+            E_, R_, _ = self.evaluation(P_, self.reference)
             print('done')
 
             print('======= Gradient search ========')
@@ -584,8 +584,8 @@ class GA(Optimizer):
             J = self.NMM_diff_A_lfm(Para_E_test, r_test)
             Para_E_new_group = self.multi_lavenberg_regularization(steps, reg0, reg1, Para_E_test, J, r_test, LR, UR)
 
-            fit_grp, error_grp, hout_group = self.evaluation(Para_E_new_group, self.reference)
-            Para_E_new, fit_new, r_new = self.selection_best(Para_E_new_group, error_grp, hout_group, 1, op)
+            fit_grp, error_grp, hout_grp = self.evaluation(Para_E_new_group, self.reference)
+            Para_E_new, fit_new, r_new = self.selection_best(Para_E_new_group, fit_grp, error_grp, 1, op)
             r_new = r_new.flatten()
             # this was changed
             # TODO check against original: self.selection_best(Para_E_new_group, fit_grp, error_grp, 1, op)
@@ -620,24 +620,22 @@ class GA(Optimizer):
 
         Parameters:
         - para: current parameter vector (1D array)
-        - houtput: current output from myfunc(para, y_goal)
+        - houtput: current output from myfunc(para, y_goal) !!! r_test is given as argument here, so is this really
+        a residual?
         - myfunc: function to evaluate
         - y_goal: target output for myfunc
 
         Returns:
         - j: Jacobian matrix (samples x parameters)
         """
-        # TODO: check if h_ouput is really the parameter here
+        # TODO: check if h_ouput is really the correct parameter here
         h = 1e-6
         parameter_pert = parameter + h
         p_shape = parameter.shape[0]
         if isinstance(h_output, (int, float)):
             h_shape = 1
         else:
-            # TODO: this only works if h_output is a scalar or 1D, make the more general if more than one output dim is
-            #  needed
             h_shape = h_output.shape[-1]
-
 
         j = np.zeros((h_shape, p_shape))
 
@@ -737,6 +735,8 @@ class GA(Optimizer):
         :param y: reference
         :return: fits: fit values (errors), h_outs: output values of evaluated functions
         """
+        #TODO: use multithreading
+
         x_shape = X.shape[0]
         errors = np.zeros((x_shape, self.t_shape))
         h_outs = np.zeros((x_shape, self.t_shape))
@@ -756,9 +756,9 @@ class GA(Optimizer):
             fits[j] = fit
             errors[j] = error
             h_outs[j] = h_out
-        return fits, errors.T, h_outs.T
+        return fits, errors, h_outs
 
-    def multi_lavenberg_regularization(self, n, reg0, reg1, Para_E, J, h_output, LR, UR):
+    def multi_lavenberg_regularization(self, n, reg0, reg1, Para_E, J, r, LR, UR):
         """
         Generates n updated parameter sets using Levenberg regularization.
 
@@ -767,7 +767,7 @@ class GA(Optimizer):
         - reg0, reg1: min and max regularization exponents
         - Para_E: current parameter vector (1D array)
         - J: Jacobian matrix
-        - h_output: residual vector
+        - r: residual vector
         - LR, UR: lower and upper bounds for gradient repair
 
         Returns:
@@ -775,25 +775,24 @@ class GA(Optimizer):
         """
         Y = np.zeros((n, Para_E.shape[0]))
         reg = 10 ** np.linspace(reg0, reg1, n)
-        if isinstance(h_output, (int, float)):
-            h_output = np.array([h_output])
+        if isinstance(r, (int, float)):
+            r = np.array([r])
 
         for i in range(reg.shape[0]):
             try:
                 D = np.linalg.pinv(J.T @ J + reg[i] * np.eye(Para_E.shape[0]))
             except:
-                # TODO: try if this error is error important and find out what exception is necessary
+                # TODO: try if this error is important and find out what exception is necessary
                 return Y  # return current Y if inversion fails
-            if isinstance(h_output, (int, float)):
-                d = -D @ J.T * h_output
+            if isinstance(r, (int, float)):
+                d = -D @ J.T * r
             else:
-                d = -D @ J.T @ h_output
+                d = -D @ J.T @ r
             if np.isnan(d).any():
                 continue  # skip this iteration if invalid update
 
             Para_E_new = Para_E + d
             Y[i, :] = self.gradient_repair(Para_E_new, LR, UR)
-
         return Y
 
     def gradient_repair(self, Para_E, LR, UR):
