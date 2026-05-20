@@ -247,6 +247,7 @@ class GA(Optimizer):
         P = self.population(self.N1, nParams, LR, UR)  # generate[60 x nParams] random solutions
         # P = [P, solution_ini]  # add pre - selected solutions
         E, R, _ = self.evaluation(P, self.reference) # E: evaluation fitness, R: residual, error
+        # TODO: check if R- residual is kept through this evaluation (why is R not shape x_shape x t_shape?)
         P, E, R = self.selection_best(P, E, R, self.N1, self.op)
         R1 = R[0]
         if isinstance(R1, (int, float)):
@@ -626,6 +627,7 @@ class GA(Optimizer):
         Returns:
         - j: Jacobian matrix (samples x parameters)
         """
+        # TODO: check if h_ouput is really the parameter here
         h = 1e-6
         parameter_pert = parameter + h
         p_shape = parameter.shape[0]
@@ -736,8 +738,8 @@ class GA(Optimizer):
         :return: fits: fit values (errors), h_outs: output values of evaluated functions
         """
         x_shape = X.shape[0]
-        errors = np.zeros(x_shape)
-        h_outs = np.zeros((self.t_shape, x_shape))
+        errors = np.zeros((x_shape, self.t_shape))
+        h_outs = np.zeros((x_shape, self.t_shape))
         fits = np.zeros(x_shape)
 
         for j in range(x_shape):
@@ -753,9 +755,8 @@ class GA(Optimizer):
             if self.verbose > 0: print(f' simulation time: {sim_time_float:.3f}{sim_time_str} --> {j+1}/{x_shape}')
             fits[j] = fit
             errors[j] = error
-            h_outs[:, j] = h_out
-        h_outs = h_outs.T
-        return fits, errors, h_outs
+            h_outs[j] = h_out
+        return fits, errors.T, h_outs.T
 
     def multi_lavenberg_regularization(self, n, reg0, reg1, Para_E, J, h_output, LR, UR):
         """

@@ -11,13 +11,14 @@ dt = 0.01
 dv = 0.01
 
 # fn_session = '/home/erik/Downloads/gpc.pkl'
-# fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-# hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
+# fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+# hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 # hdf5_path ="/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
-fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 simulation_name = f'_diw_opt_chain_19_05_26_GA'
-results_path = "D:\\work\\DI-wave\\results_2026_05_19"
+# results_path = "D:\\work\\DI-wave\\results_2026_05_19"
+results_path = "optimization_temp"
 simulation_name = os.path.join(results_path, simulation_name)
 measurement_dict_2007_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2007, hdf5_path=hdf5_path, sigma=1.0)
 print(f'name: {simulation_name}')
@@ -52,6 +53,9 @@ opt_parameters['reference'] = di_model.target
 opt_parameters['tolerance'] =  1e-3
 opt_parameters['single_run_tol'] = 1e-4
 opt_parameters['n_iter'] = 20
+opt_parameters['N1'] = 5
+opt_parameters['N2'] = 5
+opt_parameters['N3'] = 5
 opt_parameters['model_parameters'] = model_parameters
 opt_parameters['simulation_class'] = di_model
 opt_parameters['simulate'] = di_model.simulate
