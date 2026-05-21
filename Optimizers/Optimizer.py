@@ -1,5 +1,6 @@
 import warnings
 import numpy as np
+import numba as nb
 import sympy as sy
 import os
 from scipy.integrate import odeint
@@ -22,7 +23,7 @@ class Optimizer():
         self.optimum = None
         self.results_folder = 'optimization_temp'
         self.save_results = False
-        self.serial_computation = False
+        self.serial_computation = True
         self.n_cpus = 4
         self.__dict__.update(parameters)
         # self.simulate = lambda self.opt_paramters[0]: x
@@ -740,7 +741,6 @@ class GA(Optimizer):
         :param y: reference
         :return: fits: fit values (errors), h_outs: output values of evaluated functions
         """
-        #TODO: use multithreading
 
         x_shape = X.shape[0]
         errors = np.zeros((x_shape, self.t_shape))
@@ -749,11 +749,11 @@ class GA(Optimizer):
 
 
         if self.serial_computation == True:
-            for k in range(x_shape):
+            for k in nb.prange(x_shape):
                 P = X[k]
                 h_outs[k] = self.function_call(P)
         else:
-            # multithreading
+            # multithreading WIP, takes super long most of the time
             cpu_count = mp.cpu_count()
             if self.n_cpus > cpu_count-1:
                 self.n_cpus = cpu_count-1

@@ -61,6 +61,7 @@ model_parameters = ['x1', 'x2']
 opt_params = {}
 opt_params['model_parameters'] = model_parameters
 opt_params['y'] = np.array([0])
+opt_params['serial_computation'] = False
 opt_params['simulation_class'] = testfunction
 opt_params['simulate'] = testfunction.simulate
 opt_params['bounds'] = [[-2, 1], [-1, 3]]

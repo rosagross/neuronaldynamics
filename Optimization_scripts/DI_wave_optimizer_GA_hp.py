@@ -48,12 +48,12 @@ def main():
     # ['best after gradient: [96.89784643] at param set [[ 60.93360198 202.03708798   0.57166902   0.99426977   0.52796225\n    3.78881251   2.5311716    2.2537436 ]]']
     opt_parameters = parameters.copy()
     opt_parameters['optimizer'] = 'GA'
-    opt_parameters['n_cpus'] = 10
+    opt_parameters['n_cpus'] = 2
     opt_parameters['serial_computation'] = True
     opt_parameters['results_folder'] = results_path
     opt_parameters['reference'] = di_model.target
-    opt_parameters['tolerance'] =  1e-3
-    opt_parameters['single_run_tol'] = 1e-4
+    opt_parameters['tolerance'] =  5
+    opt_parameters['single_run_tol'] = 0.1
     opt_parameters['n_iter'] = 20
     opt_parameters['N1'] = 5
     opt_parameters['N2'] = 5
