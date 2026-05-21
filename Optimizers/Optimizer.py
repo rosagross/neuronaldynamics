@@ -7,7 +7,10 @@ from Utils import get_stability_2D, nrmse, t_format
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
 import time
+from tqdm import tqdm
 from tqdm.contrib import itertools
+import multiprocess as mp
+
 # from tqdm import tqdm
 
 import matplotlib
@@ -19,6 +22,8 @@ class Optimizer():
         self.optimum = None
         self.results_folder = 'optimization_temp'
         self.save_results = False
+        self.serial_computation = False
+        self.n_cpus = 4
         self.__dict__.update(parameters)
         # self.simulate = lambda self.opt_paramters[0]: x
 
@@ -258,7 +263,7 @@ class GA(Optimizer):
         E_crit = E[0]
 
         ################## loop ######################
-        for j in range(self.n_iter):
+        for j in tqdm(range(self.n_iter), 'main iteration'):
             print('======= Gradient search ========')
             Para_E_grd, E_grd, R_grd = self.gradient_search(P[0], R1, conf, E_crit)
             # replace
@@ -742,12 +747,28 @@ class GA(Optimizer):
         h_outs = np.zeros((x_shape, self.t_shape))
         fits = np.zeros(x_shape)
 
+
+        if self.serial_computation == True:
+            for k in range(x_shape):
+                P = X[k]
+                h_outs[k] = self.function_call(P)
+        else:
+            # multithreading
+            cpu_count = mp.cpu_count()
+            if self.n_cpus > cpu_count-1:
+                self.n_cpus = cpu_count-1
+            n_workers = self.n_cpus
+            pool = mp.Pool(processes=n_workers)
+
+            h_outs = pool.map(self.function_call, X)
+
+            pool.close()
+            pool.join()
+
         for j in range(x_shape):
-            P = X[j]
             start_time = time.time()
-            h_out = self.function_call(P)
             # error = nrmse(y, h_out)
-            error = np.abs(y-h_out)
+            error = np.abs(y-h_outs[j])
             fit = np.sum(error**2)
             end_time = time.time()
             sim_time = end_time-start_time
@@ -755,7 +776,6 @@ class GA(Optimizer):
             if self.verbose > 0: print(f' simulation time: {sim_time_float:.3f}{sim_time_str} --> {j+1}/{x_shape}')
             fits[j] = fit
             errors[j] = error
-            h_outs[j] = h_out
         return fits, errors, h_outs
 
     def multi_lavenberg_regularization(self, n, reg0, reg1, Para_E, J, r, LR, UR):
@@ -826,16 +846,6 @@ class GA(Optimizer):
         m = parameters.shape[0]
         # h_out = np.zeros((m, self.t_shape))
         for i in range(m):
-            # for j in range(self.n_param):
-            #     keywords[self.model_parameters[j]] = parameters[i, j]
-            #
-            # if self.simulation_class != None:
-            #     self.simulation_class.__init__(parameters=keywords)
-            #     if self.x_out != None:
-            #         self.simulation_class.simulate()
-            #         h_out[i] = eval(f'self.simulation_class.{self.x_out}')
-            #     else:
-            #         h_out[i] = self.simulation_class.simulate()
             keywords[self.model_parameters[i]] = parameters[i]
 
         if self.simulation_class != None:
