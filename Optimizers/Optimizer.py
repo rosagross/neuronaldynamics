@@ -1,5 +1,6 @@
 import warnings
 import numpy as np
+import numba as nb
 import sympy as sy
 import os
 from scipy.integrate import odeint
@@ -7,7 +8,10 @@ from Utils import get_stability_2D, nrmse, t_format
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
 import time
+from tqdm import tqdm
 from tqdm.contrib import itertools
+import multiprocess as mp
+
 # from tqdm import tqdm
 
 import matplotlib
@@ -19,6 +23,9 @@ class Optimizer():
         self.optimum = None
         self.results_folder = 'optimization_temp'
         self.save_results = False
+        self.serial_computation = True
+        self.n_cpus = 4
+        self.__dict__.update(parameters)
         # self.simulate = lambda self.opt_paramters[0]: x
 
 class Hierarchical_Random(Optimizer):
@@ -111,7 +118,9 @@ class Hierarchical_Random(Optimizer):
 
             orig_name = self.simulation_class.mass_model.name
             if self.save_results:
-                run_name = os.path.join(self.results_folder, f'diw_sim_opt_hu_{i}_{k}')
+                param_str_list = [self.model_parameters[s]+'_' + f'{param_values[s, k]:.2f}' for s in range(self.n_param)]
+                param_str = '_'.join(param_str_list)
+                run_name = os.path.join(self.results_folder, f'diw_sim_opt_hu_{i}_{k}_' + param_str)
                 # self.simulation_class.save_log(log_name=run_name)
                 self.simulation_class.name = run_name
                 self.simulation_class.plot_validation(save_fig=True)
@@ -155,6 +164,27 @@ class Hierarchical_Random(Optimizer):
                     print(f'error not smaller than {previous_min_error:.4f}-{self.noise_term}')
 
 class GA(Optimizer):
+    """
+    Python implementation of a stoachstic gradient descent algorithm
+        - parameters:
+        - model_parameters:
+        - simulation_class:
+        - op:
+        - n_iter:
+        - x_out:
+        - reference:
+        - tolerance:
+        - single_run_tol:
+        - verbose:
+        - bounds:
+        - N1:
+        - N2:
+        - N3:
+        - errors:
+        - parameter_evolution:
+
+
+    """
     def __init__(self, parameters):
         super().__init__(parameters=parameters)
         self.parameters = parameters
@@ -166,6 +196,7 @@ class GA(Optimizer):
         self.x_out = 'y'
         self.reference = None
         self.tolerance = 0.05
+        self.single_run_tol = 1e-5
         self.verbose = 0
 
         self.bounds = None
@@ -221,9 +252,10 @@ class GA(Optimizer):
         print('======== Initialization ========')
         P = self.population(self.N1, nParams, LR, UR)  # generate[60 x nParams] random solutions
         # P = [P, solution_ini]  # add pre - selected solutions
-        E, _, R = self.evaluation(P, self.reference) # E: evaluation fitness, R: residual, error
+        E, R, _ = self.evaluation(P, self.reference) # E: evaluation fitness, R: residual, error
+        # TODO: check if R- residual is kept through this evaluation (why is R not shape x_shape x t_shape?)
         P, E, R = self.selection_best(P, E, R, self.N1, self.op)
-        R1 = R[0]
+        R1 = R[0]  # R1 is the best residual from the population P (selection_best)
         if isinstance(R1, (int, float)):
             R1 = np.array([[R1]])
         print('done')
@@ -232,7 +264,7 @@ class GA(Optimizer):
         E_crit = E[0]
 
         ################## loop ######################
-        for j in range(self.n_iter):
+        for j in tqdm(range(self.n_iter), 'main iteration'):
             print('======= Gradient search ========')
             Para_E_grd, E_grd, R_grd = self.gradient_search(P[0], R1, conf, E_crit)
             # replace
@@ -245,7 +277,7 @@ class GA(Optimizer):
             print('======= single-parameter mutation ========')
             P_ = self.mutation_single(P[0, :], LR, UR)
 
-            E_, _, R_ = self.evaluation(P_, self.reference)
+            E_, R_, _ = self.evaluation(P_, self.reference)
             print('done')
 
             print('======= Gradient search ========')
@@ -274,10 +306,9 @@ class GA(Optimizer):
             R_[index] = R_grd[index]
             P = np.vstack((P, P_))  # [(60 + nParams) x nParams] solutions
             E = np.hstack((E, E_))
-            if len(R.shape) > 1 : # [1 x(60 + nParams)] cost
-                R = np.vstack((R, R_))  # [timepoints x(60 + nParams)] residual
-            else:
-                R = np.hstack((R, R_))
+            if not len(R.shape) > 1 : # [1 x(60 + nParams)] cost
+                R = R[:, np.newaxis]
+            R = np.vstack((R, R_)) # [timepoints x(60 + nParams)] residual
             print('done')
 
             # # # # # # # # # #
@@ -329,7 +360,7 @@ class GA(Optimizer):
             w+=1
 
             # stop: good fit
-            if KS[-1] < 0.01:
+            if KS[-1] < self.single_run_tol:
                 break
         print(f'best param set {KP[-1]} with error: {KS[-1]}')
         self.optimum = KP[-1]
@@ -559,8 +590,8 @@ class GA(Optimizer):
             J = self.NMM_diff_A_lfm(Para_E_test, r_test)
             Para_E_new_group = self.multi_lavenberg_regularization(steps, reg0, reg1, Para_E_test, J, r_test, LR, UR)
 
-            fit_grp, error_grp, hout_group = self.evaluation(Para_E_new_group, self.reference)
-            Para_E_new, fit_new, r_new = self.selection_best(Para_E_new_group, error_grp, hout_group, 1, op)
+            fit_grp, error_grp, hout_grp = self.evaluation(Para_E_new_group, self.reference)
+            Para_E_new, fit_new, r_new = self.selection_best(Para_E_new_group, fit_grp, error_grp, 1, op)
             r_new = r_new.flatten()
             # this was changed
             # TODO check against original: self.selection_best(Para_E_new_group, fit_grp, error_grp, 1, op)
@@ -574,7 +605,7 @@ class GA(Optimizer):
             error_.append(r_test.copy())
             j += 1
 
-            if len(fit_) > 1 and op * (fit_[-1] - fit_[-2]) < tol:
+            if len(fit_) > 1 and np.abs(fit_[-1] - fit_[-2]) < tol:
                 print(f"Quit: improvement < tol({tol})")
                 break
 
@@ -595,23 +626,22 @@ class GA(Optimizer):
 
         Parameters:
         - para: current parameter vector (1D array)
-        - houtput: current output from myfunc(para, y_goal)
+        - houtput: current output from myfunc(para, y_goal) !!! r_test is given as argument here, so is this really
+        a residual?
         - myfunc: function to evaluate
         - y_goal: target output for myfunc
 
         Returns:
         - j: Jacobian matrix (samples x parameters)
         """
+        # TODO: check if h_ouput is really the correct parameter here
         h = 1e-6
         parameter_pert = parameter + h
         p_shape = parameter.shape[0]
         if isinstance(h_output, (int, float)):
             h_shape = 1
         else:
-            # TODO: this only works if h_output is a scalar or 1D, make the more general if more than one output dim is
-            #  needed
             h_shape = h_output.shape[-1]
-
 
         j = np.zeros((h_shape, p_shape))
 
@@ -711,16 +741,34 @@ class GA(Optimizer):
         :param y: reference
         :return: fits: fit values (errors), h_outs: output values of evaluated functions
         """
+
         x_shape = X.shape[0]
-        errors = np.zeros(x_shape)
-        h_outs = np.zeros((self.t_shape, x_shape))
+        errors = np.zeros((x_shape, self.t_shape))
+        h_outs = np.zeros((x_shape, self.t_shape))
         fits = np.zeros(x_shape)
 
+
+        if self.serial_computation == True:
+            for k in nb.prange(x_shape):
+                P = X[k]
+                h_outs[k] = self.function_call(P)
+        else:
+            # multithreading WIP, takes super long most of the time
+            cpu_count = mp.cpu_count()
+            if self.n_cpus > cpu_count-1:
+                self.n_cpus = cpu_count-1
+            n_workers = self.n_cpus
+            pool = mp.Pool(processes=n_workers)
+
+            h_outs = pool.map(self.function_call, X)
+
+            pool.close()
+            pool.join()
+
         for j in range(x_shape):
-            P = X[j]
             start_time = time.time()
-            h_out = self.function_call(P)
-            error = nrmse(h_out, y)
+            # error = nrmse(y, h_out)
+            error = np.abs(y-h_outs[j])
             fit = np.sum(error**2)
             end_time = time.time()
             sim_time = end_time-start_time
@@ -728,11 +776,9 @@ class GA(Optimizer):
             if self.verbose > 0: print(f' simulation time: {sim_time_float:.3f}{sim_time_str} --> {j+1}/{x_shape}')
             fits[j] = fit
             errors[j] = error
-            h_outs[:, j] = h_out
-        h_outs = h_outs.T
         return fits, errors, h_outs
 
-    def multi_lavenberg_regularization(self, n, reg0, reg1, Para_E, J, h_output, LR, UR):
+    def multi_lavenberg_regularization(self, n, reg0, reg1, Para_E, J, r, LR, UR):
         """
         Generates n updated parameter sets using Levenberg regularization.
 
@@ -741,7 +787,7 @@ class GA(Optimizer):
         - reg0, reg1: min and max regularization exponents
         - Para_E: current parameter vector (1D array)
         - J: Jacobian matrix
-        - h_output: residual vector
+        - r: residual vector
         - LR, UR: lower and upper bounds for gradient repair
 
         Returns:
@@ -749,25 +795,24 @@ class GA(Optimizer):
         """
         Y = np.zeros((n, Para_E.shape[0]))
         reg = 10 ** np.linspace(reg0, reg1, n)
-        if isinstance(h_output, (int, float)):
-            h_output = np.array([h_output])
+        if isinstance(r, (int, float)):
+            r = np.array([r])
 
         for i in range(reg.shape[0]):
             try:
                 D = np.linalg.pinv(J.T @ J + reg[i] * np.eye(Para_E.shape[0]))
             except:
-                # TODO: try if this error is error important and find out what exception is necessary
+                # TODO: try if this error is important and find out what exception is necessary
                 return Y  # return current Y if inversion fails
-            if isinstance(h_output, (int, float)):
-                d = -D @ J.T * h_output
+            if isinstance(r, (int, float)):
+                d = -D @ J.T * r
             else:
-                d = -D @ J.T @ h_output
+                d = -D @ J.T @ r
             if np.isnan(d).any():
                 continue  # skip this iteration if invalid update
 
             Para_E_new = Para_E + d
             Y[i, :] = self.gradient_repair(Para_E_new, LR, UR)
-
         return Y
 
     def gradient_repair(self, Para_E, LR, UR):
@@ -801,16 +846,6 @@ class GA(Optimizer):
         m = parameters.shape[0]
         # h_out = np.zeros((m, self.t_shape))
         for i in range(m):
-            # for j in range(self.n_param):
-            #     keywords[self.model_parameters[j]] = parameters[i, j]
-            #
-            # if self.simulation_class != None:
-            #     self.simulation_class.__init__(parameters=keywords)
-            #     if self.x_out != None:
-            #         self.simulation_class.simulate()
-            #         h_out[i] = eval(f'self.simulation_class.{self.x_out}')
-            #     else:
-            #         h_out[i] = self.simulation_class.simulate()
             keywords[self.model_parameters[i]] = parameters[i]
 
         if self.simulation_class != None:

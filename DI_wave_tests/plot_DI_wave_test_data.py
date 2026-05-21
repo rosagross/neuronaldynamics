@@ -10,8 +10,8 @@ plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = ["Times New Roman"]
 
 matplotlib.use('TkAgg')
-nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
-# nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+# nextcloud_path = 'C:\\Users\\emueller\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
+nextcloud_path = 'C:\\Users\\User\\nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\DIwaves_Di_Lazzaro'
 # nextcloud_path = '/home/erik/Downloads/DI_wave_data/DIwaves_Di_Lazzaro'
 plot = False
 detrend = False
@@ -78,6 +78,8 @@ def save_entry(fname, dict_source, orientation, threshold_type, rmt_digit, recor
             'time_short', data=dict_source[recording][rmt_value]['time_short'])
         h5file[orientation][threshold_type][str(rmt_digit)][year][name].create_dataset(
             'emg_location', data=dict_source[recording]['emg_location'])
+        if not 'EMG' in h5file[orientation][threshold_type][str(rmt_digit)][year][name].keys():
+            h5file[orientation][threshold_type][str(rmt_digit)][year][name].create_group('EMG')
 
         for channel in channel_names:
             if 'epidural' in channel.lower():
@@ -89,6 +91,15 @@ def save_entry(fname, dict_source, orientation, threshold_type, rmt_digit, recor
                 h5file[orientation][threshold_type][str(rmt_digit)][year][name][channel].create_dataset(
                             'signal_short', data=signal_short)
                 h5file[orientation][threshold_type][str(rmt_digit)][year][name][channel].create_dataset(
+                    'sample_frequency', data=sample_frequency)
+            else:
+                signal_full = dict_source[recording][rmt_value]['EMG']['signal_full'],
+                signal_mean = dict_source[recording][rmt_value]['EMG']['signal_mean']
+                h5file[orientation][threshold_type][str(rmt_digit)][year][name]['EMG'].create_dataset(
+                    'signal_full', data=signal_full)
+                h5file[orientation][threshold_type][str(rmt_digit)][year][name]['EMG'].create_dataset(
+                    'signal_mean', data=signal_mean)
+                h5file[orientation][threshold_type][str(rmt_digit)][year][name]['EMG'].create_dataset(
                     'sample_frequency', data=sample_frequency)
     di_wave_df = pd.DataFrame.from_dict(di_wave_dict)
     file_path = os.path.abspath(__file__)

@@ -67,6 +67,8 @@ class DI_wave_simulation():
         self.delay_signal = False
         self.delay = 2
         self.labelsize=15
+        self.paired_pulse = False
+        self.pp_interval = 20
 
         if logname != None:
             self.load_from_file(logname=logname)
@@ -97,7 +99,7 @@ class DI_wave_simulation():
 
         self.create_coords()
         self.update_gpc_time()
-        if self.use_gpc:
+        if (self.use_gpc and self.fn_session!=None):
             self.load_gpc_session()
             self.grid = pygpc.RandomGrid(parameters_random=self.session.parameters_random, coords=self.coords)
             self.input_current = self.session.gpc[0].get_approximation(self.gpc_coeffs, self.grid.coords_norm) * self.i_scale
@@ -107,10 +109,19 @@ class DI_wave_simulation():
                 warnings.warn('Negative current in gpc model detected, will be set to zero for relevant time steps')
             self.input_current[np.where(self.input_current < 0)[0]] = 0
             self.input_current = np.interp(self.t, self.t_gpc, self.input_current)  # interpolate to desired time
+        elif self.fn_session == None:
+            warnings.warn('No session for gpc model supplied, no input current was computed!')#
+            self.input_current = np.zeros_like(self.t)
         init_nykamp_parameters.update(self.nykamp_parameters)
+        if self.paired_pulse:
+            pulse_2 = delay_signal(self.input_current, delay=self.pp_interval, dt=self.dt)
+            self.input_current += pulse_2# /2 # test second pulse being subthreshold
+        
         self.nykamp_parameters = init_nykamp_parameters
         self.nykamp_parameters['input_function'] = self.input_current
         self.mass_model = Nykamp_Model_1(parameters=self.nykamp_parameters)
+
+
 
 
     def simulate(self, r_file=None):
@@ -205,10 +216,10 @@ class DI_wave_simulation():
     def plot_input_current(self, savefig=False):
         fig = plt.figure(figsize=(7, 5))
         ax = fig.add_subplot(111)
-        ax.plot(self.t, self.input_current*1e6, linewidth=2, c='teal') #hotfixes...
+        ax.plot(self.t, self.input_current*1e9, linewidth=2, c='teal') #hotfixes...
         ax.set_xlabel('time (ms)', fontsize=self.labelsize)
         ax.set_ylabel('Current (nA)', fontsize=self.labelsize)
-        ax.set_ylim(0, self.input_current.max()*1e6*1.1)
+        ax.set_ylim(0, self.input_current.max()*1e9*1.1)
         ax.set_xlim((0, self.t.max()))
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
@@ -238,6 +249,25 @@ class DI_wave_simulation():
 
     def get_test_signal(self, plot=False, from_file=False, fname='s2020_043_CNS2023.mat', hdf5_args=None,
                         highpass=False, hp_cutoff=1.5, plot_d_wave_detection=False):
+        """
+        Function that loads test signals for DI-wave simulation
+        It is divided into three major options: from_file or not (if not a toy model that qualitatively resembles DI-waves
+        is loaded) if fro_file is true and a .mat file is loaded, then further processing is skipped, and it is assumed
+        to be the prepared detrended .mat file from Vincent, if an hdf5 or h5 file is loaded, than it is assumed to be
+        the general database of DI-wave data from DiLazzaro and is loaded accordingly. For the latter one there are two
+        major optios: detrending or highpass filtering. In case of detrending there are unique settings for almost all
+        data sets in PA to load them, for highpass filtering there is almost no extra settings needed for each time
+        series
+        :param plot: bool: option to plot the output or not
+        :param from_file:  bool: option to load real data from a file or load the toy model
+        :param fname: string: filename
+        :param hdf5_args: dict: dictionary of all parameters to find the data (i.e. in a larger hdf5 file)
+        :param highpass: option to use the highpass (can be overwritten from the "enable_high_pass" option of the class
+         DI_wave_simulation
+        :param hp_cutoff: cutoff of the highpass (is sometimes not used!)
+        :param plot_d_wave_detection: option to plot the DI-wave detection and the original data side by side
+        """
+
         if self.enable_high_pass and not highpass:
             highpass=True
         if self.file_args != None and "hdf5_path" in self.file_args.keys():
@@ -262,10 +292,11 @@ class DI_wave_simulation():
                 hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
             else:
                 hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
+            # set initial path for data (works on my pc only atm)
             data_dict = dict(orientation='PA', threshold=100, year=2020, threshold_type='RMT', channel=0, subject=0,
                              hdf5_path=hdf5_path, sigma=1)
             data_dict.update(self.file_args)
-            d_wave_width = 1.8
+
             with h5py.File(data_dict['hdf5_path'], 'r') as h5file:
                 name_h5group = h5file[data_dict['orientation']][data_dict['threshold_type']][str(data_dict['threshold'])][str(data_dict['year'])]
                 name_dict = dict(name_h5group)
@@ -297,6 +328,9 @@ class DI_wave_simulation():
                         di_signals.append(single_channels)
                 measurement_data_original = np.array(di_signals[0][0]['signal_short'])
 
+
+            # options for detrending
+            d_wave_width = 1.8
             # procedure to find end and start of signal, get rid of D-wave and unwanted peaks
             if self.detrend:
                 t = times[0]
@@ -397,6 +431,7 @@ class DI_wave_simulation():
                     plt.scatter(t[d_wave_idx], measurement_data_original[idx_start:idx_end][d_wave_idx], marker='x', color='r')
                     plt.show()
             else:
+                # highpass version
                 t = times[0]
                 dt_data = np.diff(t)[0]
                 d_wave_time = 3.5
@@ -404,8 +439,10 @@ class DI_wave_simulation():
                     d_wave_time = 3.0
                 idx_t_dwave_end = np.where(t > d_wave_time)[0][0]
                 measurement_data_i_waves = measurement_data_original.copy()
+                # filter out d-wave data
                 measurement_data_i_waves[:idx_t_dwave_end] = 0
                 if measurement_data_i_waves.max() > 6:
+                    # hotfix
                     measurement_data_i_waves /= 3
                 measurement_data_smooth = scipy.ndimage.gaussian_filter1d(measurement_data_i_waves, sigma=data_dict['sigma'])
                 measurement_data_filtered = butter_highpass_filter(measurement_data_smooth,
@@ -543,7 +580,7 @@ class DI_wave_simulation():
         with open(logname, 'r') as stream:
             self.parameters = yaml.load(stream, Loader=yaml.Loader)
 
-    def optimize(self, optimizer='hierarchical', opt_params={}):
+    def optimize(self, optimizer='hierarchical', opt_params={}, opt_directory='optimization_temp'):
 
         if optimizer == 'hierarchical':
             self.__init__(parameters=opt_params)
@@ -552,6 +589,7 @@ class DI_wave_simulation():
             opt_params['simulation_class'] = self
             opt_params['simulate'] = self.simulate
             self.optimimization_algorithm = Hierarchical_Random(parameters=opt_params)
+            self.optimimization_algorithm.results_folder = opt_directory
             self.optimimization_algorithm.run()
         elif optimizer == 'GA':
             self.__init__(parameters=opt_params)
