@@ -1,5 +1,5 @@
 import matplotlib
-from neuronaldynamics.Model.DI_wave import DI_wave_simulation
+from Model.DI_wave import DI_wave_simulation
 
 matplotlib.use('TkAgg')
 

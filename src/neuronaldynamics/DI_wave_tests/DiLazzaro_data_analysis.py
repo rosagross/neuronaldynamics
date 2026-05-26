@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import scipy
 from Utils import get_I_wave_locs, argmin_2d, butter_highpass_filter, get_peak_values
-from neuronaldynamics.Model import generate_EP
+from Model import generate_EP
 import h5py
 from tqdm.contrib import itertools
 

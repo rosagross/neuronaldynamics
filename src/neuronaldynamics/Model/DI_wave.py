@@ -1,14 +1,14 @@
 from sympy.printing.pretty.pretty_symbology import line_width
 
-from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model_1
-from neuronaldynamics.Model.Neck import generate_EP
+from Model.Nykamp_Model import Nykamp_Model_1
+from Model.Neck import generate_EP
 import pygpc
 import h5py
 import scipy
 import scipy.io
 import yaml
 from Utils import DI_wave_test_function, cross_correlation_align, butter_highpass_filter, detrend, delay_signal
-from neuronaldynamics.Optimizers.Optimizer import *
+from Optimizers.Optimizer import *
 matplotlib.use('TkAgg')
 
 class DI_wave_simulation():
@@ -573,7 +573,7 @@ class DI_wave_simulation():
         with open(logname, 'r') as stream:
             self.parameters = yaml.load(stream, Loader=yaml.Loader)
 
-    def optimize(self, optimizer='hierarchical', opt_params={}, opt_directory='optimization_temp'):
+    def optimize(self, optimizer='hierarchical', opt_params={}):
 
         if optimizer == 'hierarchical':
             self.__init__(parameters=opt_params)
@@ -582,7 +582,6 @@ class DI_wave_simulation():
             opt_params['simulation_class'] = self
             opt_params['simulate'] = self.simulate
             self.optimimization_algorithm = Hierarchical_Random(parameters=opt_params)
-            self.optimimization_algorithm.results_folder = opt_directory
             self.optimimization_algorithm.run()
         elif optimizer == 'GA':
             self.__init__(parameters=opt_params)

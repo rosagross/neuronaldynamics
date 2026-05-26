@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import h5py
 import os
 import matplotlib
-from neuronaldynamics.Model.DI_wave import DI_wave_simulation
+from Model.DI_wave import DI_wave_simulation
 from tqdm.contrib import itertools
 from tqdm import tqdm
-from neuronaldynamics.Model import generate_EP
+from Model import generate_EP
 import scipy
 from Utils import butter_highpass_filter, delay_signal
 matplotlib.use('TkAgg')

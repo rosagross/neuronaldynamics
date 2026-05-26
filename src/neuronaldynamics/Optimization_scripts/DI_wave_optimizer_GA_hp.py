@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib
 import os
 matplotlib.use('TkAgg')
-from neuronaldynamics.Model.DI_wave import DI_wave_simulation
+from Model.DI_wave import DI_wave_simulation
 
 def main():
     T = 10
@@ -11,12 +11,16 @@ def main():
 
     # fn_session = '/home/erik/Downloads/gpc.pkl'
     # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-    fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+    # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
     # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
     # hdf5_path ="/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
-    simulation_name = f'_diw_opt_chain_19_05_26_GA'
+    simulation_name = f'_diw_opt_chain_26_05_26_GA'
     results_path = "D:\\work\\DI-wave\\results_2026_05_19"
+
+    fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
+    hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
+    results_path = "/data/pt_01756/studies/DI_wave_modeling/optimization_results/run2/"
     # results_path = "optimization_temp"
     simulation_name = os.path.join(results_path, simulation_name)
     measurement_dict_2007_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2007, hdf5_path=hdf5_path, sigma=1.0)

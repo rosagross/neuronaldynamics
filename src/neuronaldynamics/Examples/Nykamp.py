@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 import matplotlib
-from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model_1
+from Model.Nykamp_Model import Nykamp_Model_1
 matplotlib.use('TkAgg')
 
 

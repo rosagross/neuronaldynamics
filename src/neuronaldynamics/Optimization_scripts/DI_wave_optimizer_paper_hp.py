@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import matplotlib
-from neuronaldynamics.Model.DI_wave import DI_wave_simulation
+from Model.DI_wave import DI_wave_simulation
 
 if __name__ == "__main__":
     matplotlib.use('TkAgg')
@@ -17,7 +17,11 @@ if __name__ == "__main__":
     hdf5_path ="/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
     results_path = "/home/erik/data/diw_results/run_2026_05_13"
 
-    simulation_name = 'paper_iwave_opt'
+    fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
+    hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
+    results_path = "/data/pt_01756/studies/DI_wave_modeling/optimization_results/run3/"
+
+    simulation_name = 'paper_iwave_opt_hierearch'
     # PA
     measurement_dict_2020_100_PA_ch3 = dict(orientation='PA', threshold=100, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2013_110_PA_ch2 = dict(orientation='PA', threshold=110, year=2013, hdf5_path=hdf5_path, sigma=1.0,
@@ -55,7 +59,7 @@ if __name__ == "__main__":
               '###################################################################### \n'
               '###################################################################### \n'
               f'data dict #{i_dict}: {dict} \n')
-        simulation_name = f'_diw_opt_chain_20_01_26_no_{i_dict}'
+        simulation_name = f'{simulation_name}_no_{i_dict}'
         simulation_name = os.path.join(results_path, simulation_name)
         print(f'name: {simulation_name}')
         parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
@@ -83,9 +87,10 @@ if __name__ == "__main__":
 
         opt_parameters = parameters.copy()
         opt_parameters['optimizer'] = 'hierarchical'
+        opt_parameters['results_folder'] = results_path
         opt_parameters['eps'] = 0.05
-        opt_parameters['max_iter'] = 1
-        opt_parameters['n_grid'] = 100
+        opt_parameters['max_iter'] = 3
+        opt_parameters['n_grid'] = 200
         opt_parameters['model_parameters'] = model_parameters
         opt_parameters['bounds'] = model_parameter_bounds
         opt_parameters['x_out'] = 'mass_model_v_out'

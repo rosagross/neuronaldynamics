@@ -5,8 +5,8 @@ import scipy
 import pygpc
 import os
 import h5py
-from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model_1
-from neuronaldynamics.Model import generate_EP
+from Model.Nykamp_Model import Nykamp_Model_1
+from Model import generate_EP
 from Utils import DI_wave_test_function, nrmse
 matplotlib.use('TkAgg')
 

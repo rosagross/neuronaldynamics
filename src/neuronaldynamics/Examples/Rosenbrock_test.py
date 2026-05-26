@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 
-from neuronaldynamics.Optimizers.Testfunctions import RosenbrockND
-from neuronaldynamics.Optimizers.Optimizer import Hierarchical_Random, GA
+from Optimizers.Testfunctions import RosenbrockND
+from Optimizers.Optimizer import Hierarchical_Random, GA
 def plot_Rosenbrock():
     X, Y = np.mgrid[-2:2.1:0.01, -1:3.1:0.01]
     xs = np.array((X, Y))

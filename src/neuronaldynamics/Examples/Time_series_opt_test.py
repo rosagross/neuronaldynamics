@@ -4,7 +4,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-from neuronaldynamics.Optimizers.Optimizer import Hierarchical_Random, GA
+from Optimizers.Optimizer import Hierarchical_Random, GA
 
 def main():
 

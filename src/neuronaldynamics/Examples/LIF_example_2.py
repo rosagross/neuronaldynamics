@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib
-from neuronaldynamics.Model import LIF_population
+from Model import LIF_population
 matplotlib.use('TkAgg')
 
 def v0(t):

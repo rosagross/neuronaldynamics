@@ -5,8 +5,8 @@ import pygpc
 import os
 import h5py
 from tqdm import tqdm
-from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model_1
-from neuronaldynamics.Model import EP_convolve
+from Model.Nykamp_Model import Nykamp_Model_1
+from Model import EP_convolve
 from Utils import DI_wave_test_function, nrmse
 matplotlib.use('TkAgg')
 

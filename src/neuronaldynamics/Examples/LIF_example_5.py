@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib
-from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model_1
+from Model.Nykamp_Model import Nykamp_Model_1
 from Utils import compare_firing_rate
-from neuronaldynamics.Model import Conductance_LIF
+from Model import Conductance_LIF
 matplotlib.use('TkAgg')
 
 # set-up time and input model

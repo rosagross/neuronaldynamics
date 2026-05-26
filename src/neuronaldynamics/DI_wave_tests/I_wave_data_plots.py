@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from neuronaldynamics.Model.DI_wave import DI_wave_simulation
-from neuronaldynamics.Model import generate_EP
+from Model.DI_wave import DI_wave_simulation
+from Model import generate_EP
 import scipy
 from Utils import get_peak_values, argmin_2d, butter_highpass_filter
 import h5py

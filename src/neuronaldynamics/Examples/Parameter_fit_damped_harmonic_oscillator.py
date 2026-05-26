@@ -1,4 +1,4 @@
-from neuronaldynamics.Model import Damped_harmonic_oscillator
+from Model import Damped_harmonic_oscillator
 import matplotlib
 matplotlib.use('TkAgg')
 import numpy as np
