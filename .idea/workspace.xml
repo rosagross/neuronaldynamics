@@ -1,0 +1,827 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="6c1eebef-6425-4818-a6e2-ce99bdceaa82" name="Changes" comment="[UPD]: updated GA algorithm, still looking fro problems, needs multithreading" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="packaging_test" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;erikjackmueller&quot;
+  }
+}</component>
+  <component name="GitLabMergeRequestFiltersHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPENED&quot;,
+    &quot;assignee&quot;: {
+      &quot;type&quot;: &quot;org.jetbrains.plugins.gitlab.mergerequest.ui.filters.GitLabMergeRequestsFiltersValue.MergeRequestsMemberFilterValue.MergeRequestsAssigneeFilterValue&quot;,
+      &quot;username&quot;: &quot;ermu8317&quot;,
+      &quot;fullname&quot;: &quot;Erik Mueller&quot;
+    }
+  }
+}</component>
+  <component name="GitLabMergeRequestsSettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;first&quot;: &quot;https://gitlab.tu-ilmenau.de/ermu8317/neuronaldynamics&quot;,
+    &quot;second&quot;: &quot;0ce0eaa5-1dc3-49a3-a0df-81a857bf6923&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/erikjackmueller/neuronaldynamics.git&quot;,
+    &quot;accountId&quot;: &quot;e6e3cd32-a280-4929-9938-e5eb5b38a3d3&quot;
+  }
+}</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/Examples/Paired_pulse_test.py" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="2lSiCYiNZRHjhnY4e7eSVFeGOJk" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.Advection_Diffusion.executor": "Run",
+    "Python.Current_LIF_vs_Nyk_2025.executor": "Run",
+    "Python.DI_wave_2D_goal_function.executor": "Run",
+    "Python.DI_wave_optimizer_2.executor": "Run",
+    "Python.DI_wave_optimizer_3.executor": "Run",
+    "Python.DI_wave_optimizer_4.executor": "Run",
+    "Python.DI_wave_optimizer_GA_hp.executor": "Debug",
+    "Python.DI_wave_optimizer_paper_fixed_theta.executor": "Run",
+    "Python.DI_wave_optimizer_paper_hp.executor": "Run",
+    "Python.DI_wave_simulation_function.executor": "Run",
+    "Python.Diffusion.executor": "Run",
+    "Python.Example_Nykamp_population_model.executor": "Debug",
+    "Python.Hu_solver_test_DI (1).executor": "Debug",
+    "Python.Hu_solver_test_DI.executor": "Run",
+    "Python.I_wave_data_plots.executor": "Run",
+    "Python.I_wave_peak_differences.executor": "Run",
+    "Python.LIF_Nyk_current_input_example.executor": "Run",
+    "Python.LIF_example_2.executor": "Run",
+    "Python.LIF_example_4.executor": "Debug",
+    "Python.Load_EMG_data_example.executor": "Debug",
+    "Python.Non_dim_2D_models.executor": "Run",
+    "Python.Nykamp.executor": "Run",
+    "Python.Nykamp_di_wave.executor": "Run",
+    "Python.Nykamp_synchronisation_test.executor": "Run",
+    "Python.Paired_pulse_test.executor": "Run",
+    "Python.Perturbed_oscillator.executor": "Run",
+    "Python.Rosenbrock_test.executor": "Run",
+    "Python.continuation.executor": "Debug",
+    "Python.fold_pyrates_test (1).executor": "Debug",
+    "Python.fold_pyrates_test.executor": "Run",
+    "Python.non_linear_Advection_Diffusion.executor": "Run",
+    "Python.plot_DI_wave_test_data.executor": "Debug",
+    "Python.pyrates_WC.executor": "Run",
+    "Python.qif_sfa.executor": "Debug",
+    "Python.scratch.executor": "Run",
+    "Python.scratch_1.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/erik/PycharmProjects/neuronaldynamics/Optimization_scripts",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  },
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "Python"
+    ]
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/Optimization_scripts" />
+      <recent name="$PROJECT_DIR$/Examples" />
+      <recent name="$PROJECT_DIR$/DI_wave_tests" />
+      <recent name="$PROJECT_DIR$/PDE_examples" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.DI_wave_optimizer_GA_hp">
+    <configuration name="DI_wave_optimizer_GA_hp" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="neuronaldynamics" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Optimization_scripts" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Optimization_scripts/DI_wave_optimizer_GA_hp.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="DI_wave_optimizer_paper_fixed_theta" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="neuronaldynamics" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Optimization_scripts" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Optimization_scripts/DI_wave_optimizer_paper_fixed_theta.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="DI_wave_optimizer_paper_hp" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="neuronaldynamics" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Optimization_scripts" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Optimization_scripts/DI_wave_optimizer_paper_hp.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Hu_solver_test_DI" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="neuronaldynamics" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Examples" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="true" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Examples/Hu_solver_test_DI.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Paired_pulse_test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="neuronaldynamics" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Examples" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="true" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Examples/Paired_pulse_test.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.DI_wave_optimizer_GA_hp" />
+        <item itemvalue="Python.DI_wave_optimizer_paper_fixed_theta" />
+        <item itemvalue="Python.DI_wave_optimizer_paper_hp" />
+        <item itemvalue="Python.Paired_pulse_test" />
+        <item itemvalue="Python.Hu_solver_test_DI" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-024ed6589d45-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.23567.174" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="6c1eebef-6425-4818-a6e2-ce99bdceaa82" name="Changes" comment="" />
+      <created>1725179751998</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1725179751998</updated>
+    </task>
+    <task id="LOCAL-00001" summary="[MOD]: tested some variables between Nykamp versions.&#10;Error is already present in v_in, which carries over in time step 300">
+      <option name="closed" value="true" />
+      <created>1725203418337</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1725203418337</updated>
+    </task>
+    <task id="LOCAL-00002" summary="[MOD]: verbose: time print-outs for finding covolving as bottleneck in LIF simulation">
+      <option name="closed" value="true" />
+      <created>1726149576041</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1726149576041</updated>
+    </task>
+    <task id="LOCAL-00003" summary="[MOD]: updated plotting function for population plot in LIF.py and modified v[0] to be gaussian (hardcoded)&#10;Set those tings to the actual paper values and find the right rate for the Nykamp model background activity">
+      <option name="closed" value="true" />
+      <created>1736193474829</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1736193474829</updated>
+    </task>
+    <task id="LOCAL-00004" summary="[UPD]: updated LIF.py and LIF_example_2.py such that the rate can be a time varying function. Somehow, it becomes oscillating, no refractory?">
+      <option name="closed" value="true" />
+      <created>1737402288686</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1737402288686</updated>
+    </task>
+    <task id="LOCAL-00005" summary="[UPD]: changed input spike computation to incorporate the conductance to voltage transformation, played around, something is missing">
+      <option name="closed" value="true" />
+      <created>1739915139301</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1739915139302</updated>
+    </task>
+    <task id="LOCAL-00006" summary="[UPD]: fixed the idx scavanging in the spike_output_mask section for now, not pretty, but works and is fast">
+      <option name="closed" value="true" />
+      <created>1739992943348</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1739992943348</updated>
+    </task>
+    <task id="LOCAL-00007" summary="[MOD]: modified Nykamp_Model.py to apply input current to v variable in pde, is not correct yet">
+      <option name="closed" value="true" />
+      <created>1742479463791</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1742479463791</updated>
+    </task>
+    <task id="LOCAL-00008" summary="[MOD]: new derivation for current coefficients, seems to be wrong still">
+      <option name="closed" value="true" />
+      <created>1743934584708</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1743934584708</updated>
+    </task>
+    <task id="LOCAL-00009" summary="[MOD]: added utility to find why rho is draining in nykamp model">
+      <option name="closed" value="true" />
+      <created>1750777593198</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1750777593198</updated>
+    </task>
+    <task id="LOCAL-00010" summary="[ADD]: work in progress for better di_wave modeling tool">
+      <option name="closed" value="true" />
+      <created>1750846344698</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1750846344698</updated>
+    </task>
+    <task id="LOCAL-00011" summary="[UPD]: fixed the DI_wave.py version of making nykamp di-wave simulations. Also fixed small bug in Nkymap_model for the lambda representation of an input array">
+      <option name="closed" value="true" />
+      <created>1753857777001</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1753857777001</updated>
+    </task>
+    <task id="LOCAL-00012" summary="[FIX]: fixed error in c2eext formualtion in Nykamp_Model.py Ran a couple of tests with di_wave module, seems promising">
+      <option name="closed" value="true" />
+      <created>1754037394251</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1754037394251</updated>
+    </task>
+    <task id="LOCAL-00013" summary="[FIX]: found a valid combination of params for new fixed c2eext">
+      <option name="closed" value="true" />
+      <created>1756803232138</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1756803232138</updated>
+    </task>
+    <task id="LOCAL-00014" summary="[ADD]: added new tst file for analysis of harmonic oscillation under perturbation">
+      <option name="closed" value="true" />
+      <created>1759215455763</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1759215455763</updated>
+    </task>
+    <task id="LOCAL-00015" summary="[MOD]: changed some sorting orders in GA in Optimizer.py, seems to work now">
+      <option name="closed" value="true" />
+      <created>1761592314755</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1761592314755</updated>
+    </task>
+    <task id="LOCAL-00016" summary="[MOD]: modified Rosenbrock_test.py to better show convergence of optimizers">
+      <option name="closed" value="true" />
+      <created>1761592740280</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1761592740280</updated>
+    </task>
+    <task id="LOCAL-00017" summary="[FIX]: fixing bugs in optimizer GA when changing to non-scalar goal function values">
+      <option name="closed" value="true" />
+      <created>1761654352971</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1761654352971</updated>
+    </task>
+    <task id="LOCAL-00018" summary="[FIX]: fixied more bugs in optimizer GA when changing to non-scalar goal function values">
+      <option name="closed" value="true" />
+      <created>1761666352535</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1761666352535</updated>
+    </task>
+    <task id="LOCAL-00019" summary="[FIX]: more GA fixes">
+      <option name="closed" value="true" />
+      <created>1761674248852</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1761674248852</updated>
+    </task>
+    <task id="LOCAL-00020" summary="[ADD]: added more functions for GA optimizer">
+      <option name="closed" value="true" />
+      <created>1761681455281</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1761681455281</updated>
+    </task>
+    <task id="LOCAL-00021" summary="[MOD]: small modofications to test last optimal param set from GA">
+      <option name="closed" value="true" />
+      <created>1761754445320</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1761754445320</updated>
+    </task>
+    <task id="LOCAL-00022" summary="[MOD]: added a comment in Nykamp_Model.py">
+      <option name="closed" value="true" />
+      <created>1761809459807</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1761809459807</updated>
+    </task>
+    <task id="LOCAL-00023" summary="[ADD]: implemented an advection diffusion test case with Lax-Wendroff discretization, it's similar to the diffusion eq for the a=0 limit. Fails for a/=0 though">
+      <option name="closed" value="true" />
+      <created>1764064779641</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1764064779641</updated>
+    </task>
+    <task id="LOCAL-00024" summary="[FIX]: fixed bug inprevious Lax-Wendroff scheme">
+      <option name="closed" value="true" />
+      <created>1764065145878</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1764065145878</updated>
+    </task>
+    <task id="LOCAL-00025" summary="[ADD]: added option for time varying coefficients in Lax-Wendroff disc. for advection diffusion equations">
+      <option name="closed" value="true" />
+      <created>1764144330400</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1764144330400</updated>
+    </task>
+    <task id="LOCAL-00026" summary="[MOD]: started solver implementation for non-linear advection diffusion example">
+      <option name="closed" value="true" />
+      <created>1764417083770</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1764417083770</updated>
+    </task>
+    <task id="LOCAL-00027" summary="[MOD]: modded the Hu-solver to be more precise according t the publication, added options for drift, no drift and non-linear+drift. non-linear and no drift currently causes blow-up">
+      <option name="closed" value="true" />
+      <created>1764522112968</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1764522112969</updated>
+    </task>
+    <task id="LOCAL-00028" summary="[MOD]: finished implementation of new optimizer for Hu-solver needs some more care to actually find good fits though">
+      <option name="closed" value="true" />
+      <created>1765638850671</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1765638850671</updated>
+    </task>
+    <task id="LOCAL-00029" summary="[MOD]: minor changes">
+      <option name="closed" value="true" />
+      <created>1768828848862</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1768828848862</updated>
+    </task>
+    <task id="LOCAL-00030" summary="[ADD]: added a peak function quantizing function with get_peak_values() in Utils.py">
+      <option name="closed" value="true" />
+      <created>1771336744928</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1771336744928</updated>
+    </task>
+    <task id="LOCAL-00031" summary="[ADD]: started work on I-wave peak characterization over differen E and theta vlaues">
+      <option name="closed" value="true" />
+      <created>1771338380529</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1771338380529</updated>
+    </task>
+    <task id="LOCAL-00032" summary="[ADD]: added more options to the overview image, fixed issue with peak detection">
+      <option name="closed" value="true" />
+      <created>1771427660965</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1771427660965</updated>
+    </task>
+    <task id="LOCAL-00033" summary="[UPD]: work on correct D-wave detaction and deletion plus plotting of combined RMT groups of signals">
+      <option name="closed" value="true" />
+      <created>1771927915824</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1771927915824</updated>
+    </task>
+    <task id="LOCAL-00034" summary="[UPD]: work on correct D-wave detaction and deletion plus plotting of combined RMT groups of signals">
+      <option name="closed" value="true" />
+      <created>1776266421013</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1776266421013</updated>
+    </task>
+    <task id="LOCAL-00035" summary="[UPD]: work on correct D-wave detaction and deletion plus plotting of combined RMT groups of signals">
+      <option name="closed" value="true" />
+      <created>1776266465157</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1776266465157</updated>
+    </task>
+    <task id="LOCAL-00036" summary="[INIT]: new branch for testing repo as loacl package">
+      <option name="closed" value="true" />
+      <created>1776326253067</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1776326253067</updated>
+    </task>
+    <task id="LOCAL-00037" summary="[FIX]: updated syntax in files to work for two test cases paper_optimizer_script and Hu_solver_test_DI.py in Examples">
+      <option name="closed" value="true" />
+      <created>1776327219423</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1776327219423</updated>
+    </task>
+    <task id="LOCAL-00038" summary="[UPD]: small plotting update">
+      <option name="closed" value="true" />
+      <created>1776359367558</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1776359367559</updated>
+    </task>
+    <task id="LOCAL-00039" summary="[ADD]: added Paired_pulse_test.py as new example file for quick investigation of paired pulse in current model">
+      <option name="closed" value="true" />
+      <created>1776753990867</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1776753990867</updated>
+    </task>
+    <task id="LOCAL-00040" summary="[UPD]: update for paired pulse paradigm">
+      <option name="closed" value="true" />
+      <created>1777576697398</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1777576697398</updated>
+    </task>
+    <task id="LOCAL-00041" summary="[UPD]: minor required update of settings">
+      <option name="closed" value="true" />
+      <created>1778145452256</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1778145452256</updated>
+    </task>
+    <task id="LOCAL-00042" summary="[UPD]: another minor required update of settings">
+      <option name="closed" value="true" />
+      <created>1778145468519</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1778145468519</updated>
+    </task>
+    <task id="LOCAL-00043" summary="[UPD]: updated Load_E&#10; to show some EMG data">
+      <option name="closed" value="true" />
+      <created>1778563999067</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1778563999068</updated>
+    </task>
+    <task id="LOCAL-00044" summary="[UPD]: updated Load_E&#10; to show also epidural data">
+      <option name="closed" value="true" />
+      <created>1778576448409</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1778576448409</updated>
+    </task>
+    <task id="LOCAL-00045" summary="[UPD]: got rid of uneccessary import">
+      <option name="closed" value="true" />
+      <created>1778576753314</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1778576753314</updated>
+    </task>
+    <task id="LOCAL-00046" summary="[FIX]: changed a hotfix value of 2e-4 back, should now be consistent&#10;Started work on a new optimizer for non_theta and set up test run of existing one for new optimum for comparing the model">
+      <option name="closed" value="true" />
+      <created>1778685866547</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1778685866547</updated>
+    </task>
+    <task id="LOCAL-00047" summary="[UPD]: updated GA algorithm, still looking fro problems, needs multithreading">
+      <option name="closed" value="true" />
+      <created>1779279017385</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1779279017385</updated>
+    </task>
+    <option name="localTasksCounter" value="48" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="github-model/HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="[MOD]: small modofications to test last optimal param set from GA" />
+    <MESSAGE value="[MOD]: added a comment in Nykamp_Model.py" />
+    <MESSAGE value="[ADD]: implemented an advection diffusion test case with Lax-Wendroff discretization, it's similar to the diffusion eq for the a=0 limit. Fails for a/=0 though" />
+    <MESSAGE value="[FIX]: fixed bug inprevious Lax-Wendroff scheme" />
+    <MESSAGE value="[ADD]: added option for time varying coefficients in Lax-Wendroff disc. for advection diffusion equations" />
+    <MESSAGE value="[MOD]: started solver implementation for non-linear advection diffusion example" />
+    <MESSAGE value="[MOD]: modded the Hu-solver to be more precise according t the publication, added options for drift, no drift and non-linear+drift. non-linear and no drift currently causes blow-up" />
+    <MESSAGE value="[MOD]: finished implementation of new optimizer for Hu-solver needs some more care to actually find good fits though" />
+    <MESSAGE value="[MOD]: minor changes" />
+    <MESSAGE value="[ADD]: added a peak function quantizing function with get_peak_values() in Utils.py" />
+    <MESSAGE value="[ADD]: started work on I-wave peak characterization over differen E and theta vlaues" />
+    <MESSAGE value="[ADD]: added more options to the overview image, fixed issue with peak detection" />
+    <MESSAGE value="[INIT]: new branch for testing repo as loacl package" />
+    <MESSAGE value="[FIX]: updated syntax in files to work for two test cases paper_optimizer_script and Hu_solver_test_DI.py in Examples" />
+    <MESSAGE value="[UPD]: work on correct D-wave detaction and deletion plus plotting of combined RMT groups of signals" />
+    <MESSAGE value="[UPD]: small plotting update" />
+    <MESSAGE value="[ADD]: added Paired_pulse_test.py as new example file for quick investigation of paired pulse in current model" />
+    <MESSAGE value="[UPD]: update for paired pulse paradigm" />
+    <MESSAGE value="[UPD]: minor required update of settings" />
+    <MESSAGE value="[UPD]: another minor required update of settings" />
+    <MESSAGE value="[UPD]: updated Load_E&#10; to show some EMG data" />
+    <MESSAGE value="[UPD]: updated Load_E&#10; to show also epidural data" />
+    <MESSAGE value="[UPD]: got rid of uneccessary import" />
+    <MESSAGE value="[FIX]: changed a hotfix value of 2e-4 back, should now be consistent&#10;Started work on a new optimizer for non_theta and set up test run of existing one for new optimum for comparing the model" />
+    <MESSAGE value="[UPD]: updated GA algorithm, still looking fro problems, needs multithreading" />
+    <option name="LAST_COMMIT_MESSAGE" value="[UPD]: updated GA algorithm, still looking fro problems, needs multithreading" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Model/LIF.py</url>
+          <line>147</line>
+          <option name="timeStamp" value="14" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Model/Models.py</url>
+          <line>468</line>
+          <option name="timeStamp" value="41" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Model/Models.py</url>
+          <line>414</line>
+          <option name="timeStamp" value="44" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Model/Models.py</url>
+          <line>454</line>
+          <option name="timeStamp" value="47" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$USER_HOME$/Downloads/continuation.py</url>
+          <line>241</line>
+          <option name="timeStamp" value="79" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$USER_HOME$/miniconda3/envs/neuronaldynamics/lib/python3.11/site-packages/pyrates/frontend/template/circuit.py</url>
+          <line>974</line>
+          <option name="timeStamp" value="82" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$USER_HOME$/miniconda3/envs/neuronaldynamics/lib/python3.11/site-packages/auto/AUTOCommands.py</url>
+          <line>1586</line>
+          <option name="timeStamp" value="85" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/PDE_examples/Advection_Diffusion.py</url>
+          <line>63</line>
+          <option name="timeStamp" value="87" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/PDE_examples/non_linear_Advection_Diffusion.py</url>
+          <line>247</line>
+          <option name="timeStamp" value="91" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/PDE_examples/non_linear_Advection_Diffusion.py</url>
+          <line>26</line>
+          <option name="timeStamp" value="92" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$APPLICATION_CONFIG_DIR$/scratches/scratch_1.py</url>
+          <line>54</line>
+          <option name="timeStamp" value="100" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/DI_wave_tests/I_wave_peak_differences.py</url>
+          <line>123</line>
+          <option name="timeStamp" value="103" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/DI_wave_tests/I_wave_peak_differences.py</url>
+          <line>125</line>
+          <option name="timeStamp" value="106" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Model/DI_wave.py</url>
+          <line>517</line>
+          <option name="timeStamp" value="107" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/EMG_data/Load_EMG_data_example.py</url>
+          <line>35</line>
+          <option name="timeStamp" value="110" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/EMG_data/Load_EMG_data_example.py</url>
+          <line>28</line>
+          <option name="timeStamp" value="112" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/EMG_data/Load_EMG_data_example.py</url>
+          <line>27</line>
+          <option name="timeStamp" value="115" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Optimizers/Optimizer.py</url>
+          <line>119</line>
+          <option name="timeStamp" value="116" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Optimizers/Optimizer.py</url>
+          <line>262</line>
+          <option name="timeStamp" value="123" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Optimizers/Optimizer.py</url>
+          <line>785</line>
+          <option name="timeStamp" value="128" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Optimizers/Optimizer.py</url>
+          <line>606</line>
+          <option name="timeStamp" value="134" />
+        </line-breakpoint>
+      </breakpoints>
+      <default-breakpoints>
+        <breakpoint type="python-exception">
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
