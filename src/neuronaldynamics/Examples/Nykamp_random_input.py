@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from Model.Nykamp_Model import Nykamp_Model_1
-from Utils import DI_wave_test_function, nrmse
+from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model_1
+
 matplotlib.use('TkAgg')
 
 dt = 0.01

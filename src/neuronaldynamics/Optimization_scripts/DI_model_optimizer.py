@@ -1,17 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from tqdm import tqdm
-import scipy
-import random
 import pygpc
 import os
 import h5py
 from tqdm import tqdm
-from Model.LIF import Conductance_LIF
-from Model.Nykamp_Model import Nykamp_Model_1
-from Model.Neck import EP_convolve
-from Utils import compare_firing_rate, DI_wave_test_function, nrmse
+from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model_1
+from neuronaldynamics.Model import EP_convolve
+from Utils import DI_wave_test_function, nrmse
 matplotlib.use('TkAgg')
 
 # time in ms

@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib
 import random
 from tqdm import tqdm
-from Model.LIF import Conductance_LIF
-from Model.Nykamp_Model import Nykamp_Model_1
-from Utils import compare_firing_rate
+from neuronaldynamics.Model import Conductance_LIF
+from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model_1
+
 matplotlib.use('TkAgg')
 
 ########################################################################################################################

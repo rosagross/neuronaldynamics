@@ -2,13 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import scipy
-import random
 import pygpc
 import os
 import h5py
-from tqdm import tqdm
-from Model.Nykamp_Model import Nykamp_Model_1
-from Model.Neck import generate_EP
+from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model_1
+from neuronaldynamics.Model import generate_EP
 from Utils import DI_wave_test_function, nrmse
 matplotlib.use('TkAgg')
 

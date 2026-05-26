@@ -3,16 +3,11 @@ Pythonic implementation of Nykamp et al. 2000 population density model for 3 pop
 Author: Konstantin Weise
 Edits and development: Aaron Miller
 """
-import time
-import scipy
 import numpy as np
 import matplotlib.pyplot as plt
-import numba
 
 import scipy
 from tqdm import tqdm
-from scipy.stats import gamma
-from scipy.stats import norm
 import h5py
 import matplotlib
 matplotlib.use('TkAgg')
@@ -416,7 +411,7 @@ def plot(fname):
 
     # plt.savefig(f"/home/kporzig/Desktop/Nykamp_network_A_dv_{dv}_dt_{dt}.jpg", dpi=600)
 
-from Model.Nykamp_Model import Nykamp_Model
+from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model
 
 def input_sine_function(t):
     v0 = .7

@@ -1,14 +1,10 @@
 import numpy as np
 import matplotlib
-from matplotlib.lines import lineStyles
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 
-
-from Optimizers.Testfunctions import RosenbrockND
-from Optimizers.Optimizer import Hierarchical_Random, GA
+from neuronaldynamics.Optimizers.Optimizer import Hierarchical_Random, GA
 
 def main():
 

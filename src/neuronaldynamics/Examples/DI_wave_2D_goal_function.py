@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from Model.DI_wave import DI_wave_simulation
+from neuronaldynamics.Model.DI_wave import DI_wave_simulation
 import h5py
 from tqdm import tqdm
 matplotlib.use('TkAgg')

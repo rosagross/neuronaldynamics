@@ -6,7 +6,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 current_directory = os.path.dirname(__file__)
-path_up = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'Model'))
+path_up = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../../..', 'Model'))
 
 ########################################################################################################################
 # DATA PREPROCESSED BY VINCENT

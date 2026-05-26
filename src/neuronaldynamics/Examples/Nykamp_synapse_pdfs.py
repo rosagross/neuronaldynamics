@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
-from Model.LIF import Conductance_LIF
-from Model.Nykamp_Model import Nykamp_Model_1
+from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model_1
 from Utils import plot_rates
 from scipy.stats import gamma, norm, lognorm
 

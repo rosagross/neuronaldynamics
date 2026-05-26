@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib
-from Model.DI_wave import DI_wave_simulation
+from neuronaldynamics.Model.DI_wave import DI_wave_simulation
 matplotlib.use('TkAgg')
 
 # uncomment for Times new roman font

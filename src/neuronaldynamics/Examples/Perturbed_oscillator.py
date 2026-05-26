@@ -1,4 +1,3 @@
-from Model.Models import *
 import numpy as np
 
 # system = General2DSystem(model=['y', '-(k/m)*x'], model_name='harmonic oscillator',

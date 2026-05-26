@@ -1,13 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from Model.DI_wave import DI_wave_simulation
-from Model.Neck import generate_EP
+from neuronaldynamics.Model.DI_wave import DI_wave_simulation
+from neuronaldynamics.Model import generate_EP
 import scipy
 from Utils import get_peak_values, argmin_2d, butter_highpass_filter
 import h5py
 from tqdm.contrib import itertools
-from Model.Nykamp_Model import Nykamp_Model_1
+
 matplotlib.use('TkAgg')
 
 dt = 0.01

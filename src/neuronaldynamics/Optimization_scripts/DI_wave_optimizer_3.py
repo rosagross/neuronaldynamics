@@ -1,9 +1,8 @@
 import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-from Model.DI_wave import DI_wave_simulation
-from Optimizers.Optimizer import Hierarchical_Random, GA
+from neuronaldynamics.Model.DI_wave import DI_wave_simulation
+from neuronaldynamics.Optimizers.Optimizer import GA
 
 fn_session = '/home/erik/Downloads/gpc.pkl'
 # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'

@@ -2,8 +2,7 @@ import numpy as np
 import matplotlib
 import os
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-from Model.DI_wave import DI_wave_simulation
+from neuronaldynamics.Model.DI_wave import DI_wave_simulation
 
 def main():
     T = 10

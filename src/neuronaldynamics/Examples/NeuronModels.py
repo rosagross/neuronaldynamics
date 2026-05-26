@@ -1,4 +1,3 @@
-from Model.Models import *
 import numpy as np
 
 #TODO: turn this into a jupyter Notebook

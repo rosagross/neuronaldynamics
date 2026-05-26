@@ -1,21 +1,14 @@
-from matplotlib.lines import lineStyles
 from sympy.printing.pretty.pretty_symbology import line_width
 
-from Model.Nykamp_Model import Nykamp_Model_1
-from Model.Neck import generate_EP
-import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
+from neuronaldynamics.Model.Nykamp_Model import Nykamp_Model_1
+from neuronaldynamics.Model.Neck import generate_EP
 import pygpc
-import os
 import h5py
 import scipy
 import scipy.io
 import yaml
-from tqdm import tqdm
-from Utils import DI_wave_test_function, nrmse, cross_correlation_align, butter_highpass_filter, detrend, delay_signal
-import Model.Nykamp_Model
-from Optimizers.Optimizer import *
+from Utils import DI_wave_test_function, cross_correlation_align, butter_highpass_filter, detrend, delay_signal
+from neuronaldynamics.Optimizers.Optimizer import *
 matplotlib.use('TkAgg')
 
 class DI_wave_simulation():

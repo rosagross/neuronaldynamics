@@ -1,9 +1,6 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib
-import scipy
-from tqdm import tqdm
-from Model.LIF import LIF_population
+from neuronaldynamics.Model import LIF_population
 matplotlib.use('TkAgg')
 
 def input_step_function(t):

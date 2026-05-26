@@ -1,4 +1,3 @@
-from Model.Models import *
 import numpy as np
 
 system = General2DSystem(model=['a + b*x**2', '-y'], model_name='SN-test',

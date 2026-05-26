@@ -3,10 +3,9 @@ import matplotlib.pyplot as plt
 import h5py
 import os
 import matplotlib
-from Model.DI_wave import DI_wave_simulation
+from neuronaldynamics.Model.DI_wave import DI_wave_simulation
 from tqdm.contrib import itertools
-from tqdm import tqdm
-from Model.Neck import generate_EP
+from neuronaldynamics.Model import generate_EP
 import scipy
 from Utils import butter_highpass_filter, get_peak_values
 matplotlib.use('TkAgg')

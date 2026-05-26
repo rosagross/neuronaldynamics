@@ -1,8 +1,7 @@
 import numpy as np
 import os
-import matplotlib.pyplot as plt
 import matplotlib
-from Model.DI_wave import DI_wave_simulation
+from neuronaldynamics.Model.DI_wave import DI_wave_simulation
 
 if __name__ == "__main__":
     matplotlib.use('TkAgg')

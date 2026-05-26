@@ -1,4 +1,3 @@
-from Solvers.Solvers import Euler
 import warnings
 import numpy as np
 import sympy as sy

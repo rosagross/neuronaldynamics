@@ -1,5 +1,4 @@
-from Model.Damped_harmonic_oscillator import Damped_harmonic_oscillator
-import matplotlib.pyplot as plt
+from neuronaldynamics.Model import Damped_harmonic_oscillator
 import matplotlib
 matplotlib.use('TkAgg')
 import numpy as np
