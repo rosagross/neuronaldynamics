@@ -4,52 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[FIX] git merge">
+    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[UPD] new paths for running on MPI servers">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/DI_data/loading_epidural_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/DI_data/loading_epidural_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/DiLazzaro_data_analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/DiLazzaro_data_analysis.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/I_wave_data_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/I_wave_data_plots.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/I_wave_peak_differences.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/I_wave_peak_differences.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/Intensity.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/Intensity.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/Orientation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/Orientation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/Synaptic_parameters_EI.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/Synaptic_parameters_EI.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/Synaptic_parameters_GABA.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/Synaptic_parameters_GABA.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/Synaptic_parameters_NMDA_AMPA.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/DI_wave_tests/Synaptic_parameters_NMDA_AMPA.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Example_Nykamp_population_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Example_Nykamp_population_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/CNS_2026_FPE_version.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/CNS_2026_FPE_version.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Current_LIF_vs_Nyk_2025.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Current_LIF_vs_Nyk_2025.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_wave_2D_goal_function.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_wave_2D_goal_function.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_wave_simulation_function.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_wave_simulation_function.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Hu_solver_test_DI.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Hu_solver_test_DI.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_Nyk_current_input_example.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_Nyk_current_input_example.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_Nykamp_example.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_Nykamp_example.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_example_2.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_example_2.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_example_3.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_example_3.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_example_4.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_example_4.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_example_5.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/LIF_example_5.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Nykamp.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Nykamp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Nykamp_di_wave.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Nykamp_di_wave.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Nykamp_random_input.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Nykamp_random_input.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Nykamp_synapse_pdfs.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Nykamp_synapse_pdfs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Nykamp_synchronisation_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Nykamp_synchronisation_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Paired_pulse_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Paired_pulse_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Parameter_fit_damped_harmonic_oscillator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Parameter_fit_damped_harmonic_oscillator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Rosenbrock_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Rosenbrock_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Time_series_opt_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Time_series_opt_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/noise_LIF_network.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/noise_LIF_network.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/nykamp_model_long_time_rho_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/nykamp_model_long_time_rho_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/Damped_harmonic_oscillator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/Damped_harmonic_oscillator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_model_optimizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_model_optimizer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_2.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_2.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_3.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_3.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_4.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_4.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_5.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_5.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_6.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_6.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_GA_hp.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_GA_hp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_paper_fixed_theta.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_paper_fixed_theta.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_paper_hp.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_paper_hp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/results_run_compare.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/results_run_compare.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,41 +50,66 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.DI_wave_optimizer_GA_hp.executor": "Run",
-    "Python.DI_wave_optimizer_paper_hp.executor": "Run",
-    "Python.Hu_solver_test_DI (1).executor": "Run",
-    "Python.Hu_solver_test_DI.executor": "Run",
-    "Python.I_wave_peak_differences.executor": "Run",
-    "Python.Time_series_opt_test.executor": "Run",
-    "Python.fib_run_all_local_copy (1).executor": "Run",
-    "Python.fib_run_all_local_copy (2).executor": "Run",
-    "Python.fib_run_all_local_copy.executor": "Debug",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/data/u_emueller_software/git/neuronaldynamics",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.gitlab.GitLabSettingsConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.CNS_2026_FPE_version.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.DI_wave_optimizer_GA_hp.executor&quot;: &quot;Run&quot;,
+    &quot;Python.DI_wave_optimizer_paper_hp.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Hu_solver_test_DI (1).executor&quot;: &quot;Debug&quot;,
+    &quot;Python.Hu_solver_test_DI.executor&quot;: &quot;Run&quot;,
+    &quot;Python.I_wave_peak_differences.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Time_series_opt_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.fib_run_all_local_copy (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.fib_run_all_local_copy (2).executor&quot;: &quot;Run&quot;,
+    &quot;Python.fib_run_all_local_copy.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/data/u_emueller_software/git/neuronaldynamics&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.gitlab.GitLabSettingsConfigurable&quot;
   },
-  "keyToStringList": {
-    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
-      "Python"
+  &quot;keyToStringList&quot;: {
+    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
+      &quot;Python&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/neuronaldynamics" />
       <recent name="$PROJECT_DIR$/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.DI_wave_optimizer_paper_hp">
+  <component name="RunManager" selected="Python.Hu_solver_test_DI (1)">
+    <configuration name="CNS_2026_FPE_version" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="neuronaldynamics" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src/neuronaldynamics/Examples" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/neuronaldynamics/Examples/CNS_2026_FPE_version.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="DI_wave_optimizer_GA_hp" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="neuronaldynamics" />
       <option name="ENV_FILES" value="" />
@@ -222,37 +206,13 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="fib_run_all_local_copy (2)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="neuronaldynamics" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$USER_HOME$/Desktop/pt_01756/software/git/scripts/Tractography-Pipeline" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="DEBUG_JUST_MY_CODE" value="false" />
-      <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$USER_HOME$/Desktop/pt_01756/software/git/scripts/Tractography-Pipeline/fib_run_all_local_copy.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.Hu_solver_test_DI (1)" />
+        <item itemvalue="Python.CNS_2026_FPE_version" />
         <item itemvalue="Python.DI_wave_optimizer_paper_hp" />
         <item itemvalue="Python.Time_series_opt_test" />
         <item itemvalue="Python.DI_wave_optimizer_GA_hp" />
-        <item itemvalue="Python.Hu_solver_test_DI (1)" />
-        <item itemvalue="Python.fib_run_all_local_copy (2)" />
       </list>
     </recent_temporary>
   </component>
@@ -303,7 +263,15 @@
       <option name="project" value="LOCAL" />
       <updated>1779795468651</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="[UPD] new paths for running on MPI servers">
+      <option name="closed" value="true" />
+      <created>1779800757787</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1779800757787</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -313,7 +281,8 @@
     <MESSAGE value="[MOD] minor changes to allow for running on the MPI sever" />
     <MESSAGE value="[MOD] MPI server filestructure prepare" />
     <MESSAGE value="[FIX] git merge" />
-    <option name="LAST_COMMIT_MESSAGE" value="[FIX] git merge" />
+    <MESSAGE value="[UPD] new paths for running on MPI servers" />
+    <option name="LAST_COMMIT_MESSAGE" value="[UPD] new paths for running on MPI servers" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
