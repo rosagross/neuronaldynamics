@@ -1880,18 +1880,10 @@ class FPE_population():
 
         self.n_populations = len(self.population_type)
 
-        # leakage conductance
-        if not 'neuron_size' in parameters:
-            self.neuron_size = 3.0 * np.ones(self.n_populations)  # unit is mm average is here for l5pt cells
 
         if not 'g_leak' in parameters:
-            # avg_c_mem_per_mm = 0.1  # generally accepted avg
-            # self.c_mem = self.neuron_size * avg_c_mem_per_mm
             self.c_mem = 1.1e-9
-
             # compute g_leak from tau and capacitance
-            # self.g_leak = [1e-5]*self.n_populations
-            # self.g_leak = self.c_mem/self.tau_mem * 1e-3  # (conversion to mS from µS)
             self.g_leak = (np.array(self.tau_mem)*1e-3) * self.c_mem  # (conversion from ms t s for tau_mem)
 
         if self.synapse_pdf_type == 'gamma':
@@ -1913,11 +1905,6 @@ class FPE_population():
 
         self.simulation_done = False
 
-        if not self.input_type in ['rate', 'current', 'current-2', 'stochastic-current']:
-            raise NotImplementedError(f"Input type {self.input_type} not implemented! Please chose from "
-                                      f"['rate', 'current', 'current-2', 'stochastic-current']")
-
-
     def simulate(self):
 
         self.t = np.arange(0, self.T, self.dt)
@@ -1932,33 +1919,15 @@ class FPE_population():
                                                                     f' time with dimension {self.t.shape[0]}!'
             input_function_copy = self.input_function
             self.input_function = lambda x: input_function_copy  # hotfix that just returns the array for any input
-        if self.input_type == 'rate':
-            if self.multiple_inputs == True:
-                for k in range(len(self.input_function_idx)):
-                    self.input[self.input_function_idx[k][0], self.input_function_idx[k][1]] = self.input_function[k](t=self.t)
+        # define external input current
+        self.i_ext[self.input_function_idx] = self.input_function(self.t) * self.current_factor
+        if not isinstance(self.current_sigma, np.ndarray):
+            if self.static_noise:
+                self.current_sigma = np.tile(self.current_sigma, (self.n_populations, self.t.shape[0]))
             else:
-                try:
-                    self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(x=self.t)
-                except:
-                    self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
-        elif self.input_type in ['current', 'current-2', 'stochastic-current']:
-            self.i_ext[self.input_function_idx] = self.input_function(self.t) * self.current_factor
-            if not isinstance(self.current_sigma, np.ndarray):
-                if self.static_noise:
-                    self.current_sigma = np.tile(self.current_sigma, (self.n_populations, self.t.shape[0]))
-                else:
-                    self.current_sigma = self.current_sigma*self.i_ext
-
-
-        if self.verbose > 1:
-            t0_coeff = time.time()
-
-        self.get_coeffs()
+                self.current_sigma = self.current_sigma * self.i_ext
         self.r = None
-
-        if self.verbose > 1:
-            t1_coeff = time.time()
-            print(f'time for coeffs: {t1_coeff - t0_coeff:.3f}s')
+        # TODO: r needed?
 
         # first init all arrays
         v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
@@ -1975,25 +1944,12 @@ class FPE_population():
         exc_idxs = [i for i, type in enumerate(self.population_type) if type == 'exc']
         inh_idxs = [i for i, type in enumerate(self.population_type) if type == 'inh']
 
-        self.c1eext = np.zeros_like(self.v)
-        self.c2eext = np.zeros_like(self.v)
-        self.c1eext_v = np.zeros_like(self.v)
-        self.c2eext_v = np.zeros_like(self.v)
-
         ################################################################################################################
         # INITIAL CONDITIONS
         ################################################################################################################
-        for i in range(len(self.population_type)):
-            # initial dsitribution
-            if self.solver.lower() == 'nykamp':
-                init_dist = scipy.stats.norm.pdf(self.v, self.u_rest + self.init_pdf_offset, self.init_pdf_sigma)
-                init_dist /= init_dist.sum()
-                # init_dist /= 10
-                rho[i, :, 0] = init_dist
-                rho[i, 0, 0] = 0
-                rho[i, -1, 0] = 0
 
         # transform to v = (0, 1) range if Hu- Solver is used which cannot handle negative u_rest values
+        # TODO: implement this for the number of n_sim as a vector
         if self.solver.lower() == 'hu-2021':
             v_ = np.linspace(0, 1,self.v.shape[0])
             dv_ = np.diff(v_)[0]
@@ -2003,11 +1959,10 @@ class FPE_population():
 
             v_reset_idx_orig = np.where(self.v >self.u_reset)[0][0] - 1
             u_reset_ = v_[v_reset_idx_orig]
-            reset_idx = np.where(v_ == u_reset_)
 
             v_range_orig = self.v.max() - self.v.min()
             v_range_new = 1.0
-            hu_scaling_factor = dv_/self.dv
+            v_scaling_factor = dv_/self.dv
 
             for i in range(len(self.population_type)):
             # initial dsitribution
@@ -2038,16 +1993,6 @@ class FPE_population():
         for i, t_ in enumerate(tqdm(self.t[:-1], f"simulating {self.population_type} neuron populations for"
                                                  f" {self.t[:-1].shape[0]} time steps", disable=self.tqdm_disable)):
 
-            # if i > 0:
-            #     r_conv = self.mat_convolve(r[:(i + 1), :], self.alpha)[:, :, -len(self.alpha)] * self.dt
-            # v_in[:, :, i] = self.connectivity_matrix * r_conv + self.in2D
-
-            # if self.voltage_idx is not None:
-            #     # map shift to dv
-            #     v_shift = int(self.input_voltage[i] / self.dv)
-            #     rho[self.voltage_idx, :, i] = np.roll(rho[self.voltage_idx, :, i], v_shift)
-
-
             if self.break_outer:
                 break
 
@@ -2055,6 +2000,7 @@ class FPE_population():
 
                 # as of now r_conv has only one dimension, same as r
                 # each entry is convoluted by its representing kernel
+                # TODO: adapt to Hu-Solver
                 if i > 0:
                     r_conv[j] = np.convolve(r[j, :(i + 1)], self.delay_kernel)[-len(self.delay_kernel)] * self.dt
                 v_in[:, j, i] = self.connectivity_matrix[:, j] * r_conv + self.input[:, j, i]
@@ -2063,229 +2009,8 @@ class FPE_population():
                 # c1, c2 are over all v steps and i is a time step
                 # here the values are split between excitatory and inhibitory types
                 if type_j == 'exc':
-                    # excitatory population
-                    # ==================================================================================================
-                    c1ee = self.c[j, 0, 0]
-                    c1ei = self.c[j, 0, 1]
-                    c2ee = self.c[j, 1, 0]
-                    c2ei = self.c[j, 1, 1]
-                    c1ee_v = self.c_v[j, 0, 0]
-                    c1ei_v = self.c_v[j, 0, 1]
-                    c2ee_v = self.c_v[j, 1, 0]
-                    c2ei_v = self.c_v[j, 1, 1]
 
-                    g_eext = 0
-                    F_ext_delta = 0
-                    v_in_i_ext = 0
-                    v_ext = 0
-
-                    if self.input_type == 'current':
-                        ################################################################################################
-                        # EXTERNAL COEFFS
-                        # Additional external coefficients and pdfs to handle constant current input as dirac
-                        # distributed in voltage space
-                        ################################################################################################
-                        v_ext = self.i_ext[j, i] / self.g_leak[j]
-                        mask1 = np.where(self.v < v_ext + self.u_inh)[0]
-                        mask2 = np.where(self.v > v_ext + self.u_inh)[0]
-
-                        self.c1eext[mask1] = self.v[mask1] - self.u_inh
-                        self.c1eext[mask2] = v_ext
-                        self.c1eext_v[mask1] = 1
-                        self.c1eext_v[mask2] = 0
-
-                        self.c2eext[mask1] = 0.5 * (self.v[mask1] - self.u_inh) ** 2
-                        self.c2eext[mask2] = 0.5 * v_ext ** 2
-                        self.c2eext_v[mask1] = (self.v[mask1] - self.u_inh)
-                        self.c2eext_v[mask2] = 0
-
-                        self.c1eext = self.c_eext1_factor*self.c1eext
-                        self.c1eext_v = self.c_eext1_factor*self.c1eext_v
-                        self.c2eext = self.c_eext2_factor*self.c2eext  # was 0.2
-                        self.c2eext_v = self.c_eext2_factor*self.c2eext_v  # was 0.2
-
-                        # self.c1eext[0] = 0
-                        # self.c2eext[0] = 0
-                        # self.c1eext_v[0] = 0
-                        # self.c2eext_v[0] = 0
-                        # self.c1eext[-1] = 0
-                        # self.c2eext[-1] = 0
-                        # self.c1eext_v[-1] = 0
-                        # self.c2eext_v[-1] = 0
-
-                        # all new delay component terms
-                        # apply dirac delta at v = self.u_rest + v_ext
-                        g_eext = np.zeros_like(self.v)
-                        # dirac_index = np.where(self.v > self.u_reset + v_ext)[0]
-                        # if dirac_index.size == 0:
-                        #     # dirac_index = -2  # set dirac to latest point in v-space to preserve flux?
-                        #     dirac_index = -50 # safety distance if gauss_func is used in g_eext
-                        #     pass
-                        # else:
-                        #     dirac_index = dirac_index[0]
-                        dirac_index = np.where(self.v > self.u_reset)[0][0] # insert a v_reset
-                        if rho_delta[j, i-100] > 0:
-                            a=1
-                        # g_eext[dirac_index] = - rho_delta[j, i] #* 100 # 100 was the area under the curve of the pdf
-                        # g_eext = self.gauss_func(x = self.v, mu=(v_ext + self.u_reset), sigma=0.1)
-                        g_eext = self.gauss_func(x=self.v, mu=self.v[dirac_index], sigma=0.1)
-                        g_eext[:10] = 0
-                        g_eext[-10:] = 0
-                        # g_eext = self.gauss_func(x=self.v, mu=self.u_reset+5, sigma=2)
-                        g_eext /= g_eext.sum()
-                        g_eext = g_eext * -rho_delta[j, i] * self.g_eext_factor
-                        # F_ext_delta = np.heaviside(-self.u_thr + v_ext + self.u_reset, 0.5)
-                        F_ext_delta = 1*self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
-                        v_in_i_ext = 1
-
-                    current_2_val = 0
-                    if self.input_type == 'current-2':
-                        v_ext = self.i_ext[j, i] / self.g_leak[j] * 1e3  # conversion from V to mV
-                        current_2_val = 1
-                    elif self.input_type == 'stochastic-current':
-                        ################################################################################################
-                        # EXTERNAL COEFFS
-                        # Additional external coefficients and pdfs to handle random current input with mean and variance
-                        ################################################################################################
-                        v_ext = self.i_ext[j, i] / self.g_leak[j] * 1e3  # conversion from V to mV
-                        sigma = self.current_sigma[j, i]**2/self.tau_mem[j]
-                        v_shape = self.v.shape[0]
-                        self.c1eext = np.repeat(v_ext /self.tau_mem[j], v_shape)
-                        self.c1eext_v = 0
-                        self.c2eext = np.repeat(sigma, v_shape)
-                        self.c2eext_v = 0
-
-                        # This part is not used in the Hu-solver
-                        dirac_index = np.where(self.v > self.u_reset)[0][0]  # insert a v_reset
-                        g_eext = self.gauss_func(x=self.v, mu=self.v[dirac_index], sigma=0.1)
-                        g_eext[:10] = 0
-                        g_eext[-10:] = 0
-                        g_eext /= g_eext.sum()
-                        g_eext = g_eext * -rho_delta[j, i] * self.g_eext_factor
-                        F_ext_delta = 1 * self.sigmoid(-self.u_thr + v_ext + self.u_reset, r=0.01)
-                        v_in_i_ext = 1
-
-
-                    # TODO: this can be collapsed into drawing out the coeffs, since they can be taken out of the sum
-                    #  check if this is correct
-                    # if self.input_type in ['rate', 'current', 'current-2']:
-                    if self.solver.lower() == 'nykamp':
-                        f0_exc = self.dt / 2 * (1 / self.tau_mem[0] + np.sum(- v_in[exc_idxs, j, i]) * c1ee_v
-                                                + np.sum(v_in[inh_idxs, j, i]) * c1ei_v - self.c1eext_v)
-                        f1_exc = self.dt / (4 * self.dv) * ((self.v - self.u_rest - current_2_val*v_ext) / self.tau_mem[0] +
-                                                            - self.c1eext + self.c2eext_v +  # new external inputs
-                                                            np.sum(v_in[exc_idxs, j, i]) * (-c1ee + c2ee_v) +
-                                                            np.sum(v_in[inh_idxs, j, i]) * (c1ei + c2ei_v))
-                        f2_exc = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ee +
-                                                                 np.sum(v_in[inh_idxs, j, i]) * c2ei + self.c2eext)
-                        # else:
-
-
-                        A_exc = self.get_A(f0_exc, f1_exc, f2_exc)
-                        B_exc = self.get_B(f0_exc, f1_exc, f2_exc)
-
-                        # contribution to drho/dt from rho_delta at u_res
-
-                        g_exc = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
-                                                   np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1]) - v_in_i_ext * g_eext
-
-
-                        # calculate firing rate
-                        r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ee[-1] * rho[j, -2, i] / self.dv +
-                                                                   self.synapse_pdf_funcs[j].sf(
-                                                                       (self.u_thr - self.u_rest) / (
-                                                                               self.u_exc - self.u_rest)) *
-                                                                   rho_delta[j, i])
-                        r_ext = + self.c2eext[-1] * rho[j, -2, i] / self.dv + F_ext_delta * rho_delta[j, i]
-                        r[j, i] = r_j + r_ext
-
-                        if i == 600:
-                            a=1
-
-                        # if r[j, i] < 0:
-                        #     r[j, i] = 0
-                        if np.isnan(r[j, i]):
-                            a = 0
-                        if np.abs(r[j, i] - r[j, i-1]) > 30e-3 and i > 1:
-                            l = 12
-
-                        if i == 0:
-                            neg_rho_counter = 0
-                            rho_shrink_counter = 0
-                            rho_inflate_counter = 0
-                            rho_area_start = np.sum(rho[j, :, i])
-                        if neg_rho_counter == 0 and np.mean(rho[j, :, i]) < -1:
-                            print('\nWarning!, negative rho detected!')
-                            neg_rho_counter = 1
-                        mean_rho_area = np.sum(rho[j, :, :], axis=0)
-                        mean_rho_idx = int(2*ref_delta_idxs[j])
-                        if i > mean_rho_idx and self.verbose > 1:
-                            if np.mean(mean_rho_area[i-mean_rho_idx:i]) < rho_area_start*0.2 and rho_shrink_counter == 0:
-                                # print(f'\n Warning!, rho is draining, i = {i}')
-                                rho_shrink_counter = 1
-                            elif mean_rho_area[i-1] > rho_area_start*1.1 and rho_inflate_counter == 0:
-                                # print(f'\n Warning!, rho is inlfating, i = {i}')
-                                rho_inflate_counter = 1
-
-                        if r[j, i] > 1e6:
-                            if self.sparse_mat:
-                                A = np.array(A_exc.todense())
-                                B = np.array(B_exc.todense())
-                                kappa_A = np.linalg.cond(A)
-                                kappa_B = np.linalg.cond(B)
-                            else:
-                                kappa_A = np.linalg.cond(A_exc)
-                                kappa_B = np.linalg.cond(B_exc)
-
-                            dt_proposal = self.dt/kappa_A*50  # may use 75 for boarder to instability
-
-                            print(f'Exiting simulation: rate of {r[j, i]:5f} detected \n Condition number for A and B are: '
-                                  f'{kappa_A}, {kappa_B} \n Try dt<= {dt_proposal:.6f}')
-                            self.break_outer = True
-                            break
-
-                        r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
-
-                        # test some stability criteria for the matrices
-                        # A = np.array(A_exc.todense())
-                        # B = np.array(B_exc.todense())
-                        # b = np.array(B_exc.dot(rho[j, :, i]))
-                        #
-
-                        # kappa = np.linalg.cond(B)
-                        #
-                        # #C_exc = np.linalg.inv(A_exc) @ B_exc
-                        # n_s = int(self.v.shape[0])
-                        # u, s, v = scipy.sparse.linalg.svds(B_exc)
-                        # u, s, v = np..linalg.svd(B_exc)
-                        # min_svd = np.min(s)
-                        # B_exc = u.dot(s).dot(v.T)
-
-                        if not self.sparse_mat:
-                            rho[j, :, i + 1] = np.linalg.solve(A_exc, np.matmul(B_exc, rho[j, :, i]))
-                            # rho[j, :, i + 1] = scipy.linalg.solve_banded((1, 1), A_exc, np.matmul(B_exc, rho[j, :, i]))
-                        else:
-                            rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_exc, B_exc.dot(rho[j, :, i]))
-                            # rho[j, :, i + 1] = scipy.sparse.linalg.lsmr(A_exc, B_exc.dot(rho[j, :, i]),
-                            #                                             damp=0.2, maxiter=100)[0]
-
-                        # update rho and rho_delta by their time derivative components from discontinuous terms
-                        rho[j, :, i + 1] += self.dt * g_exc
-                        rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
-                                -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i]) + v_in_i_ext) *
-                                rho_delta[j, i] + r_delayed[j, i])
-                        # rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (-100*rho_delta[j, i] + r_delayed[j, i])
-
-
-                        if i == 50:
-                            a = 1
-                        b = rho[j, :, i + 1]
-                        if (self.v[rho[j, :, i + 1] < 0]).shape[0] > 1:
-                            a = 1
-                        if i == 180:
-                            l=20
-
-                    elif self.solver.lower() == 'hu-2021':
+                    if self.solver.lower() == 'hu-2021':
                     ####################################################################################################
                     # Hu-solver 2021
                     ####################################################################################################
@@ -2303,12 +2028,8 @@ class FPE_population():
                             upper = np.zeros(Nx - 1)
 
                             # conversion of coefficients from Nykamp to Hu-formulation
-                            drift_coeff_vec = (-np.sum(- v_in[exc_idxs, j, i]) * c1ee_v + np.sum(v_in[inh_idxs, j, i]) * c1ei_v +\
-                                          self.c1eext) * hu_scaling_factor
+                            drift_coeff_vec = self.c1eext * v_scaling_factor
                             drift_coeff = drift_coeff_vec[0]
-
-                            # TODO: find a way around this once voltage dependent components play a role
-
                             diffusion_coeff = + self.c2eext[0]
 
                             # ensure minimal diffusion coeff for numerical stability, in case of no drift input
@@ -2362,10 +2083,7 @@ class FPE_population():
                             # solve for rho
                             rho[j, :, i] = scipy.sparse.linalg.spsolve(A, b)
 
-
                             # firing rate / outgoing flux / spike density
-                            # if i > 1:
-                            #     r[i] = (u[i-2].sum() - u[i-1].sum())
                             r[j, i] = ((diffusion_coeff / dv_) * (rho[j, -2, i-1]) +
                                     ((v_[self.thr_idx] - u_rest_) + drift_coeff) * rho[j,self.thr_idx, i - 1])
 
@@ -2376,291 +2094,6 @@ class FPE_population():
                                 J_out *= (1 - rho[j,:, i].sum())
                             rho[j,:, i] += J_out
                     rho[j, :, -1] = rho[j,:, -2]
-                else:
-                    # inhibitory population
-                    # ==================================================================================================
-
-                    c1ie = self.c[j, 0, 0]
-                    c1ii = self.c[j, 0, 1]
-                    c2ie = self.c[j, 1, 0]
-                    c2ii = self.c[j, 1, 1]
-                    c1ie_v = self.c_v[j, 0, 0]
-                    c1ii_v = self.c_v[j, 0, 1]
-                    c2ie_v = self.c_v[j, 1, 0]
-                    c2ii_v = self.c_v[j, 1, 1]
-
-                    # coefficients for finite difference matrices
-                    f0_inh = self.dt / 2 * (1 / self.tau_mem[1] - np.sum(v_in[exc_idxs, j, i]) * c1ie_v +
-                                            np.sum(v_in[inh_idxs, j, i]) * c1ii_v)
-                    f1_inh = self.dt / (4 * self.dv) * (
-                            (self.v - self.u_rest) / self.tau_mem[1] +
-                            # - (self.i_ext[j, i] / self.g_leak[j]) +
-                            np.sum(v_in[exc_idxs, j, i]) * (-c1ie + c2ie_v) +
-                            np.sum(v_in[inh_idxs, j, i]) * (c1ii + c2ii_v))
-                    f2_inh = self.dt / (2 * self.dv ** 2) * (np.sum(v_in[exc_idxs, j, i]) * c2ie +
-                                                             np.sum(v_in[inh_idxs, j, i]) * c2ii)
-
-                    A_inh = self.get_A(f0_inh, f1_inh, f2_inh)
-                    B_inh = self.get_B(f0_inh, f1_inh, f2_inh)
-
-                    # contribution to drho/dt from rho_delta at u_res
-                    g_inh = rho_delta[j, i] * (-np.sum(v_in[exc_idxs, j, i]) * self.dFdv[j, 0] +
-                                               np.sum(v_in[inh_idxs, j, i]) * self.dFdv[j, 1])
-
-                    # calculate firing rate
-                    r_j = np.sum(v_in[exc_idxs, j, i]) * (c2ie[-1] * rho[j, -2, i] / self.dv +
-                                                              self.synapse_pdf_funcs[j].sf((self.u_thr - self.u_rest) / (
-                                                                          self.u_exc - self.u_rest)) *
-                                                              rho_delta[j, i])
-                    r_ext = 0 #c1ie[-1]*(1/self.g_leak[j])*self.i_ext[j, i] * rho[j, -2, i] / self.dv
-
-                    r[j, i] = r_j + r_ext
-                    if r[j, i] < 0.1:
-                        print(f"WARNING: r_inh < 0 ! (r_inh = {r[j, i]}) ... Setting r_inh to 0")
-                        r[j, i] = 0
-                    r_delayed[j, i + ref_delta_idxs[j]] = r[j, i]
-
-                    # update rho and rho_delta
-                    if not self.sparse_mat:
-                        rho[j, :, i + 1] = np.linalg.solve(A_inh, np.matmul(B_inh, rho[j, :, i]))
-                    else:
-                        rho[j, :, i + 1] = scipy.sparse.linalg.spsolve(A_inh, B_inh.dot(rho[j, :, i]))
-                    rho[j, :, i + 1] += self.dt * g_inh
-                    rho_delta[j, i + 1] = rho_delta[j, i] + self.dt * (
-                            -(np.sum(v_in[exc_idxs, j, i]) + np.sum(v_in[inh_idxs, j, i])) *
-                            rho_delta[j, i] + r_delayed[j, i])
-
-        # plt.plot(mean_rho_area)
-        # plt.plot(rho_delta[0]*300)
-        # plt.legend(['rho area', 'rho_delta'])
-        # plt.show()
-
-        rho_plot = np.zeros_like(rho)
-        self.r = r
-        self.rho = rho
-        for k in range(self.n_populations):
-            rho_plot[k, :] = rho[k, :]
-            rho_plot[k, v_reset_idx, :] = rho[k, v_reset_idx, :] + rho_delta[k, :]
-
-        self.save_sim_results(r=r, rho=rho, rho_plot=rho_plot)
-        self.simulation_done = True
-
-    def get_A(self, f0, f1, f2):
-        if not self.sparse_mat:
-            A = np.diag(1 + 2 * f2 - f0) + np.diagflat((-f2 - f1)[:-1], 1) + np.diagflat(
-                (f1 - f2)[1:], -1)
-            A[0, 1] = -2 * f1[1]
-            A[-1, -2] = 2 * f1[-2]
-        else:
-            n_v = f0.shape[0]
-            main = 1 + 2 * f2 - f0
-            lower = (f1 - f2)[1:]
-            upper = (-f2 - f1)[:-1]
-            # Insert boundary conditions
-            lower[-1] = 2 * f1[-2]
-            upper[0] = -2 * f1[1]
-            # lower[0] = 0
-            # upper[-1] = 0
-
-            A = scipy.sparse.diags(
-                diagonals=[main, lower, upper],
-                offsets=[0, -1, 1], shape=(n_v, n_v),
-                format='csr')
-        return A
-
-    def get_B(self, f0, f1, f2):
-        if not self.sparse_mat:
-
-            B = np.diag(1 - 2 * f2 + f0) + np.diagflat((f2 + f1)[:-1], 1) + np.diagflat(
-                (f2 - f1)[1:], -1)
-            B[0, 1] = 2 * f1[1]
-            B[-1, -2] = -2 * f1[-2]
-        else:
-            n_v = f0.shape[0]
-            main = 1 - 2 * f2 + f0
-            upper = (f2 + f1)[:-1]
-            lower = (f2 - f1)[1:]
-            # Insert boundary conditions
-            upper[0] = 2 * f1[1]
-            lower[-1] = -2 * f1[-2]
-            # lower[0] = 0
-            # upper[-1] = 0
-
-            B = scipy.sparse.diags(
-                diagonals=[main, lower, upper],
-                offsets=[0, -1, 1], shape=(n_v, n_v),
-                format='csr')
-            # B_ = B.todense()
-        return B
-
-    def mat_convolve(self, x, kernel):
-        """
-        Function that convolves an array of time series with the same kernel unsing np.convolve
-
-        Parameter
-        ---------
-        x : np.array of float (2D)
-            input array
-        kernel : np.array of float (1D)
-            convolution kernel
-
-        Returns
-        -------
-        B : np.array of float (2D)
-            convolved input array
-        """
-
-        n_x = x.shape[0]
-        n_y = x.shape[1]
-
-        # use extra convolution to determine shape of output array
-        n_b = np.convolve(x[0, 0], kernel).shape[0]
-
-        b = np.zeros((n_x, n_y, n_b))
-        for i in range(n_x):
-            for j in range(n_y):
-                b[i, j] = np.convolve(x[i, j], kernel)
-        return b
-
-    def get_coeffs(self):
-
-        v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
-        n_v = v.shape[0]
-
-        if self.verbose > 0:
-            tqdm_disable_coeffs = False
-        else:
-            tqdm_disable_coeffs = True
-
-        self.c = np.zeros((self.n_populations, 2, 2, n_v))
-        self.c_v = np.zeros_like(self.c)
-        self.dFdv = np.zeros([self.n_populations, 2, n_v])
-
-        if (not np.allclose(self.connectivity_matrix, np.zeros_like(self.connectivity_matrix))
-                or self.input_type == 'rate'):
-
-
-            self.synapse_pdf_funcs = []
-            for k in range(self.n_populations):
-                if self.population_type[k] == 'exc':
-
-                    # init arrays for diffuson coeffs
-                    c1ee = np.zeros(len(v))
-                    c2ee = np.zeros(len(v))
-                    c1ei = np.zeros(len(v))
-                    c2ei = np.zeros(len(v))
-
-                    # conductance jump distributions
-                    # input synapse parameters into synapse dependent voltage jump distribution
-
-                    if self.synapse_pdf_type == 'gamma':
-                        synapse_pdf_ee = gamma(a=self.synapse_pdf_params[0, k, 0] ** (-2), loc=0,
-                                         scale=self.synapse_pdf_params[0, k, 0]**2*self.synapse_pdf_params[1, k, 0])
-                        synapse_pdf_ei = gamma(a=self.synapse_pdf_params[0, k, 1] ** (-2),
-                                         loc=0, scale=self.synapse_pdf_params[0, k, 1]**2*self.synapse_pdf_params[1, k, 1])
-                    elif self.synapse_pdf_type == 'normal':
-                        synapse_pdf_ee = norm(loc=self.synapse_pdf_params[0, k, 0], scale=self.synapse_pdf_params[1, k, 0])
-                        synapse_pdf_ei = norm(loc=self.synapse_pdf_params[0, k, 1], scale=self.synapse_pdf_params[1, k, 1])
-                    elif self.synapse_pdf_type == 'log-normal':
-                        synapse_pdf_ee = lognorm(scale=self.synapse_pdf_params[0, k, 0], s=self.synapse_pdf_params[1, k, 0])
-                        synapse_pdf_ei = lognorm(scale=self.synapse_pdf_params[0, k, 1], s=self.synapse_pdf_params[1, k, 1])
-                    else:
-                        raise NotImplementedError(f'Please choose from implemented pdf types: {self.implemented_pdf_types}!')
-
-                    for i, v_ in tqdm(enumerate(v), f'computing drift and diffusion coefficients for rates of'
-                                                    f' exc population', disable=tqdm_disable_coeffs):
-
-                        vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
-                        int_c1ee = synapse_pdf_ee.sf((v_ - vpe) / (self.u_exc - vpe))
-                        int_c2ee = int_c1ee * (v_ - vpe)
-                        c1ee[i] = np.trapz(x=vpe, y=int_c1ee)
-                        c2ee[i] = np.trapz(x=vpe, y=int_c2ee)
-
-                        if i > 0:
-                            vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
-                            int_c1ei = synapse_pdf_ei.sf((v_ - vpi) / (self.u_inh - vpi))
-                            int_c2ei = int_c1ei * (vpi - v_)
-                            c1ei[i] = np.trapz(x=vpi, y=int_c1ei)
-                            c2ei[i] = np.trapz(x=vpi, y=int_c2ei)
-
-                    c1ei[0] = c1ei[1]
-                    c2ei[0] = 0
-
-                    self.c[k] = np.array([[[c1ee, c1ei], [c2ee, c2ei]]])
-                    c1ee_v = np.gradient(c1ee, self.v)
-                    c1ei_v = np.gradient(c1ei, self.v)
-                    c2ee_v = np.gradient(c2ee, self.v)
-                    c2ei_v = np.gradient(c2ei, self.v)
-                    self.c_v[k] = np.array([[[c1ee_v, c1ei_v], [c2ee_v, c2ei_v]]])
-                    self.synapse_pdf_funcs.append(synapse_pdf_ee)
-                    Fee_v = np.gradient(synapse_pdf_ee.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
-                            * np.heaviside(self.v - self.u_rest, 0.5)
-                    Fei_v = np.gradient(synapse_pdf_ei.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
-                            * np.heaviside(self.u_rest - self.v, 0.5)
-
-                    self.dFdv[k] = np.array([Fee_v, Fei_v])
-
-
-                elif self.population_type[k] == 'inh':
-
-
-                    # init arrays for diffusion coeffs
-                    c1ie = np.zeros(len(v))
-                    c2ie = np.zeros(len(v))
-                    c1ii = np.zeros(len(v))
-                    c2ii = np.zeros(len(v))
-
-                    # conductance jump distributions
-                    if self.synapse_pdf_type == 'gamma':
-                        synapse_pdf_ie = gamma(a=self.synapse_pdf_params[0, k, 0] ** (-2), loc=0,
-                                               scale=self.synapse_pdf_params[0, k, 0] ** 2 * self.synapse_pdf_params[
-                                                   1, k, 0])
-                        synapse_pdf_ii = gamma(a=self.synapse_pdf_params[0, k, 1] ** (-2),
-                                               loc=0, scale=self.synapse_pdf_params[0, k, 1] ** 2 * self.synapse_pdf_params[
-                                1, k, 1])
-                    elif self.synapse_pdf_type == 'normal':
-                        synapse_pdf_ie = norm(loc=self.synapse_pdf_params[0, k, 0], scale=self.synapse_pdf_params[1, k, 0])
-                        synapse_pdf_ii = norm(loc=self.synapse_pdf_params[0, k, 1], scale=self.synapse_pdf_params[1, k, 1])
-                    elif self.synapse_pdf_type == 'log-normal':
-                        synapse_pdf_ie = lognorm(scale=self.synapse_pdf_params[0, k, 0], s=self.synapse_pdf_params[1, k, 0])
-                        synapse_pdf_ii = lognorm(scale=self.synapse_pdf_params[0, k, 1], s=self.synapse_pdf_params[1, k, 1])
-                    else:
-                        raise NotImplementedError(
-                            f'Please choose from implemented pdf types: {self.implemented_pdf_types}!')
-
-                    for i, v_ in tqdm(enumerate(v), f'computing drift and diffusion coefficients for rates of'
-                                                    f' inh population', disable=tqdm_disable_coeffs):
-                        vpe = np.arange(self.u_inh, v_ + self.dv, self.dv)
-                        int_c1ie = synapse_pdf_ie.sf((v_ - vpe) / (self.u_exc - vpe))
-                        int_c2ie = int_c1ie * (v_ - vpe)
-                        c1ie[i] = np.trapz(x=vpe, y=int_c1ie)
-                        c2ie[i] = np.trapz(x=vpe, y=int_c2ie)
-
-                        if i > 0:
-                            vpi = np.arange(v_, self.u_thr + self.dv, self.dv)
-                            int_c1ii = synapse_pdf_ii.sf((v_ - vpi) / (self.u_inh - vpi))
-                            int_c2ii = int_c1ii * (vpi - v_)
-                            c1ii[i] = np.trapz(x=vpi, y=int_c1ii)
-                            c2ii[i] = np.trapz(x=vpi, y=int_c2ii)
-
-                    c1ii[0] = c1ii[1]
-                    c2ii[0] = 0
-
-                    self.c[k] = np.array([[c1ie, c1ii], [c2ie, c2ii]])
-                    c1ie_v = np.gradient(c1ie, self.v)
-                    c1ii_v = np.gradient(c1ii, self.v)
-                    c2ie_v = np.gradient(c2ie, self.v)
-                    c2ii_v = np.gradient(c2ii, self.v)
-                    self.c_v[k] = np.array([[[c1ie_v, c1ii_v], [c2ie_v, c2ii_v]]])
-                    self.synapse_pdf_funcs.append(synapse_pdf_ie)
-                    Fie_v = np.gradient(synapse_pdf_ie.sf(x=(self.v - self.u_rest) / (self.u_exc - self.u_rest)), self.dv) \
-                                       * np.heaviside(self.v - self.u_rest, 0.5)
-                    Fii_v = np.gradient(synapse_pdf_ii.sf(x=(self.v - self.u_rest) / (self.u_inh - self.u_rest)), self.dv) \
-                                       * np.heaviside(self.u_rest - self.v, 0.5)
-                    self.dFdv[k] = np.array([Fie_v, Fii_v])
-
-                else:
-                    raise NotImplementedError('population types must be "exc" or "inh"!')
 
     def get_delay_kernel(self):
         if self. delay_kernel_type == 'alpha':
