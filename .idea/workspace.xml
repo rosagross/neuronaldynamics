@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[UPD] new paths for running on MPI servers">
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Checkout_at_5_12_26__6_20PM__Changes_.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_5_21_26__1_28PM__Changes_.xml" beforeDir="false" />
+    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[UPD] started work on slimmer FPE_Population model">
+      <change afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -50,42 +50,46 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.CNS_2026_FPE_version.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.DI_wave_optimizer_GA_hp.executor&quot;: &quot;Run&quot;,
-    &quot;Python.DI_wave_optimizer_paper_hp.executor&quot;: &quot;Run&quot;,
-    &quot;Python.Hu_solver_test_DI (1).executor&quot;: &quot;Debug&quot;,
-    &quot;Python.Hu_solver_test_DI.executor&quot;: &quot;Run&quot;,
-    &quot;Python.I_wave_peak_differences.executor&quot;: &quot;Run&quot;,
-    &quot;Python.Time_series_opt_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.fib_run_all_local_copy (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.fib_run_all_local_copy (2).executor&quot;: &quot;Run&quot;,
-    &quot;Python.fib_run_all_local_copy.executor&quot;: &quot;Debug&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/data/u_emueller_software/git/neuronaldynamics&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.gitlab.GitLabSettingsConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.CNS_2026_FPE_version.executor": "Debug",
+    "Python.DI_model_vec_test.executor": "Debug",
+    "Python.DI_wave_optimizer_GA_hp.executor": "Run",
+    "Python.DI_wave_optimizer_paper_hp.executor": "Run",
+    "Python.Hu_solver_test_DI (1).executor": "Debug",
+    "Python.Hu_solver_test_DI.executor": "Run",
+    "Python.I_wave_peak_differences.executor": "Run",
+    "Python.Time_series_opt_test.executor": "Run",
+    "Python.fib_run_all_local_copy (1).executor": "Run",
+    "Python.fib_run_all_local_copy (2).executor": "Run",
+    "Python.fib_run_all_local_copy.executor": "Debug",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/erik/PycharmProjects/neuronaldynamics/src/neuronaldynamics/Examples",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "org.jetbrains.plugins.gitlab.GitLabSettingsConfigurable"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
-      &quot;Python&quot;
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "Python"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/neuronaldynamics/Examples" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/neuronaldynamics" />
       <recent name="$PROJECT_DIR$/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.Hu_solver_test_DI (1)">
+  <component name="RunManager" selected="Python.DI_model_vec_test">
     <configuration name="CNS_2026_FPE_version" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="neuronaldynamics" />
       <option name="ENV_FILES" value="" />
@@ -110,7 +114,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="DI_wave_optimizer_GA_hp" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="DI_model_vec_test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="neuronaldynamics" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -119,13 +123,13 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src/neuronaldynamics/Examples" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="DEBUG_JUST_MY_CODE" value="false" />
       <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_GA_hp.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -208,11 +212,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.DI_model_vec_test" />
         <item itemvalue="Python.Hu_solver_test_DI (1)" />
         <item itemvalue="Python.CNS_2026_FPE_version" />
         <item itemvalue="Python.DI_wave_optimizer_paper_hp" />
         <item itemvalue="Python.Time_series_opt_test" />
-        <item itemvalue="Python.DI_wave_optimizer_GA_hp" />
       </list>
     </recent_temporary>
   </component>
@@ -271,7 +275,15 @@
       <option name="project" value="LOCAL" />
       <updated>1779800757787</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="[UPD] started work on slimmer FPE_Population model">
+      <option name="closed" value="true" />
+      <created>1779984134913</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1779984134914</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -282,7 +294,8 @@
     <MESSAGE value="[MOD] MPI server filestructure prepare" />
     <MESSAGE value="[FIX] git merge" />
     <MESSAGE value="[UPD] new paths for running on MPI servers" />
-    <option name="LAST_COMMIT_MESSAGE" value="[UPD] new paths for running on MPI servers" />
+    <MESSAGE value="[UPD] started work on slimmer FPE_Population model" />
+    <option name="LAST_COMMIT_MESSAGE" value="[UPD] started work on slimmer FPE_Population model" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -304,8 +317,18 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py</url>
-          <line>584</line>
+          <line>649</line>
           <option name="timeStamp" value="12" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
+          <line>2109</line>
+          <option name="timeStamp" value="26" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
+          <line>2108</line>
+          <option name="timeStamp" value="28" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

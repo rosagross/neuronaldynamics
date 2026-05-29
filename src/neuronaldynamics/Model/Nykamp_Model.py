@@ -921,7 +921,6 @@ class Nykamp_Model_1():
 
             v_reset_idx_orig = np.where(self.v >self.u_reset)[0][0] - 1
             u_reset_ = v_[v_reset_idx_orig]
-            reset_idx = np.where(v_ == u_reset_)
 
             v_range_orig = self.v.max() - self.v.min()
             v_range_new = 1.0
@@ -1831,7 +1830,7 @@ class Nykamp_Model_1():
         if self.simulation_done:
             os.remove(self.name + '.hdf5')
 
-class FPE_population():
+class FPE_Population():
     """
     Class for the population model of Nykamp and Tranchina
     Probability flux over time is used to model synaptic membrane and firing rates of neuron
@@ -1886,8 +1885,6 @@ class FPE_population():
             # compute g_leak from tau and capacitance
             self.g_leak = (np.array(self.tau_mem)*1e-3) * self.c_mem  # (conversion from ms t s for tau_mem)
 
-        if self.synapse_pdf_type == 'gamma':
-            self.synapse_pdf_params = np.array([self.var_coeff_gamma, self.mu_gamma])
         # set up arrays for simulation
         self.t = np.arange(0, self.T, self.dt)
         self.v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
@@ -1920,7 +1917,7 @@ class FPE_population():
             input_function_copy = self.input_function
             self.input_function = lambda x: input_function_copy  # hotfix that just returns the array for any input
         # define external input current
-        self.i_ext[self.input_function_idx] = self.input_function(self.t) * self.current_factor
+        self.i_ext[self.input_function_idx] = self.input_function(self.t)
         if not isinstance(self.current_sigma, np.ndarray):
             if self.static_noise:
                 self.current_sigma = np.tile(self.current_sigma, (self.n_populations, self.t.shape[0]))
@@ -2094,6 +2091,194 @@ class FPE_population():
                                 J_out *= (1 - rho[j,:, i].sum())
                             rho[j,:, i] += J_out
                     rho[j, :, -1] = rho[j,:, -2]
+
+    def simulate_set(self):
+        """
+        Simulation function that creates a combined matrix of all simulation settings up to a memory limit
+        to simulate multiple simulations at once
+
+        """
+
+        self.n_simulations = self.input_function.shape[0]
+        self.t = np.arange(0, self.T, self.dt)
+        self.v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
+        # create multi index arrays here for this for now and later build larger arrays invlved in the solver
+        self.input = np.zeros([self.n_populations, self.n_populations, self.n_simulations, self.t.shape[0]])
+        self.i_ext = np.zeros([self.n_populations, self.n_simulations,  self.t.shape[0]])
+        self.i_ext[self.input_function_idx] = self.input_function
+        if self.static_noise:
+            self.current_sigma = np.tile(self.current_sigma, (self.n_populations, self.t.shape[0]))
+        else:
+            self.current_sigma = self.current_sigma * self.i_ext
+        self.r = None
+        # TODO: r needed?
+
+        # first init all arrays
+        v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
+        self.v_reset_idx = v_reset_idx
+        ref_delta_idxs = np.array([int(np.round(self.tau_ref[k] / self.dt)) for k in range(self.n_populations)])
+        max_ref_delta_indx = np.max(ref_delta_idxs)
+        rho = np.zeros((self.n_populations, len(self.v), len(self.t)))
+        r = np.zeros((self.n_populations, len(self.t)))  # output firing rate
+
+        v_in = np.zeros((self.n_populations, self.n_populations, len(self.t)))  # ref_exc_delta_idx used to be here
+
+        r_conv = np.zeros(self.n_populations)
+        exc_idxs = [i for i, type in enumerate(self.population_type) if type == 'exc']
+        inh_idxs = [i for i, type in enumerate(self.population_type) if type == 'inh']
+
+        ################################################################################################################
+        # INITIAL CONDITIONS
+        ################################################################################################################
+
+        # transform to v = (0, 1) range if Hu- Solver is used which cannot handle negative u_rest values
+        # TODO: implement this for the number of n_sim as a vector
+        if self.solver.lower() == 'hu-2021':
+            v_ = np.linspace(0, 1, self.v.shape[0])
+            dv_ = np.diff(v_)[0]
+
+            v_rest_idx_orig = np.where(self.v > self.u_rest)[0][0] - 1
+            u_rest_ = v_[v_rest_idx_orig]
+
+            v_reset_idx_orig = np.where(self.v > self.u_reset)[0][0] - 1
+            u_reset_ = v_[v_reset_idx_orig]
+
+            v_range_orig = self.v.max() - self.v.min()
+            v_range_new = 1.0
+            v_scaling_factor = dv_ / self.dv
+
+            for i in range(len(self.population_type)):
+                # initial dsitribution
+                sigma0_new = self.init_pdf_sigma * (v_range_new / v_range_orig)
+                v0_idx_original = np.where(self.v > self.u_rest + self.init_pdf_offset)[0][0] - 1
+                v0_new = v_[v0_idx_original]
+                # Gaussian component
+                init_dist_1 = norm.pdf(v_, v0_new, sigma0_new)
+                init_dist_1 /= init_dist_1.sum()
+
+                # Uniform distributed component
+                init_dist_2 = np.ones_like(v_)
+                init_dist_2[np.where(v_ < u_rest_)] = 0
+                init_dist_2 /= init_dist_2.sum()
+                init_dist = init_dist_1 + (self.init_pdf_weight * init_dist_2)
+                init_dist /= init_dist.sum()
+                init_dist[0] = init_dist[-1] = 0
+
+                rho[i, :, 0] = init_dist
+                rho[i, 0, 0] = 0
+                rho[i, -1, 0] = 0
+
+        c_count = 0
+        c_v_warn_count = 0
+        added_noise = np.zeros(self.t.shape[0] - 1)
+
+        # Determine population dynamics (diffusion approximation)
+        for i, t_ in enumerate(tqdm(self.t[:-1], f"simulating {self.population_type} neuron populations for"
+                                                 f" {self.t[:-1].shape[0]} time steps", disable=self.tqdm_disable)):
+
+            if self.break_outer:
+                break
+
+            for j, type_j in enumerate(self.population_type):
+
+                # as of now r_conv has only one dimension, same as r
+                # each entry is convoluted by its representing kernel
+                # TODO: adapt to Hu-Solver
+                if i > 0:
+                    r_conv[j] = np.convolve(r[j, :(i + 1)], self.delay_kernel)[-len(self.delay_kernel)] * self.dt
+                v_in[:, j, i] = self.connectivity_matrix[:, j] * r_conv + self.input[:, j, i]
+
+                # coefficients for finite difference matrices
+                # c1, c2 are over all v steps and i is a time step
+                # here the values are split between excitatory and inhibitory types
+                if type_j == 'exc':
+
+                    if self.solver.lower() == 'hu-2021':
+                        ####################################################################################################
+                        # Hu-solver 2021
+                        ####################################################################################################
+                        if isinstance(self.c1eext_v, np.ndarray) and isinstance(self.c2eext_v, np.ndarray):
+                            if ((not np.allclose(self.c1eext_v, np.zeros_like(self.c1eext_v)) and
+                                 not np.allclose(self.c2eext_v, np.zeros_like(self.c2eext_v))) and
+                                    c_v_warn_count < 1):
+                                print(f'WARNING!: v-derivatives of coefficients are non-zero, but will be ignored!')
+                                c_v_warn_count += 1
+
+                        if i > 0:
+                            Nx = v_.shape[0]
+                            main = np.zeros(Nx)
+                            lower = np.zeros(Nx - 1)
+                            upper = np.zeros(Nx - 1)
+
+                            # conversion of coefficients from Nykamp to Hu-formulation
+                            drift_coeff_vec = self.c1eext * v_scaling_factor
+                            drift_coeff = drift_coeff_vec[0]
+                            diffusion_coeff = + self.c2eext[0]
+
+                            # ensure minimal diffusion coeff for numerical stability, in case of no drift input
+                            diffusion_coeff = np.array(max(diffusion_coeff, 1e-3))
+
+                            # discretization for Hu-2021
+                            c = diffusion_coeff * self.dt / dv_
+                            critval = 0.3 * (drift_coeff / 5)
+                            if c < critval:
+                                c = critval
+                                diffusion_coeff_original = diffusion_coeff.copy()
+                                diffusion_coeff = c * dv_ / self.dt
+                                sigma_orig = np.sqrt(diffusion_coeff_original * 2 * self.tau_mem[j])
+                                sigma_new = np.sqrt(diffusion_coeff * 2 * self.tau_mem[j])
+                                added_noise[i] = sigma_new
+                                if c_count < 1 & self.verbose > 0:
+                                    c_count += 1
+                                    print(
+                                        f'increasing diffusion_coeff from to achieve numerical stability at noise val {sigma_orig:.5f}mV')
+                            # {diffusion_coeff_original} to {diffusion_coeff:.5f} (sigma_v from {sigma_orig:.5f} to {sigma_new:.5f})
+                            if i == self.t.shape[0] - 2 and c_count > 0:
+                                print(f'largest noise value encountered :{added_noise.max():.5f}mV')
+                            # Scharfetter-Gummel Flux
+                            Ms = self.SG_Flux(v_, drift_coeff, diffusion_coeff, x_rest=u_rest_)
+
+                            if len(np.where(Ms == np.inf)[0]) > 0:
+                                raise ValueError('Infinite flux detected!')
+                            if len(np.where(Ms == np.nan)[0]) > 0:
+                                raise ValueError('NaN values in flux detected!')
+
+                            # Calculate harmonic means
+                            M_harm = np.zeros(Nx - 1)
+                            for k in range(Nx - 1):
+                                M_harm[k] = harm_mean(Ms[k], Ms[k + 1])
+
+                            # compute matrix terms
+                            r1 = -c * M_harm[:-1] / Ms[:-2]
+                            r2 = 1 + c * (M_harm[1:] + M_harm[:-1]) / Ms[1:-1]
+                            r3 = -c * M_harm[1:] / Ms[2:]
+
+                            main[1:-1] = r2
+                            lower[:-1] = r1
+                            upper[1:] = r3
+
+                            # Boundary Conditions
+                            main[0] = 1
+                            main[-1] = 1
+                            b = rho[j, :, i - 1]
+                            b[0] = b[-1] = 0.0
+                            A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx, Nx),
+                                                   format='csr')
+                            # solve for rho
+                            rho[j, :, i] = scipy.sparse.linalg.spsolve(A, b)
+
+                            # firing rate / outgoing flux / spike density
+                            r[j, i] = ((diffusion_coeff / dv_) * (rho[j, -2, i - 1]) +
+                                       ((v_[self.thr_idx] - u_rest_) + drift_coeff) * rho[j, self.thr_idx, i - 1])
+
+                            J_out = r[j, i] * (
+                                        np.heaviside((v_ + dv_) - u_reset_, 1) - np.heaviside((v_ - dv_) - u_reset_,
+                                                                                              1))
+                            if J_out.max() != 0:
+                                J_out /= J_out.sum()
+                                J_out *= (1 - rho[j, :, i].sum())
+                            rho[j, :, i] += J_out
+                    rho[j, :, -1] = rho[j, :, -2]
 
     def get_delay_kernel(self):
         if self. delay_kernel_type == 'alpha':

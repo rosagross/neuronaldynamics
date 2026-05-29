@@ -1,6 +1,6 @@
 from sympy.printing.pretty.pretty_symbology import line_width
 
-from Model.Nykamp_Model import Nykamp_Model_1
+from Model.Nykamp_Model import Nykamp_Model_1, FPE_Population
 from Model.Neck import generate_EP
 import pygpc
 import h5py
@@ -63,6 +63,8 @@ class DI_wave_simulation():
         self.paired_pulse = False
         self.pp_interval = 20
 
+        self.computation = 'ser' # computation type ('ser' for serial, 'vec' for vectorized)
+
         if logname != None:
             self.load_from_file(logname=logname)
         elif parameters != None:
@@ -73,48 +75,108 @@ class DI_wave_simulation():
         self.__dict__.update(self.parameters)
 
         self.t = np.arange(0, self.T, self.dt)
-        # higher level parameter implementation to make them available as optimization parameter
-        if self.mass_model_connectivity_matrix != None:
-            if type(self.mass_model_connectivity_matrix) == np.ndarray:
-                if len(self.mass_model_connectivity_matrix.shape) == 1:
-                    self.mass_model_connectivity_matrix = self.mass_model_connectivity_matrix[:, np.newaxis]
-            elif isinstance(self.mass_model_connectivity_matrix, (int, float)):
-                self.mass_model_connectivity_matrix = np.array([[self.mass_model_connectivity_matrix]])
-            self.nykamp_parameters['connectivity_matrix'] = self.mass_model_connectivity_matrix
-        bi_exp_kernel_parameters = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
-        init_nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': [12], 'tau_ref': [1.0],
-                                  'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
-                                  'input_type': 'current', 'input_function_idx': [0, 0], 'name': self.name,
-                                  'dt': self.dt, 'T': self.T, 'sparse_mat': True, 'g_eext_factor': self.g_eext_factor,
-                                  'c_eext1_factor': self.c_eext1_factor, 'c_eext2_factor': self.c_eext2_factor,
-                                  'init_pdf_offset': self.pdf_offset, 'init_pdf_sigma': self.pdf_sigma,
-                                  'init_pdf_weight': self.pdf_weight, 'current_sigma': self.current_sigma}
 
-        self.create_coords()
-        self.update_gpc_time()
-        if (self.use_gpc and self.fn_session!=None):
-            self.load_gpc_session()
-            self.grid = pygpc.RandomGrid(parameters_random=self.session.parameters_random, coords=self.coords)
-            self.input_current = self.session.gpc[0].get_approximation(self.gpc_coeffs, self.grid.coords_norm) * self.i_scale
-            self.input_current = self.input_current.flatten()
-            # self.input_current *= 1e6 # convert to µA from A
-            if self.input_current.min() < -0.2 * self.i_scale:
-                warnings.warn('Negative current in gpc model detected, will be set to zero for relevant time steps')
-            self.input_current[np.where(self.input_current < 0)[0]] = 0
-            self.input_current = np.interp(self.t, self.t_gpc, self.input_current)  # interpolate to desired time
-        elif self.fn_session == None:
-            warnings.warn('No session for gpc model supplied, no input current was computed!')#
-            self.input_current = np.zeros_like(self.t)
-        init_nykamp_parameters.update(self.nykamp_parameters)
-        if self.paired_pulse:
-            pulse_2 = delay_signal(self.input_current, delay=self.pp_interval, dt=self.dt)
-            self.input_current += pulse_2# /2 # test second pulse being subthreshold
-        
-        self.nykamp_parameters = init_nykamp_parameters
-        self.nykamp_parameters['input_function'] = self.input_current
-        self.mass_model = Nykamp_Model_1(parameters=self.nykamp_parameters)
+        if self.computation == 'ser':
+            # higher level parameter implementation to make them available as optimization parameter
+            if self.mass_model_connectivity_matrix != None:
+                if type(self.mass_model_connectivity_matrix) == np.ndarray:
+                    if len(self.mass_model_connectivity_matrix.shape) == 1:
+                        self.mass_model_connectivity_matrix = self.mass_model_connectivity_matrix[:, np.newaxis]
+                elif isinstance(self.mass_model_connectivity_matrix, (int, float)):
+                    self.mass_model_connectivity_matrix = np.array([[self.mass_model_connectivity_matrix]])
+                self.nykamp_parameters['connectivity_matrix'] = self.mass_model_connectivity_matrix
+            bi_exp_kernel_parameters = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
+            init_nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': [12], 'tau_ref': [1.0],
+                                      'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
+                                      'input_type': 'current', 'input_function_idx': [0, 0], 'name': self.name,
+                                      'dt': self.dt, 'T': self.T, 'sparse_mat': True, 'g_eext_factor': self.g_eext_factor,
+                                      'c_eext1_factor': self.c_eext1_factor, 'c_eext2_factor': self.c_eext2_factor,
+                                      'init_pdf_offset': self.pdf_offset, 'init_pdf_sigma': self.pdf_sigma,
+                                      'init_pdf_weight': self.pdf_weight, 'current_sigma': self.current_sigma}
 
+            self.create_coords()
+            self.update_gpc_time()
+            if (self.use_gpc and self.fn_session!=None):
+                self.load_gpc_session()
+                self.grid = pygpc.RandomGrid(parameters_random=self.session.parameters_random, coords=self.coords)
+                self.input_current = self.session.gpc[0].get_approximation(self.gpc_coeffs, self.grid.coords_norm) * self.i_scale
+                self.input_current = self.input_current.flatten()
+                # self.input_current *= 1e6 # convert to µA from A
+                if self.input_current.min() < -0.2 * self.i_scale:
+                    warnings.warn('Negative current in gpc model detected, will be set to zero for relevant time steps')
+                self.input_current[np.where(self.input_current < 0)[0]] = 0
+                self.input_current = np.interp(self.t, self.t_gpc, self.input_current)  # interpolate to desired time
+            elif self.fn_session == None:
+                warnings.warn('No session for gpc model supplied, no input current was computed!')#
+                self.input_current = np.zeros_like(self.t)
+            init_nykamp_parameters.update(self.nykamp_parameters)
+            if self.paired_pulse:
+                pulse_2 = delay_signal(self.input_current, delay=self.pp_interval, dt=self.dt)
+                self.input_current += pulse_2# /2 # test second pulse being subthreshold
 
+            self.nykamp_parameters = init_nykamp_parameters
+            self.nykamp_parameters['input_function'] = self.input_current
+            self.mass_model = Nykamp_Model_1(parameters=self.nykamp_parameters)
+
+        elif self.computation == 'vec':
+            assert type(self.theta) == np.ndarray, 'please provide correct data type (np.ndarray)'
+            assert type(self.intensity) == np.ndarray, 'please provide correct data type (np.ndarray)'
+            assert type(self.fraction_ex) == np.ndarray, 'please provide correct data type (np.ndarray)'
+            assert type(self.fraction_nmda) == np.ndarray, 'please provide correct data type (np.ndarray)'
+            assert type(self.fraction_gaba_a) == np.ndarray, 'please provide correct data type (np.ndarray)'
+            # TODO: maybe integrate into DI-wave class?
+            # assert type(self.pdf_offset) == np.ndarray, 'please provide correct data type (np.ndarray)'
+            # assert type(self.pdf_sigma) == np.ndarray, 'please provide correct data type (np.ndarray)'
+            # assert type(self.current_sigma) == np.ndarray, 'please provide correct data type (np.ndarray)'
+
+            self.n_simulations = self.theta.shape[0]
+            self.gradient = np.repeat(self.gradient, self.n_simulations) # not accounted for as of now
+            self.nmm_parameters = {}
+            if self.mass_model_connectivity_matrix != None:
+                assert type(self.mass_model_connectivity_matrix) == np.ndarray, 'please provide correct data type (np.ndarray)'
+                assert self.mass_model_connectivity_matrix.shape[1] == self.n_simulations
+                self.nmm_parameters['connectivity_matrix'] = self.mass_model_connectivity_matrix
+            bi_exp_kernel_parameters = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
+            init_nmm_parameters = {'u_rest': -70,
+                                      'u_thr': -55,
+                                      'u_exc': 0,
+                                      'u_inh': -75,
+                                      'tau_mem': np.repeat(12, self.n_simulations),
+                                      'tau_ref': np.repeat(1.0, self.n_simulations),
+                                      'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
+                                      'input_type': 'current', 'input_function_idx': [0, 0], 'name': self.name,
+                                      'dt': self.dt, 'T': self.T, 'sparse_mat': True, 'g_eext_factor': self.g_eext_factor,
+                                      'c_eext1_factor': self.c_eext1_factor, 'c_eext2_factor': self.c_eext2_factor,
+                                      'init_pdf_offset': self.pdf_offset, 'init_pdf_sigma': self.pdf_sigma,
+                                      'init_pdf_weight': self.pdf_weight, 'current_sigma': self.current_sigma}
+
+            self.create_coords()
+            self.update_gpc_time()
+            if (self.use_gpc and self.fn_session!=None):
+                self.load_gpc_session()
+                self.input_current = np.zeros((self.n_simulations, self.t.shape[0]))
+                for i in range(self.n_simulations):
+                    grid = pygpc.RandomGrid(parameters_random=self.session.parameters_random, coords=self.coords[:, :, i])
+                    gpc_input_current = self.session.gpc[0].get_approximation(self.gpc_coeffs, grid.coords_norm) * self.i_scale
+                    gpc_input_current = gpc_input_current.flatten()
+                    if gpc_input_current.min() < -0.2 * self.i_scale:
+                        warnings.warn('Negative current in gpc model detected, will be set to zero for relevant time steps')
+                    gpc_input_current[np.where(gpc_input_current < 0)[0]] = 0
+                    self.input_current[i] = np.interp(self.t, self.t_gpc, gpc_input_current)  # interpolate to desired time
+            elif self.fn_session == None:
+                warnings.warn('No session for gpc model supplied, no input current was computed!')#
+                self.input_current = np.zeros_like(self.t)
+            init_nmm_parameters.update(self.nmm_parameters)
+            # paired pulse is turned off for the time being no option to implement this hear meaningfully
+            # if self.paired_pulse:
+            #     pulse_2 = delay_signal(self.input_current, delay=self.pp_interval, dt=self.dt)
+            #     self.input_current += pulse_2# /2 # test second pulse being subthreshold
+
+            self.nmm_parameters = init_nmm_parameters
+            self.nmm_parameters['input_function'] = self.input_current
+            self.mass_model = FPE_Population(parameters=self.nmm_parameters)
+        else:
+            raise NotImplementedError("Computation type not implemented, please choose from ['ser', 'vec']")
 
 
     def simulate(self, r_file=None):
@@ -127,9 +189,12 @@ class DI_wave_simulation():
         stored in self.error
         """
         if not isinstance(r_file, np.ndarray):
-            self.mass_model.simulate()
-            if self.save_plots:
-                self.mass_model.plot(heat_map=True, plot_input=True)
+            if self.computation == 'ser':
+                self.mass_model.simulate()
+                if self.save_plots:
+                    self.mass_model.plot(heat_map=True, plot_input=True)
+            elif self.computation == 'vec':
+                self.mass_model.simulate_set()
 
             mass_model_rate = self.mass_model.r[0]
         else:
