@@ -2096,13 +2096,20 @@ class FPE_Population():
         """
         Simulation function that creates a combined matrix of all simulation settings up to a memory limit
         to simulate multiple simulations at once
-
+        idea sketch:
+        Ax = b
+        A = Diff operator
+        x = rho
+        b = ?
+        idx i: population, j: n_simulation (change?)
+        rho = (rho11, rho12, ... rhoNN-1, rhoNN)
+        rho_size (Nt x Nx x Nsim x Npop)
         """
 
         self.n_simulations = self.input_function.shape[0]
         self.t = np.arange(0, self.T, self.dt)
         self.v = np.arange(self.u_inh, self.u_thr + self.dv, self.dv)
-        # create multi index arrays here for this for now and later build larger arrays invlved in the solver
+        # create multi index arrays here for this for now and later build larger arrays involved in the solver
         self.input = np.zeros([self.n_populations, self.n_populations, self.n_simulations, self.t.shape[0]])
         self.i_ext = np.zeros([self.n_populations, self.n_simulations,  self.t.shape[0]])
         self.i_ext[self.input_function_idx] = self.input_function
@@ -2117,9 +2124,8 @@ class FPE_Population():
         v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
         self.v_reset_idx = v_reset_idx
         ref_delta_idxs = np.array([int(np.round(self.tau_ref[k] / self.dt)) for k in range(self.n_populations)])
-        max_ref_delta_indx = np.max(ref_delta_idxs)
-        rho = np.zeros((self.n_populations, len(self.v), len(self.t)))
-        r = np.zeros((self.n_populations, len(self.t)))  # output firing rate
+        rho = np.zeros((self.n_populations * self.n_simulations * len(self.v), len(self.t)))
+        r = np.zeros((self.n_populations * self.n_simulations, len(self.t)))  # output firing rate
 
         v_in = np.zeros((self.n_populations, self.n_populations, len(self.t)))  # ref_exc_delta_idx used to be here
 
@@ -2127,14 +2133,15 @@ class FPE_Population():
         exc_idxs = [i for i, type in enumerate(self.population_type) if type == 'exc']
         inh_idxs = [i for i, type in enumerate(self.population_type) if type == 'inh']
 
+        Nx = self.v.shape[0]
+        Nt = self.t.shape[0]
         ################################################################################################################
         # INITIAL CONDITIONS
         ################################################################################################################
 
         # transform to v = (0, 1) range if Hu- Solver is used which cannot handle negative u_rest values
-        # TODO: implement this for the number of n_sim as a vector
         if self.solver.lower() == 'hu-2021':
-            v_ = np.linspace(0, 1, self.v.shape[0])
+            v_ = np.linspace(0, 1, Nx)
             dv_ = np.diff(v_)[0]
 
             v_rest_idx_orig = np.where(self.v > self.u_rest)[0][0] - 1
@@ -2147,30 +2154,21 @@ class FPE_Population():
             v_range_new = 1.0
             v_scaling_factor = dv_ / self.dv
 
+            # initial dsitribution
             for i in range(len(self.population_type)):
-                # initial dsitribution
-                sigma0_new = self.init_pdf_sigma * (v_range_new / v_range_orig)
-                v0_idx_original = np.where(self.v > self.u_rest + self.init_pdf_offset)[0][0] - 1
-                v0_new = v_[v0_idx_original]
-                # Gaussian component
-                init_dist_1 = norm.pdf(v_, v0_new, sigma0_new)
-                init_dist_1 /= init_dist_1.sum()
-
-                # Uniform distributed component
-                init_dist_2 = np.ones_like(v_)
-                init_dist_2[np.where(v_ < u_rest_)] = 0
-                init_dist_2 /= init_dist_2.sum()
-                init_dist = init_dist_1 + (self.init_pdf_weight * init_dist_2)
-                init_dist /= init_dist.sum()
-                init_dist[0] = init_dist[-1] = 0
-
-                rho[i, :, 0] = init_dist
-                rho[i, 0, 0] = 0
-                rho[i, -1, 0] = 0
+                for j in range(self.n_simulations):
+                    sigma0_new = self.init_pdf_sigma[j] * (v_range_new / v_range_orig)
+                    v0_idx_original = np.where(self.v > self.u_rest + self.init_pdf_offset[j])[0][0] - 1
+                    v0_new = v_[v0_idx_original]
+                    # Gaussian distribution
+                    init_dist_1 = norm.pdf(v_, v0_new, sigma0_new)
+                    init_dist_1 /= init_dist_1.sum()
+                    init_dist_1[0] = init_dist_1[-1] = 0
+                    rho[i*Nx:(i+1)*Nx, 0] = init_dist_1
 
         c_count = 0
         c_v_warn_count = 0
-        added_noise = np.zeros(self.t.shape[0] - 1)
+        added_noise = np.zeros((self.n_simulations * self.t.shape[0] - 1))
 
         # Determine population dynamics (diffusion approximation)
         for i, t_ in enumerate(tqdm(self.t[:-1], f"simulating {self.population_type} neuron populations for"
@@ -2179,106 +2177,101 @@ class FPE_Population():
             if self.break_outer:
                 break
 
-            for j, type_j in enumerate(self.population_type):
+            drift_coeff = np.zeros(self.n_populations * self.n_simulations)
+            for j in range(self.n_simulations):
+                for k in range(self.n_populations):
+                    v_ext = self.i_ext[k, j, i] / self.g_leak[k] * 1e3  # conversion from V to mV
+                    drift_coeff[(j*self.n_populations) + k] = v_ext * v_scaling_factor  # conversion to the range of the solver
 
-                # as of now r_conv has only one dimension, same as r
-                # each entry is convoluted by its representing kernel
-                # TODO: adapt to Hu-Solver
+
+            # as of now r_conv has only one dimension, same as r
+            # each entry is convoluted by its representing kernel
+            # TODO: adapt to Hu-Solver
+            # if i > 0:
+            #     r_conv[j] = np.convolve(r[j, :(i + 1)], self.delay_kernel)[-len(self.delay_kernel)] * self.dt
+            # v_in[:, j, i] = self.connectivity_matrix[:, j] * r_conv + self.input[:, j, i]
+
+            # coefficients for finite difference matrices
+            # c1, c2 are over all v steps and i is a time step
+            # here the values are split between excitatory and inhibitory types
+
+            if self.solver.lower() == 'hu-2021':
+                ####################################################################################################
+                # Hu-solver 2021
+                ####################################################################################################
+
                 if i > 0:
-                    r_conv[j] = np.convolve(r[j, :(i + 1)], self.delay_kernel)[-len(self.delay_kernel)] * self.dt
-                v_in[:, j, i] = self.connectivity_matrix[:, j] * r_conv + self.input[:, j, i]
 
-                # coefficients for finite difference matrices
-                # c1, c2 are over all v steps and i is a time step
-                # here the values are split between excitatory and inhibitory types
-                if type_j == 'exc':
+                    main = np.zeros(self.n_simulations * Nx)
+                    lower = np.zeros(self.n_simulations * Nx - 1)
+                    upper = np.zeros(self.n_simulations * Nx - 1)
 
-                    if self.solver.lower() == 'hu-2021':
-                        ####################################################################################################
-                        # Hu-solver 2021
-                        ####################################################################################################
-                        if isinstance(self.c1eext_v, np.ndarray) and isinstance(self.c2eext_v, np.ndarray):
-                            if ((not np.allclose(self.c1eext_v, np.zeros_like(self.c1eext_v)) and
-                                 not np.allclose(self.c2eext_v, np.zeros_like(self.c2eext_v))) and
-                                    c_v_warn_count < 1):
-                                print(f'WARNING!: v-derivatives of coefficients are non-zero, but will be ignored!')
-                                c_v_warn_count += 1
+                    diffusion_coeff = self.sigma
 
-                        if i > 0:
-                            Nx = v_.shape[0]
-                            main = np.zeros(Nx)
-                            lower = np.zeros(Nx - 1)
-                            upper = np.zeros(Nx - 1)
+                    # ensure minimal diffusion coeff for numerical stability, in case of no drift input
+                    diffusion_coeff = np.array(max(diffusion_coeff, 1e-3))
 
-                            # conversion of coefficients from Nykamp to Hu-formulation
-                            drift_coeff_vec = self.c1eext * v_scaling_factor
-                            drift_coeff = drift_coeff_vec[0]
-                            diffusion_coeff = + self.c2eext[0]
+                    # discretization for Hu-2021
+                    c = diffusion_coeff * self.dt / dv_
+                    critval = 0.3 * (drift_coeff / 5)
+                    if c < critval:
+                        c = critval
+                        diffusion_coeff_original = diffusion_coeff.copy()
+                        diffusion_coeff = c * dv_ / self.dt
+                        sigma_orig = np.sqrt(diffusion_coeff_original * 2 * self.tau_mem[j])
+                        sigma_new = np.sqrt(diffusion_coeff * 2 * self.tau_mem[j])
+                        added_noise[i] = sigma_new
+                        if c_count < 1 & self.verbose > 0:
+                            c_count += 1
+                            print(
+                                f'increasing diffusion_coeff from to achieve numerical stability at noise val {sigma_orig:.5f}mV')
+                    # {diffusion_coeff_original} to {diffusion_coeff:.5f} (sigma_v from {sigma_orig:.5f} to {sigma_new:.5f})
+                    if i == self.t.shape[0] - 2 and c_count > 0:
+                        print(f'largest noise value encountered :{added_noise.max():.5f}mV')
+                    # Scharfetter-Gummel Flux
+                    Ms = self.SG_Flux(v_, drift_coeff, diffusion_coeff, x_rest=u_rest_)
 
-                            # ensure minimal diffusion coeff for numerical stability, in case of no drift input
-                            diffusion_coeff = np.array(max(diffusion_coeff, 1e-3))
+                    if len(np.where(Ms == np.inf)[0]) > 0:
+                        raise ValueError('Infinite flux detected!')
+                    if len(np.where(Ms == np.nan)[0]) > 0:
+                        raise ValueError('NaN values in flux detected!')
 
-                            # discretization for Hu-2021
-                            c = diffusion_coeff * self.dt / dv_
-                            critval = 0.3 * (drift_coeff / 5)
-                            if c < critval:
-                                c = critval
-                                diffusion_coeff_original = diffusion_coeff.copy()
-                                diffusion_coeff = c * dv_ / self.dt
-                                sigma_orig = np.sqrt(diffusion_coeff_original * 2 * self.tau_mem[j])
-                                sigma_new = np.sqrt(diffusion_coeff * 2 * self.tau_mem[j])
-                                added_noise[i] = sigma_new
-                                if c_count < 1 & self.verbose > 0:
-                                    c_count += 1
-                                    print(
-                                        f'increasing diffusion_coeff from to achieve numerical stability at noise val {sigma_orig:.5f}mV')
-                            # {diffusion_coeff_original} to {diffusion_coeff:.5f} (sigma_v from {sigma_orig:.5f} to {sigma_new:.5f})
-                            if i == self.t.shape[0] - 2 and c_count > 0:
-                                print(f'largest noise value encountered :{added_noise.max():.5f}mV')
-                            # Scharfetter-Gummel Flux
-                            Ms = self.SG_Flux(v_, drift_coeff, diffusion_coeff, x_rest=u_rest_)
+                    # Calculate harmonic means
+                    M_harm = np.zeros(Nx - 1)
+                    for k in range(Nx - 1):
+                        M_harm[k] = harm_mean(Ms[k], Ms[k + 1])
 
-                            if len(np.where(Ms == np.inf)[0]) > 0:
-                                raise ValueError('Infinite flux detected!')
-                            if len(np.where(Ms == np.nan)[0]) > 0:
-                                raise ValueError('NaN values in flux detected!')
+                    # compute matrix terms
+                    r1 = -c * M_harm[:-1] / Ms[:-2]
+                    r2 = 1 + c * (M_harm[1:] + M_harm[:-1]) / Ms[1:-1]
+                    r3 = -c * M_harm[1:] / Ms[2:]
 
-                            # Calculate harmonic means
-                            M_harm = np.zeros(Nx - 1)
-                            for k in range(Nx - 1):
-                                M_harm[k] = harm_mean(Ms[k], Ms[k + 1])
+                    main[1:-1] = r2
+                    lower[:-1] = r1
+                    upper[1:] = r3
 
-                            # compute matrix terms
-                            r1 = -c * M_harm[:-1] / Ms[:-2]
-                            r2 = 1 + c * (M_harm[1:] + M_harm[:-1]) / Ms[1:-1]
-                            r3 = -c * M_harm[1:] / Ms[2:]
+                    # Boundary Conditions
+                    main[0] = 1
+                    main[-1] = 1
+                    b = rho[j, :, i - 1]
+                    b[0] = b[-1] = 0.0
+                    A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx, Nx),
+                                           format='csr')
+                    # solve for rho
+                    rho[j, :, i] = scipy.sparse.linalg.spsolve(A, b)
 
-                            main[1:-1] = r2
-                            lower[:-1] = r1
-                            upper[1:] = r3
+                    # firing rate / outgoing flux / spike density
+                    r[j, i] = ((diffusion_coeff / dv_) * (rho[j, -2, i - 1]) +
+                               ((v_[self.thr_idx] - u_rest_) + drift_coeff) * rho[j, self.thr_idx, i - 1])
 
-                            # Boundary Conditions
-                            main[0] = 1
-                            main[-1] = 1
-                            b = rho[j, :, i - 1]
-                            b[0] = b[-1] = 0.0
-                            A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx, Nx),
-                                                   format='csr')
-                            # solve for rho
-                            rho[j, :, i] = scipy.sparse.linalg.spsolve(A, b)
-
-                            # firing rate / outgoing flux / spike density
-                            r[j, i] = ((diffusion_coeff / dv_) * (rho[j, -2, i - 1]) +
-                                       ((v_[self.thr_idx] - u_rest_) + drift_coeff) * rho[j, self.thr_idx, i - 1])
-
-                            J_out = r[j, i] * (
-                                        np.heaviside((v_ + dv_) - u_reset_, 1) - np.heaviside((v_ - dv_) - u_reset_,
-                                                                                              1))
-                            if J_out.max() != 0:
-                                J_out /= J_out.sum()
-                                J_out *= (1 - rho[j, :, i].sum())
-                            rho[j, :, i] += J_out
-                    rho[j, :, -1] = rho[j, :, -2]
+                    J_out = r[j, i] * (
+                                np.heaviside((v_ + dv_) - u_reset_, 1) - np.heaviside((v_ - dv_) - u_reset_,
+                                                                                      1))
+                    if J_out.max() != 0:
+                        J_out /= J_out.sum()
+                        J_out *= (1 - rho[j, :, i].sum())
+                    rho[j, :, i] += J_out
+                # rho[j, :, -1] = rho[j, :, -2]
 
     def get_delay_kernel(self):
         if self. delay_kernel_type == 'alpha':

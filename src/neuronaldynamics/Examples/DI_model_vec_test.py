@@ -90,7 +90,7 @@ parameters = {'intensity': intensitiy, 'fraction_nmda': fraction_nmda, 'fraction
               'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'mind_delay': 0,
               'delay_signal':True, 'delay': 0.9, 'error_mode': 'true',
               'file_args': measurement_dict_2020_120_PA_ch3, 'computation': 'vec',
-              'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
+              'nmm_parameters': {'connectivity_matrix': np.array([[0]]),
                                     'tau_ref': [0], #1.5
                                     'tau_mem': [12],
                                     'static_noise': True,

@@ -55,7 +55,7 @@ class DI_wave_simulation():
         self.g_eext_factor = 1
         self.c_eext1_factor = 1
         self.c_eext2_factor = 1
-        self.nykamp_parameters = {}
+        self.nmm_parameters = {}
         self.file_args = None
         self.delay_signal = False
         self.delay = 2
@@ -84,7 +84,7 @@ class DI_wave_simulation():
                         self.mass_model_connectivity_matrix = self.mass_model_connectivity_matrix[:, np.newaxis]
                 elif isinstance(self.mass_model_connectivity_matrix, (int, float)):
                     self.mass_model_connectivity_matrix = np.array([[self.mass_model_connectivity_matrix]])
-                self.nykamp_parameters['connectivity_matrix'] = self.mass_model_connectivity_matrix
+                self.nmm_parameters['connectivity_matrix'] = self.mass_model_connectivity_matrix
             bi_exp_kernel_parameters = {'tau_1': 0.2, 'tau_2': 1.7, 'tau_cond': 1, 'g_peak': 1e-4}
             init_nykamp_parameters = {'u_rest': -70, 'u_thr': -55, 'u_exc': 0, 'u_inh': -75, 'tau_mem': [12], 'tau_ref': [1.0],
                                       'delay_kernel_type': 'bi-exp', 'delay_kernel_parameters': bi_exp_kernel_parameters,
@@ -109,14 +109,14 @@ class DI_wave_simulation():
             elif self.fn_session == None:
                 warnings.warn('No session for gpc model supplied, no input current was computed!')#
                 self.input_current = np.zeros_like(self.t)
-            init_nykamp_parameters.update(self.nykamp_parameters)
+            init_nykamp_parameters.update(self.nmm_parameters)
             if self.paired_pulse:
                 pulse_2 = delay_signal(self.input_current, delay=self.pp_interval, dt=self.dt)
                 self.input_current += pulse_2# /2 # test second pulse being subthreshold
 
-            self.nykamp_parameters = init_nykamp_parameters
-            self.nykamp_parameters['input_function'] = self.input_current
-            self.mass_model = Nykamp_Model_1(parameters=self.nykamp_parameters)
+            self.nmm_parameters = init_nykamp_parameters
+            self.nmm_parameters['input_function'] = self.input_current
+            self.mass_model = Nykamp_Model_1(parameters=self.nmm_parameters)
 
         elif self.computation == 'vec':
             assert type(self.theta) == np.ndarray, 'please provide correct data type (np.ndarray)'
@@ -131,7 +131,6 @@ class DI_wave_simulation():
 
             self.n_simulations = self.theta.shape[0]
             self.gradient = np.repeat(self.gradient, self.n_simulations) # not accounted for as of now
-            self.nmm_parameters = {}
             if self.mass_model_connectivity_matrix != None:
                 assert type(self.mass_model_connectivity_matrix) == np.ndarray, 'please provide correct data type (np.ndarray)'
                 assert self.mass_model_connectivity_matrix.shape[1] == self.n_simulations
