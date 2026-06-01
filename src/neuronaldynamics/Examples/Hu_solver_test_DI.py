@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+
 import matplotlib
 from Model.DI_wave import DI_wave_simulation
 from Model.Nykamp_Model import Nykamp_Model_1
@@ -73,13 +74,13 @@ if plot_nykamp_basic:
     plt.show()
 
 if plot_di_model:
-    fn_session = '/home/erik/Downloads/gpc.pkl'
+    # fn_session = '/home/erik/Downloads/gpc.pkl'
     # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-    # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-    # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
     # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
     # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-    hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
+    # hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
 
     # fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
     # hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'

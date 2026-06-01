@@ -5,10 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[UPD] continuation of vectorized version of FPE_population computation">
-      <change beforePath="$PROJECT_DIR$/.idea/neuronaldynamics.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/neuronaldynamics.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Hu_solver_test_DI.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Hu_solver_test_DI.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -37,12 +36,12 @@
     &quot;assignee&quot;: &quot;erikjackmueller&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/erikjackmueller/neuronaldynamics&quot;,
-    &quot;accountId&quot;: &quot;d4374efd-f132-4bfd-b566-f64b6f8886c7&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/erikjackmueller/neuronaldynamics",
+    "accountId": "76a2d9f5-bd17-4684-ba1e-f9d42c340310"
   }
-}</component>
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 5
 }</component>
@@ -72,6 +71,10 @@
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "main",
     "last_opened_file_path": "/home/erik/PycharmProjects/neuronaldynamics/src/neuronaldynamics/Examples",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "settings.editor.selected.configurable": "org.jetbrains.plugins.gitlab.GitLabSettingsConfigurable"
   },
@@ -224,7 +227,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-024ed6589d45-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.23567.174" />
+        <option value="bundled-python-sdk-b63d5a1f7c97-b61e75351b1f-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.22158.340" />
       </set>
     </attachedChunks>
   </component>
@@ -361,18 +364,8 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2228</line>
-          <option name="timeStamp" value="51" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2516</line>
-          <option name="timeStamp" value="52" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2215</line>
-          <option name="timeStamp" value="53" />
+          <line>2238</line>
+          <option name="timeStamp" value="58" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

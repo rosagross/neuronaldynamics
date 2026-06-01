@@ -1866,6 +1866,7 @@ class FPE_Population():
         self.current_sigma = 0.1
         self.init_pdf_offset = 0
         self.init_pdf_sigma = 0.1
+        self.init_pdf_weight = 0
         self.static_noise = False
         self.verbose = 0
         self.labelsize=15
@@ -1946,7 +1947,6 @@ class FPE_Population():
         ################################################################################################################
 
         # transform to v = (0, 1) range if Hu- Solver is used which cannot handle negative u_rest values
-        # TODO: implement this for the number of n_sim as a vector
         if self.solver.lower() == 'hu-2021':
             v_ = np.linspace(0, 1,self.v.shape[0])
             dv_ = np.diff(v_)[0]
@@ -1962,7 +1962,7 @@ class FPE_Population():
             v_scaling_factor = dv_/self.dv
 
             for i in range(len(self.population_type)):
-            # initial dsitribution
+            # initial distribution
                 sigma0_new = self.init_pdf_sigma * (v_range_new / v_range_orig)
                 v0_idx_original = np.where(self.v > self.u_rest + self.init_pdf_offset)[0][0] - 1
                 v0_new = v_[v0_idx_original]
@@ -2114,7 +2114,7 @@ class FPE_Population():
         self.i_ext = np.zeros([self.n_populations, self.n_simulations,  self.t.shape[0]])
         self.i_ext[self.input_function_idx] = self.input_function
         if self.static_noise:
-            self.current_sigma = np.tile(self.current_sigma, (self.n_populations, self.t.shape[0]))
+            self.current_sigma = np.tile(self.current_sigma, (self.n_simulations * self.n_populations, self.t.shape[0]))
         else:
             self.current_sigma = self.current_sigma * self.i_ext
         self.r = None
@@ -2174,13 +2174,6 @@ class FPE_Population():
             if self.break_outer:
                 break
 
-            drift_coeff = np.zeros(self.n_populations * self.n_simulations)
-            for j in range(self.n_simulations):
-                for k in range(self.n_populations):
-                    v_ext = self.i_ext[k, j, i] / self.g_leak[k] * 1e3  # conversion from V to mV
-                    drift_coeff[(j*self.n_populations) + k] = v_ext * v_scaling_factor  # conversion to the range of the solver
-
-
             # as of now r_conv has only one dimension, same as r
             # each entry is convoluted by its representing kernel
             # TODO: adapt to Hu-Solver
@@ -2197,13 +2190,19 @@ class FPE_Population():
                 # Hu-solver 2021
                 ####################################################################################################
 
+                drift_coeff = np.zeros(self.n_populations * self.n_simulations)
+                for j in range(self.n_simulations):
+                    for k in range(self.n_populations):
+                        v_ext = self.i_ext[k, j, i] / self.g_leak[k] * 1e3  # conversion from V to mV
+                        drift_coeff[(j * self.n_populations) + k] = v_ext * v_scaling_factor  # conversion to the range of the solver
+
                 if i > 0:
 
                     main = np.zeros(self.n_simulations * Nx)
                     lower = np.zeros(self.n_simulations * Nx - 1)
                     upper = np.zeros(self.n_simulations * Nx - 1)
 
-                    diffusion_coeff = self.current_sigma[i]
+                    diffusion_coeff = self.current_sigma[:, i]
 
                     # ensure minimal diffusion coeff for numerical stability, in case of no drift input
                     diffusion_coeff[diffusion_coeff < 1e-3] = 1e-3
@@ -2226,7 +2225,10 @@ class FPE_Population():
                     if i == self.t.shape[0] - 2 and c_count > 0:
                         print(f'largest noise value encountered :{added_noise.max():.5f}mV')
                     # Scharfetter-Gummel Flux
-                    Ms = self.SG_Flux(v_, drift_coeff, diffusion_coeff, x_rest=u_rest_)
+                    v_SG = np.tile(v_, 2)
+                    diff_coeff_SG = np.tile(diffusion_coeff, Nx)
+                    drift_coeff_SG = np.tile(drift_coeff, Nx)
+                    Ms = self.SG_Flux(v_SG, drift_coeff_SG, diff_coeff_SG, x_rest=u_rest_)
 
                     if len(np.where(Ms == np.inf)[0]) > 0:
                         raise ValueError('Infinite flux detected!')
@@ -2234,22 +2236,31 @@ class FPE_Population():
                         raise ValueError('NaN values in flux detected!')
 
                     # Calculate harmonic means
-                    M_harm = np.zeros(Nx - 1)
-                    for k in range(Nx - 1):
+                    M_harm = np.zeros(self.n_simulations * Nx - 1)
+                    for k in range(self.n_simulations * Nx - 1):
                         M_harm[k] = harm_mean(Ms[k], Ms[k + 1])
 
                     # compute matrix terms
-                    r1 = -c * M_harm[:-1] / Ms[:-2]
-                    r2 = 1 + c * (M_harm[1:] + M_harm[:-1]) / Ms[1:-1]
-                    r3 = -c * M_harm[1:] / Ms[2:]
+                    c_matrix = np.repeat(c, Nx-1)
+                    r1 = -c_matrix * M_harm[:-1] / Ms[:-2]
+                    r2 = 1 + c_matrix * (M_harm[1:] + M_harm[:-1]) / Ms[1:-1]
+                    r3 = -c_matrix * M_harm[1:] / Ms[2:]
+
+                    diag_BC_mask = np.where(np.arange(Nx*self.n_simulations + 1) % Nx == 0)[0]  # mask to make off-diagonal values zero
+                    off_diag_zero_mask = diag_BC_mask[1:-1]
+                    diag_BC_mask = np.hstack((diag_BC_mask[:-1], diag_BC_mask - 1)) # watch out the -1 idx appears as actual value and also as -1 in this list!
 
                     main[1:-1] = r2
                     lower[:-1] = r1
                     upper[1:] = r3
+                    # implement zeros necessary for block matrix form
+                    lower[off_diag_zero_mask] = 0
+                    lower[off_diag_zero_mask-1] = 0
+                    upper[off_diag_zero_mask] = 0
+                    upper[off_diag_zero_mask+1] = 0
 
                     # Boundary Conditions
-                    main[0] = 1
-                    main[-1] = 1
+                    main[diag_BC_mask] = 1
                     b = rho[j, :, i - 1]
                     b[0] = b[-1] = 0.0
                     A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx, Nx),
