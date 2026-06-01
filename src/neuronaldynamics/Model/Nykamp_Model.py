@@ -902,7 +902,7 @@ class Nykamp_Model_1():
         # INITIAL CONDITIONS
         ################################################################################################################
         for i in range(len(self.population_type)):
-            # initial dsitribution
+            # initial distribution
             if self.solver.lower() == 'nykamp':
                 init_dist = scipy.stats.norm.pdf(self.v, self.u_rest + self.init_pdf_offset, self.init_pdf_sigma)
                 init_dist /= init_dist.sum()
@@ -927,8 +927,8 @@ class Nykamp_Model_1():
             hu_scaling_factor = dv_/self.dv
 
             for i in range(len(self.population_type)):
-            # initial dsitribution
-                sigma0_new = self.init_pdf_sigma * (v_range_new / v_range_orig)
+            # initial distribution
+                sigma0_new = self.init_pdf_sigma * hu_scaling_factor
                 v0_idx_original = np.where(self.v > self.u_rest + self.init_pdf_offset)[0][0] - 1
                 v0_new = v_[v0_idx_original]
                 # Gaussian component
@@ -1238,8 +1238,8 @@ class Nykamp_Model_1():
                                 c = critval
                                 diffusion_coeff_original = diffusion_coeff.copy()
                                 diffusion_coeff = c * dv_ / self.dt
-                                sigma_orig = np.sqrt(diffusion_coeff_original * 2 * self.tau_mem[j])
-                                sigma_new = np.sqrt(diffusion_coeff * 2 * self.tau_mem[j])
+                                sigma_orig = np.sqrt(diffusion_coeff_original/hu_scaling_factor * 2 * self.tau_mem[j])
+                                sigma_new = np.sqrt(diffusion_coeff/hu_scaling_factor * 2 * self.tau_mem[j])
                                 added_noise[i] = sigma_new
                                 if c_count < 1 & self.verbose > 0:
                                     c_count += 1
@@ -2039,8 +2039,8 @@ class FPE_Population():
                                 c = critval
                                 diffusion_coeff_original = diffusion_coeff.copy()
                                 diffusion_coeff = c * dv_ / self.dt
-                                sigma_orig = np.sqrt(diffusion_coeff_original * 2 * self.tau_mem[j])
-                                sigma_new = np.sqrt(diffusion_coeff * 2 * self.tau_mem[j])
+                                sigma_orig = np.sqrt(diffusion_coeff_original/v_scaling_factor * 2 * self.tau_mem[j])
+                                sigma_new = np.sqrt(diffusion_coeff/v_scaling_factor * 2 * self.tau_mem[j])
                                 added_noise[i] = sigma_new
                                 if c_count < 1 & self.verbose > 0:
                                     c_count += 1
@@ -2123,15 +2123,14 @@ class FPE_Population():
         # first init all arrays
         v_reset_idx = np.where(np.isclose(self.v, self.u_reset))[0][0]  # index of reset potential in array
         self.v_reset_idx = v_reset_idx
-        ref_delta_idxs = np.array([int(np.round(self.tau_ref[k] / self.dt)) for k in range(self.n_populations)])
         rho = np.zeros((self.n_populations * self.n_simulations * len(self.v), len(self.t)))
         r = np.zeros((self.n_populations * self.n_simulations, len(self.t)))  # output firing rate
 
-        v_in = np.zeros((self.n_populations, self.n_populations, len(self.t)))  # ref_exc_delta_idx used to be here
-
-        r_conv = np.zeros(self.n_populations)
-        exc_idxs = [i for i, type in enumerate(self.population_type) if type == 'exc']
-        inh_idxs = [i for i, type in enumerate(self.population_type) if type == 'inh']
+        # v_in = np.zeros((self.n_populations, self.n_populations, len(self.t)))  # ref_exc_delta_idx used to be here
+        #
+        # r_conv = np.zeros(self.n_populations)
+        # exc_idxs = [i for i, type in enumerate(self.population_type) if type == 'exc']
+        # inh_idxs = [i for i, type in enumerate(self.population_type) if type == 'inh']
 
         Nx = self.v.shape[0]
         Nt = self.t.shape[0]
@@ -2149,26 +2148,24 @@ class FPE_Population():
 
             v_reset_idx_orig = np.where(self.v > self.u_reset)[0][0] - 1
             u_reset_ = v_[v_reset_idx_orig]
-
-            v_range_orig = self.v.max() - self.v.min()
-            v_range_new = 1.0
             v_scaling_factor = dv_ / self.dv
 
             # initial dsitribution
-            for i in range(len(self.population_type)):
+            sigma0_new = np.repeat(self.init_pdf_sigma, self.n_populations) * v_scaling_factor
+            for i in range(self.n_populations):
                 for j in range(self.n_simulations):
-                    sigma0_new = self.init_pdf_sigma[j] * (v_range_new / v_range_orig)
+
+                    # for now init_pdf only varies with each simulation not with the popuation
                     v0_idx_original = np.where(self.v > self.u_rest + self.init_pdf_offset[j])[0][0] - 1
                     v0_new = v_[v0_idx_original]
                     # Gaussian distribution
-                    init_dist_1 = norm.pdf(v_, v0_new, sigma0_new)
+                    init_dist_1 = norm.pdf(v_, v0_new, sigma0_new[j])
                     init_dist_1 /= init_dist_1.sum()
                     init_dist_1[0] = init_dist_1[-1] = 0
-                    rho[i*Nx:(i+1)*Nx, 0] = init_dist_1
+                    rho[((i*self.n_populations) + j)*Nx:((i*self.n_populations) + (j+1))*Nx, 0] = init_dist_1
 
         c_count = 0
-        c_v_warn_count = 0
-        added_noise = np.zeros((self.n_simulations * self.t.shape[0] - 1))
+        added_noise = np.zeros((Nt - 1, self.n_simulations))
 
         # Determine population dynamics (diffusion approximation)
         for i, t_ in enumerate(tqdm(self.t[:-1], f"simulating {self.population_type} neuron populations for"
@@ -2206,26 +2203,26 @@ class FPE_Population():
                     lower = np.zeros(self.n_simulations * Nx - 1)
                     upper = np.zeros(self.n_simulations * Nx - 1)
 
-                    diffusion_coeff = self.sigma
+                    diffusion_coeff = self.current_sigma[i]
 
                     # ensure minimal diffusion coeff for numerical stability, in case of no drift input
-                    diffusion_coeff = np.array(max(diffusion_coeff, 1e-3))
-
+                    diffusion_coeff[diffusion_coeff < 1e-3] = 1e-3
                     # discretization for Hu-2021
                     c = diffusion_coeff * self.dt / dv_
                     critval = 0.3 * (drift_coeff / 5)
-                    if c < critval:
-                        c = critval
-                        diffusion_coeff_original = diffusion_coeff.copy()
-                        diffusion_coeff = c * dv_ / self.dt
-                        sigma_orig = np.sqrt(diffusion_coeff_original * 2 * self.tau_mem[j])
-                        sigma_new = np.sqrt(diffusion_coeff * 2 * self.tau_mem[j])
-                        added_noise[i] = sigma_new
-                        if c_count < 1 & self.verbose > 0:
-                            c_count += 1
-                            print(
-                                f'increasing diffusion_coeff from to achieve numerical stability at noise val {sigma_orig:.5f}mV')
-                    # {diffusion_coeff_original} to {diffusion_coeff:.5f} (sigma_v from {sigma_orig:.5f} to {sigma_new:.5f})
+                    critval_mask = c < critval
+
+                    diffusion_coeff_original = diffusion_coeff.copy()
+                    diffusion_coeff[critval_mask] = critval[critval_mask] * dv_ / self.dt
+                    # TODO: change to vector self.tau_mem at some point
+                    sigma_orig = np.sqrt(diffusion_coeff_original * 2 * self.tau_mem)
+                    sigma_new = np.sqrt(diffusion_coeff * 2 * self.tau_mem)
+                    added_noise[i] = sigma_new
+                    if c_count < 1 & len(critval_mask) > 0 & self.verbose > 0:
+                        c_count += 1
+                        print(
+                            f'increasing diffusion_coeff from to achieve numerical stability at noise val {sigma_orig:.5f}mV')
+                # {diffusion_coeff_original} to {diffusion_coeff:.5f} (sigma_v from {sigma_orig:.5f} to {sigma_new:.5f})
                     if i == self.t.shape[0] - 2 and c_count > 0:
                         print(f'largest noise value encountered :{added_noise.max():.5f}mV')
                     # Scharfetter-Gummel Flux

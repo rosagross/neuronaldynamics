@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[UPD] started work on slimmer FPE_Population model">
-      <change afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" afterDir="false" />
+    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[UPD] continuation of vectorized version of FPE_population computation">
+      <change beforePath="$PROJECT_DIR$/.idea/neuronaldynamics.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/neuronaldynamics.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Hu_solver_test_DI.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Hu_solver_test_DI.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" afterDir="false" />
     </list>
@@ -57,7 +58,7 @@
     "Python.DI_model_vec_test.executor": "Debug",
     "Python.DI_wave_optimizer_GA_hp.executor": "Run",
     "Python.DI_wave_optimizer_paper_hp.executor": "Run",
-    "Python.Hu_solver_test_DI (1).executor": "Debug",
+    "Python.Hu_solver_test_DI (1).executor": "Run",
     "Python.Hu_solver_test_DI.executor": "Run",
     "Python.I_wave_peak_differences.executor": "Run",
     "Python.Time_series_opt_test.executor": "Run",
@@ -283,7 +284,23 @@
       <option name="project" value="LOCAL" />
       <updated>1779984134914</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="[UPD] started work on a simulate_set function and associated function with it in FPE_Population">
+      <option name="closed" value="true" />
+      <created>1780061819607</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1780061819607</updated>
+    </task>
+    <task id="LOCAL-00008" summary="[UPD] continuation of vectorized version of FPE_population computation">
+      <option name="closed" value="true" />
+      <created>1780150803205</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1780150803205</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -295,7 +312,9 @@
     <MESSAGE value="[FIX] git merge" />
     <MESSAGE value="[UPD] new paths for running on MPI servers" />
     <MESSAGE value="[UPD] started work on slimmer FPE_Population model" />
-    <option name="LAST_COMMIT_MESSAGE" value="[UPD] started work on slimmer FPE_Population model" />
+    <MESSAGE value="[UPD] started work on a simulate_set function and associated function with it in FPE_Population" />
+    <MESSAGE value="[UPD] continuation of vectorized version of FPE_population computation" />
+    <option name="LAST_COMMIT_MESSAGE" value="[UPD] continuation of vectorized version of FPE_population computation" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -317,18 +336,43 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py</url>
-          <line>649</line>
+          <line>654</line>
           <option name="timeStamp" value="12" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2109</line>
-          <option name="timeStamp" value="26" />
+          <line>2042</line>
+          <option name="timeStamp" value="37" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2108</line>
-          <option name="timeStamp" value="28" />
+          <line>1250</line>
+          <option name="timeStamp" value="38" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
+          <line>951</line>
+          <option name="timeStamp" value="43" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py</url>
+          <line>124</line>
+          <option name="timeStamp" value="44" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
+          <line>2228</line>
+          <option name="timeStamp" value="51" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
+          <line>2516</line>
+          <option name="timeStamp" value="52" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
+          <line>2215</line>
+          <option name="timeStamp" value="53" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

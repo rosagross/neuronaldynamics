@@ -73,16 +73,16 @@ if plot_nykamp_basic:
     plt.show()
 
 if plot_di_model:
-    # fn_session = '/home/erik/Downloads/gpc.pkl'
+    fn_session = '/home/erik/Downloads/gpc.pkl'
     # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
     # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
     # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
     # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
     # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-    # hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
+    hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
 
-    fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
-    hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
+    # fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
+    # hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
 
     simulation_name = '26_04_16_test'
 
@@ -148,7 +148,7 @@ if plot_di_model:
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'mind_delay': 0,
                   'theta': 0, 'delay_signal':True, 'delay': 0.9, 'error_mode': 'true',
                   'file_args': measurement_dict_2020_120_PA_ch3,
-                  'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
+                  'nmm_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
                                         'input_type': 'stochastic-current',

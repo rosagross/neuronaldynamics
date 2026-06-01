@@ -71,6 +71,11 @@ class DI_wave_simulation():
             self.parameters = parameters
         else:
             raise ValueError('Please specify paramters or logname to init class!')
+        if 'nykamp_parameters' in self.parameters:
+            warnings.warn('nykamp_parameters is deprecated, it will be renamed into nmm_parameters inside'
+                          ' DI_wave_simulation class!')
+            self.parameters['nmm_parameters'] = self.parameters['nykamp_parameters'].copy()
+
 
         self.__dict__.update(self.parameters)
 
@@ -92,7 +97,8 @@ class DI_wave_simulation():
                                       'dt': self.dt, 'T': self.T, 'sparse_mat': True, 'g_eext_factor': self.g_eext_factor,
                                       'c_eext1_factor': self.c_eext1_factor, 'c_eext2_factor': self.c_eext2_factor,
                                       'init_pdf_offset': self.pdf_offset, 'init_pdf_sigma': self.pdf_sigma,
-                                      'init_pdf_weight': self.pdf_weight, 'current_sigma': self.current_sigma}
+                                      'init_pdf_weight': self.pdf_weight, 'current_sigma': self.current_sigma,
+                                      'solver': 'hu-2021'}
 
             self.create_coords()
             self.update_gpc_time()
