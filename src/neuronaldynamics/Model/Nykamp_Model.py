@@ -2268,7 +2268,7 @@ class FPE_Population():
                     A_shape = self.n_simulations * self.n_populations * Nx
                     A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(A_shape, A_shape),
                                            format='csr')
-                    A_dense = A.todense()
+                    # A.tocsr() # fi converted from coo
                     # solve for rho
                     rho[:, i] = scipy.sparse.linalg.spsolve(A, b)
 
@@ -2559,3 +2559,5 @@ class FPE_Population():
     def clean(self):
         if self.simulation_done:
             os.remove(self.name + '.hdf5')
+
+

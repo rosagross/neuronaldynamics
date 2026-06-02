@@ -18,16 +18,18 @@ T = 14
 t = np.arange(0, T, dt)
 Nt = t.shape[0]
 
-# fn_session = '/home/erik/Downloads/gpc.pkl'
+fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+
 # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-# fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-# hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
 # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+
+# fn_session = '/home/erik/Downloads/gpc.pkl'
 # hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
 
-fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
-hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
+# fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
+# hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
 
 simulation_name = 'vector_test_diw_sim'
 
@@ -126,3 +128,12 @@ di_model.labelsize=17
 di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'], set_idx=0)
 di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'], set_idx=-1)
 di_model.mass_model.clean()
+
+# timing
+# import time
+#
+# start = time.perf_counter()
+#
+# result = expensive_function()
+#
+# print(f"{time.perf_counter() - start:.6f} s")
