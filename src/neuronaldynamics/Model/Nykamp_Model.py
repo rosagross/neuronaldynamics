@@ -1860,6 +1860,7 @@ class FPE_Population():
         self.multiple_inputs = False
         self.population_type = ['exc']
         self.synapse_pdf_type = 'gamma'
+        self.thr_idx = -1
         self.verbose = 0
         self.solver = 'hu-2021'
         self.implemented_pdf_types = ['gamma', 'normal', 'log-normal']
@@ -1868,6 +1869,7 @@ class FPE_Population():
         self.init_pdf_sigma = 0.1
         self.init_pdf_weight = 0
         self.static_noise = False
+        self.n_simulations = 1
         self.verbose = 0
         self.labelsize=15
 
@@ -2194,15 +2196,15 @@ class FPE_Population():
                 for j in range(self.n_simulations):
                     for k in range(self.n_populations):
                         v_ext = self.i_ext[k, j, i] / self.g_leak[k] * 1e3  # conversion from V to mV
-                        drift_coeff[(j * self.n_populations) + k] = v_ext * v_scaling_factor  # conversion to the range of the solver
+                        drift_coeff[(j * self.n_populations) + k] = v_ext * v_scaling_factor / self.tau_mem  # conversion to the range of the solver
 
                 if i > 0:
 
                     main = np.zeros(self.n_simulations * Nx)
                     lower = np.zeros(self.n_simulations * Nx - 1)
                     upper = np.zeros(self.n_simulations * Nx - 1)
-
-                    diffusion_coeff = self.current_sigma[:, i]
+                    # TODO: change to vector self.tau_mem at some point
+                    diffusion_coeff = self.current_sigma[:, i]**2 / self.tau_mem
 
                     # ensure minimal diffusion coeff for numerical stability, in case of no drift input
                     diffusion_coeff[diffusion_coeff < 1e-3] = 1e-3
@@ -2213,7 +2215,6 @@ class FPE_Population():
 
                     diffusion_coeff_original = diffusion_coeff.copy()
                     diffusion_coeff[critval_mask] = critval[critval_mask] * dv_ / self.dt
-                    # TODO: change to vector self.tau_mem at some point
                     sigma_orig = np.sqrt(diffusion_coeff_original * 2 * self.tau_mem)
                     sigma_new = np.sqrt(diffusion_coeff * 2 * self.tau_mem)
                     added_noise[i] = sigma_new
@@ -2246,40 +2247,53 @@ class FPE_Population():
                     r2 = 1 + c_matrix * (M_harm[1:] + M_harm[:-1]) / Ms[1:-1]
                     r3 = -c_matrix * M_harm[1:] / Ms[2:]
 
-                    diag_BC_mask = np.where(np.arange(Nx*self.n_simulations + 1) % Nx == 0)[0]  # mask to make off-diagonal values zero
-                    off_diag_zero_mask = diag_BC_mask[1:-1]
-                    diag_BC_mask = np.hstack((diag_BC_mask[:-1], diag_BC_mask - 1)) # watch out the -1 idx appears as actual value and also as -1 in this list!
+                    Nx_mask = np.where(np.arange(Nx*self.n_simulations + 1) % Nx == 0)[0]  # mask to make off-diagonal values zero
+                    off_diag_zero_mask = Nx_mask[1:-1] - 1
+                    diag_BC_mask = np.hstack((Nx_mask[:-1], Nx_mask - 1)) # watch out the -1 idx appears as actual value and also as -1 in this list!
 
                     main[1:-1] = r2
                     lower[:-1] = r1
                     upper[1:] = r3
                     # implement zeros necessary for block matrix form
                     lower[off_diag_zero_mask] = 0
-                    lower[off_diag_zero_mask-1] = 0
                     upper[off_diag_zero_mask] = 0
-                    upper[off_diag_zero_mask+1] = 0
 
+                    # check boundaries!
                     # Boundary Conditions
                     main[diag_BC_mask] = 1
-                    b = rho[j, :, i - 1]
-                    b[0] = b[-1] = 0.0
-                    A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(Nx, Nx),
+                    lower[off_diag_zero_mask + 1] = 0
+                    upper[off_diag_zero_mask - 1] = 0
+                    b = rho[:, i - 1]
+                    b[diag_BC_mask] = 0.0
+                    A_shape = self.n_simulations * self.n_populations * Nx
+                    A = scipy.sparse.diags(diagonals=[main, lower, upper], offsets=[0, -1, 1], shape=(A_shape, A_shape),
                                            format='csr')
+                    A_dense = A.todense()
                     # solve for rho
-                    rho[j, :, i] = scipy.sparse.linalg.spsolve(A, b)
+                    rho[:, i] = scipy.sparse.linalg.spsolve(A, b)
 
+                    r_mask = Nx_mask[1:] - 2 #idxs for rho[-2, i-1] previously
+                    thr_mask = Nx_mask[1:] + self.thr_idx
                     # firing rate / outgoing flux / spike density
-                    r[j, i] = ((diffusion_coeff / dv_) * (rho[j, -2, i - 1]) +
-                               ((v_[self.thr_idx] - u_rest_) + drift_coeff) * rho[j, self.thr_idx, i - 1])
+                    r[:, i] = ((diffusion_coeff / dv_) * (rho[r_mask, i - 1]) +
+                               (np.repeat((v_[self.thr_idx] - u_rest_), self.n_populations * self.n_simulations) +
+                                drift_coeff) * rho[thr_mask, i - 1])
 
-                    J_out = r[j, i] * (
-                                np.heaviside((v_ + dv_) - u_reset_, 1) - np.heaviside((v_ - dv_) - u_reset_,
-                                                                                      1))
+                    J_out = r[:, i] * np.tile(
+                        (np.heaviside((v_ + dv_) - u_reset_, 1) - np.heaviside((v_ - dv_) - u_reset_, 1)),
+                        (self.n_populations * self.n_simulations, 1)).T
+                    J_out_vec = 0
                     if J_out.max() != 0:
-                        J_out /= J_out.sum()
-                        J_out *= (1 - rho[j, :, i].sum())
-                    rho[j, :, i] += J_out
+                        J_out /= J_out.sum(axis=0)
+                        split_rho = rho[:, i-1].reshape(-1, self.n_populations * self.n_simulations)
+                        missing_prob_density = 1 - split_rho.sum(axis=0)
+                        J_out *= missing_prob_density
+                        J_out_vec = J_out.T.reshape(-1)
+
+                    rho[:, i] += J_out_vec
                 # rho[j, :, -1] = rho[j, :, -2]
+        self.r = r
+        self.save_sim_results(r=r, rho=rho, rho_plot=rho)
 
     def get_delay_kernel(self):
         if self. delay_kernel_type == 'alpha':
@@ -2323,10 +2337,7 @@ class FPE_Population():
             h5file.create_dataset('t', data=self.t)
             h5file.create_dataset('v', data=self.v)
             h5file.create_dataset('r', data=r)
-            if self.input_type in ['current', 'current-2', 'stochastic-current']:
-                h5file.create_dataset('in', data=self.i_ext)
-            else:
-                h5file.create_dataset('in', data=self.input)
+            h5file.create_dataset('in', data=self.i_ext)
             h5file.create_dataset('rho', data=rho)
             h5file.create_dataset('rho_plot', data=rho_plot)
             h5file.create_dataset('p_types', data=self.population_type)
@@ -2355,151 +2366,168 @@ class FPE_Population():
             with h5py.File(fname + '.hdf5', 'r') as h5file:
                 i_in = np.array(h5file['in'])
 
-        if plot_idxs is None:
-            n_plots = len(p_types)
-            plot_idxs = np.arange(n_plots)
-        else:
-            n_plots = len(plot_idxs)
+        rho_plot_full = rho_plot.copy()
+        rho_full = rho.copy()
+        r_plot_full = r_plot.copy()
+        i_in_full = i_in.copy()
+        for j in range(self.n_simulations):
+            # TODO: adjust for n_populations at some point
 
-        if plot_combined:
-            fig = plt.figure(figsize=(10, 4.25*n_plots))
-            for i_plot, plot_idx in enumerate(plot_idxs):
-                plot_loc_1 = int(2*i_plot + 1)
-                plot_loc_2 = int(2 * i_plot + 2)
-                if heat_map:
-                    ax = fig.add_subplot(n_plots, 2, plot_loc_1)
-                    X, Y = np.meshgrid(t_plot, v)
-                    if z_limit is None:
-                        z_limit = np.abs(rho_plot[plot_idx]).max()
-                    z_min, z_max = 0, z_limit
-                    c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='gnuplot2', vmin=z_min, vmax=z_max)
-                    fig.colorbar(c, ax=ax)
+            if self.n_simulations > 1:
+                rho_plot = np.array([rho_plot_full.reshape(self.n_simulations, -1, t_plot.shape[0])[j]])
+                rho = np.array([rho_full.reshape(self.n_simulations, -1, t_plot.shape[0])[j]])
+                r_plot = np.array([r_plot_full[j]])
+                i_in = np.array([i_in_full.reshape(self.n_simulations, -1)[j]])
 
-                else:
-                    ax = fig.add_subplot(n_plots, 2, plot_loc_1, projection='3d')
-                    X, Y = np.meshgrid(t_plot, v)
-                    ax.plot_surface(X, Y, rho_plot[plot_idx],
-                                    cmap="gnuplot2", linewidth=0, antialiased=False, rcount=100, ccount=100)
-                    ax.set_zlim3d(0, 1)
-
-                ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})", fontsize=self.labelsize)
-                ax.set_xlabel("t (ms)", fontsize=self.labelsize)
-                ax.set_ylabel("Membrane potential (mV)", fontsize=self.labelsize)
-                ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
-
-                ax = fig.add_subplot(n_plots, 2, plot_loc_2)
-                ax.plot(t_plot, r_plot[plot_idx] * 1000)
-                ax.set_title(f"Population activity ({str(p_types[plot_idx])})", fontsize=self.labelsize)
-                ax.set_ylabel("Spike density (1/s)", fontsize=self.labelsize)
-                ax.set_xlabel("t (ms)", fontsize=self.labelsize)
-                ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
-                if crop_rate:
-                    ax.set_ylim(0, np.max(1.2*r_plot[plot_idx, 50:] * 1000))
-                if plot_input:
-                    rate_height = np.max(r_plot[plot_idx, 50:] * 1000)
-                    i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
-                    ax.plot(t_plot, i_in_plot)
-                    ax.legend(['d', 'I'])
-
-                ax.grid()
-            plt.tight_layout()
-            if savefig:
-                plt.savefig(self.name + '_plot.png')
-                plt.close()
+            if plot_idxs is None:
+                n_plots = len(p_types)
+                plot_idxs = np.arange(n_plots)
             else:
-                plt.show()
+                n_plots = len(plot_idxs)
 
-        else:
-            for i_plot, plot_idx in enumerate(plot_idxs):
-                fig_1 = plt.figure(figsize=(6, 4.25))
+            if plot_combined:
+                fig = plt.figure(figsize=(10, 4.25*n_plots))
+                for i_plot, plot_idx in enumerate(plot_idxs):
+                    plot_loc_1 = int(2*i_plot + 1)
+                    plot_loc_2 = int(2 * i_plot + 2)
+                    if heat_map:
+                        ax = fig.add_subplot(n_plots, 2, plot_loc_1)
+                        X, Y = np.meshgrid(t_plot, v)
+                        if z_limit is None:
+                            z_limit = np.abs(rho_plot[plot_idx]).max()
+                        z_min, z_max = 0, z_limit
+                        c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='gnuplot2', vmin=z_min, vmax=z_max)
+                        fig.colorbar(c, ax=ax)
 
-                if heat_map:
-                    ax = fig_1.add_subplot(n_plots, 1, 1)
-                    X, Y = np.meshgrid(t_plot, v)
-                    if z_limit is None:
-                        z_limit = np.abs(rho_plot[plot_idx]).max()
-                    z_min, z_max = 0, z_limit
-                    c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='gnuplot2', vmin=z_min, vmax=z_max)
-                    fig_1.colorbar(c, ax=ax)
+                    else:
+                        ax = fig.add_subplot(n_plots, 2, plot_loc_1, projection='3d')
+                        X, Y = np.meshgrid(t_plot, v)
+                        ax.plot_surface(X, Y, rho_plot[plot_idx],
+                                        cmap="gnuplot2", linewidth=0, antialiased=False, rcount=100, ccount=100)
+                        ax.set_zlim3d(0, 1)
 
-                else:
-                    ax = fig_1.add_subplot(n_plots, 1, 1, projection='3d')
-                    X, Y = np.meshgrid(t_plot, v)
-                    ax.plot_surface(X, Y, rho_plot[plot_idx],
-                                    cmap="jet", linewidth=0, antialiased=False, rcount=100, ccount=100)
-                    ax.set_zlim3d(0, 1)
+                    ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})", fontsize=self.labelsize)
+                    ax.set_xlabel("t (ms)", fontsize=self.labelsize)
+                    ax.set_ylabel("Membrane potential (mV)", fontsize=self.labelsize)
+                    ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
 
-                ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})")
-                ax.set_xlabel("t (ms)", fontsize=self.labelsize)
-                ax.set_ylabel("Membrane potential (mV)", fontsize=self.labelsize)
-                ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
+                    ax = fig.add_subplot(n_plots, 2, plot_loc_2)
+                    ax.plot(t_plot, r_plot[plot_idx] * 1000)
+                    ax.set_title(f"Population activity ({str(p_types[plot_idx])})", fontsize=self.labelsize)
+                    ax.set_ylabel("Spike density (1/s)", fontsize=self.labelsize)
+                    ax.set_xlabel("t (ms)", fontsize=self.labelsize)
+                    ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
+                    if crop_rate:
+                        ax.set_ylim(0, np.max(1.2*r_plot[plot_idx, 50:] * 1000))
+                    if plot_input:
+                        rate_height = np.max(r_plot[plot_idx, 50:] * 1000)
+                        i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
+                        ax.plot(t_plot, i_in_plot)
+                        ax.legend(['d', 'I'])
+
+                    ax.grid()
                 plt.tight_layout()
                 if savefig:
-                    plt.savefig(self.name + 'voltage_dist_plot.png')
+                    if self.n_simulations > 1:
+                        plot_name = self.name + f'_sim_{j}'
+                    else:
+                        plot_name = self.name
+                    plt.savefig(plot_name + '_plot.png')
                     plt.close()
                 else:
                     plt.show()
-                fig_2 = plt.figure(figsize=(6, 4.25))
-                ax = fig_2.add_subplot(n_plots, 1, 1)
-                ax.plot(t_plot, r_plot[plot_idx] * 1000, color='darkorange', linewidth=2)
-                ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
-                ax.set_ylabel("Spike density (1/s)", fontsize=self.labelsize)
-                ax.set_xlabel("t (ms)", fontsize=self.labelsize)
-                if plot_input:
-                    ax_input = ax.twinx()
 
-                    # rate_height = np.max(r_plot[plot_idx] * 1000)
-                    # i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
-                    ax_input.plot(t_plot, i_in[plot_idx].flatten()/1e3*1e9, color='teal', linewidth=2)
-                    ax_input.set_ylabel("Current (nA)", fontsize=self.labelsize)
-                    ax_input.set_ylim(0, i_in[plot_idx].flatten().max()/1e3*1e9*1.2)
-                    ax_input.tick_params(axis='both', which='major', labelsize=self.labelsize)
-                    ax.plot(t_plot, -5*np.ones_like(r_plot[plot_idx]), color='teal')
-                    ax.legend(['Spike density', 'Current'])
-                ax.set_ylim(0, r_plot[plot_idx].max()*1e3*1.2)
-                ax.set_xlim(0, t_plot.max())
-                ax.spines['top'].set_visible(False)
-                ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
-
-
-                # ax.grid()
-                plt.tight_layout()
-                if savefig:
-                    plt.savefig(self.name + 'rate_plot.png')
-                    plt.close()
-                else:
-                    plt.show()
-        if animate:
-            print('plotting animation of rho(v, t)')
-            if isinstance(rho, np.ndarray):
-                rho_animation = rho
             else:
-                rho_animation = rho_plot
-            fig = plt.figure(figsize=(10, 4.25*n_plots))
-            for i_plot, plot_idx in enumerate(plot_idxs):
-                ax = fig.add_subplot(n_plots, 1, i_plot+1)
-                line = ax.plot(v, rho_animation[plot_idx, :, 0])[0]
-                # plt.fill_between(x=v, y1=rho_animation[plot_idx, :, 0], color="b", alpha=0.2)
-                bbox = dict(boxstyle='round', fc='blanchedalmond', ec='orange', alpha=0.5)
-                text = ax.text(0.95, 0.9, f't = {t_plot[0]:.2f}ms', fontsize=9, bbox=bbox,
-                        transform=ax.transAxes, horizontalalignment='right')
-                ax.set(xlim=[v.min(), v.max()], ylim=[0, rho_animation.mean()*3], xlabel='v (mV)', ylabel='rho')  # rho_animation.max()*0.5
-                def update(frame):
-                    # for each frame, update the data stored on each artist.
-                    rho_frame = rho_animation[plot_idx, :, frame]
+                for i_plot, plot_idx in enumerate(plot_idxs):
+                    fig_1 = plt.figure(figsize=(6, 4.25))
 
-                    # update the line plot:
-                    # line.set_xdata(v[:frame])
-                    line.set_ydata(rho_frame)
-                    text.set_text(f't = {t_plot[frame]:.2f}ms')
-                    # plt.fill_between(x=v, y1=rho_frame, color="b", alpha=0.2)
-                    return (line, text)
+                    if heat_map:
+                        ax = fig_1.add_subplot(n_plots, 1, 1)
+                        X, Y = np.meshgrid(t_plot, v)
+                        if z_limit is None:
+                            z_limit = np.abs(rho_plot[plot_idx]).max()
+                        z_min, z_max = 0, z_limit
+                        c = ax.pcolormesh(X, Y, rho_plot[plot_idx], cmap='gnuplot2', vmin=z_min, vmax=z_max)
+                        fig_1.colorbar(c, ax=ax)
 
-                ani = animation.FuncAnimation(fig=fig, func=update, frames=rho_animation.shape[2], interval=22)
-                # plt.show()
-                ani.save(filename=self.name + '_rho_animation.gif', writer="pillow")
-                print(f'saved animation of rho to {self.name}_rho_animation.gif')
-                plt.close()
+                    else:
+                        ax = fig_1.add_subplot(n_plots, 1, 1, projection='3d')
+                        X, Y = np.meshgrid(t_plot, v)
+                        ax.plot_surface(X, Y, rho_plot[plot_idx],
+                                        cmap="jet", linewidth=0, antialiased=False, rcount=100, ccount=100)
+                        ax.set_zlim3d(0, 1)
+
+                    ax.set_title(f"Membrane potential distribution ({str(p_types[plot_idx])})")
+                    ax.set_xlabel("t (ms)", fontsize=self.labelsize)
+                    ax.set_ylabel("Membrane potential (mV)", fontsize=self.labelsize)
+                    ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
+                    plt.tight_layout()
+                    if savefig:
+                        plt.savefig(self.name + 'voltage_dist_plot.png')
+                        plt.close()
+                    else:
+                        plt.show()
+                    fig_2 = plt.figure(figsize=(6, 4.25))
+                    ax = fig_2.add_subplot(n_plots, 1, 1)
+                    ax.plot(t_plot, r_plot[plot_idx] * 1000, color='darkorange', linewidth=2)
+                    ax.set_title(f"Population activity ({str(p_types[plot_idx])})")
+                    ax.set_ylabel("Spike density (1/s)", fontsize=self.labelsize)
+                    ax.set_xlabel("t (ms)", fontsize=self.labelsize)
+                    if plot_input:
+                        ax_input = ax.twinx()
+
+                        # rate_height = np.max(r_plot[plot_idx] * 1000)
+                        # i_in_plot = i_in[plot_idx].flatten() / np.max(i_in[plot_idx].flatten()) * rate_height  # renormalize for plot with rate
+                        ax_input.plot(t_plot, i_in[plot_idx].flatten()/1e3*1e9, color='teal', linewidth=2)
+                        ax_input.set_ylabel("Current (nA)", fontsize=self.labelsize)
+                        ax_input.set_ylim(0, i_in[plot_idx].flatten().max()/1e3*1e9*1.2)
+                        ax_input.tick_params(axis='both', which='major', labelsize=self.labelsize)
+                        ax.plot(t_plot, -5*np.ones_like(r_plot[plot_idx]), color='teal')
+                        ax.legend(['Spike density', 'Current'])
+                    ax.set_ylim(0, r_plot[plot_idx].max()*1e3*1.2)
+                    ax.set_xlim(0, t_plot.max())
+                    ax.spines['top'].set_visible(False)
+                    ax.tick_params(axis='both', which='major', labelsize=self.labelsize)
+
+
+                    # ax.grid()
+                    plt.tight_layout()
+                    if savefig:
+                        plt.savefig(self.name + 'rate_plot.png')
+                        plt.close()
+                    else:
+                        plt.show()
+            if animate:
+                print('plotting animation of rho(v, t)')
+                if isinstance(rho, np.ndarray):
+                    rho_animation = rho
+                else:
+                    rho_animation = rho_plot
+                fig = plt.figure(figsize=(10, 4.25*n_plots))
+                for i_plot, plot_idx in enumerate(plot_idxs):
+                    ax = fig.add_subplot(n_plots, 1, i_plot+1)
+                    line = ax.plot(v, rho_animation[plot_idx, :, 0])[0]
+                    # plt.fill_between(x=v, y1=rho_animation[plot_idx, :, 0], color="b", alpha=0.2)
+                    bbox = dict(boxstyle='round', fc='blanchedalmond', ec='orange', alpha=0.5)
+                    text = ax.text(0.95, 0.9, f't = {t_plot[0]:.2f}ms', fontsize=9, bbox=bbox,
+                            transform=ax.transAxes, horizontalalignment='right')
+                    ax.set(xlim=[v.min(), v.max()], ylim=[0, rho_animation.mean()*3], xlabel='v (mV)', ylabel='rho')  # rho_animation.max()*0.5
+                    def update(frame):
+                        # for each frame, update the data stored on each artist.
+                        rho_frame = rho_animation[plot_idx, :, frame]
+
+                        # update the line plot:
+                        # line.set_xdata(v[:frame])
+                        line.set_ydata(rho_frame)
+                        text.set_text(f't = {t_plot[frame]:.2f}ms')
+                        # plt.fill_between(x=v, y1=rho_frame, color="b", alpha=0.2)
+                        return (line, text)
+
+                    ani = animation.FuncAnimation(fig=fig, func=update, frames=rho_animation.shape[2], interval=22)
+                    # plt.show()
+                    ani.save(filename=self.name + '_rho_animation.gif', writer="pillow")
+                    print(f'saved animation of rho to {self.name}_rho_animation.gif')
+                    plt.close()
 
     def save_log(self, full_out=False):
         if full_out:

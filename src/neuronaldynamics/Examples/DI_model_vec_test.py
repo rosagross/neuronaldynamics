@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from Model.DI_wave import DI_wave_simulation
+from Utils import nrmse
 matplotlib.use('TkAgg')
 
 
@@ -28,7 +29,7 @@ hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wav
 # fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
 # hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
 
-simulation_name = '26_05_29_test'
+simulation_name = 'vector_test_diw_sim'
 
 measurement_dict_2020_140_PA_ch3 = dict(orientation='PA', threshold=140, year=2020, hdf5_path=hdf5_path, sigma=1.0)
 measurement_dict_2020_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2020, hdf5_path=hdf5_path, sigma=1.0)
@@ -104,10 +105,23 @@ parameters = {'intensity': intensitiy, 'fraction_nmda': fraction_nmda, 'fraction
                                     'current_sigma': current_sigma,
                                     'verbose': 1}}
 di_model = DI_wave_simulation(parameters=parameters, logname=None)
-di_model.labelsize=15
+
+parameters_2 = parameters.copy()
+param_update = dict(intensity=intensitiy[0], fraction_nmda=fraction_nmda[0], fraction_gaba_a=fraction_gaba_a[0],
+                    fraction_ex=fraction_ex[0], theta=theta[0], computation='ser',
+                    nykamp_parameters=dict(init_pdf_sigma=init_pdf_sigma[0], init_pdf_offset=init_pdf_offset[0]))
+parameters_2.update(param_update)
+di_model_ser = DI_wave_simulation(parameters=parameters_2, logname=None)
+di_model_ser.simulate()
 di_model.simulate()
-di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.0018, animate=False, savefig=save_figs)
-voltage_signal = di_model.mass_model_v_out
+
+vec_signal_1 = di_model.nmm_potentials[0]
+vec_signal_2 = di_model.nmm_potentials[0]
+ser_signal = di_model.mass_model_v_out
+print(f'nrmse vec_sig 1 and ref {nrmse(vec_signal_1, ser_signal)}')
+print(f'nrmse vec_sig 2 and ref {nrmse(vec_signal_2, ser_signal)}')
 di_model.labelsize=17
-di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'])
+di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.0018, animate=False, savefig=save_figs)
+di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'], set_idx=0)
+di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'], set_idx=1)
 di_model.mass_model.clean()

@@ -7,7 +7,7 @@
     <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[UPD] continuation of vectorized version of FPE_population computation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Hu_solver_test_DI.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Hu_solver_test_DI.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -36,12 +36,12 @@
     &quot;assignee&quot;: &quot;erikjackmueller&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/erikjackmueller/neuronaldynamics",
-    "accountId": "76a2d9f5-bd17-4684-ba1e-f9d42c340310"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/erikjackmueller/neuronaldynamics&quot;,
+    &quot;accountId&quot;: &quot;76a2d9f5-bd17-4684-ba1e-f9d42c340310&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 5
 }</component>
@@ -54,10 +54,10 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.CNS_2026_FPE_version.executor": "Debug",
-    "Python.DI_model_vec_test.executor": "Debug",
+    "Python.DI_model_vec_test.executor": "Run",
     "Python.DI_wave_optimizer_GA_hp.executor": "Run",
     "Python.DI_wave_optimizer_paper_hp.executor": "Run",
-    "Python.Hu_solver_test_DI (1).executor": "Run",
+    "Python.Hu_solver_test_DI (1).executor": "Debug",
     "Python.Hu_solver_test_DI.executor": "Run",
     "Python.I_wave_peak_differences.executor": "Run",
     "Python.Time_series_opt_test.executor": "Run",
@@ -227,7 +227,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-b63d5a1f7c97-b61e75351b1f-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.22158.340" />
+        <option value="bundled-python-sdk-c59985aa861c-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.24374.152" />
       </set>
     </attachedChunks>
   </component>
@@ -303,7 +303,15 @@
       <option name="project" value="LOCAL" />
       <updated>1780150803205</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="[UPD] continuation of vectorized version of FPE_population computation">
+      <option name="closed" value="true" />
+      <created>1780323181593</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1780323181593</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -339,33 +347,18 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py</url>
-          <line>654</line>
+          <line>667</line>
           <option name="timeStamp" value="12" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2042</line>
+          <line>2044</line>
           <option name="timeStamp" value="37" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>1250</line>
-          <option name="timeStamp" value="38" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>951</line>
-          <option name="timeStamp" value="43" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py</url>
-          <line>124</line>
-          <option name="timeStamp" value="44" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2238</line>
-          <option name="timeStamp" value="58" />
+          <line>1272</line>
+          <option name="timeStamp" value="74" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

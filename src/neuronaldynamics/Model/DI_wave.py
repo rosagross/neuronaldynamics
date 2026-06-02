@@ -196,71 +196,80 @@ class DI_wave_simulation():
         if not isinstance(r_file, np.ndarray):
             if self.computation == 'ser':
                 self.mass_model.simulate()
+                mass_model_rate = self.mass_model.r[0]
                 if self.save_plots:
                     self.mass_model.plot(heat_map=True, plot_input=True)
-            elif self.computation == 'vec':
-                self.mass_model.simulate_set()
+                EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=self.dt * 10)
+                EP = -EP
+                EP = EP / np.max(EP)
+                EP_small = np.interp(self.t[self.t < 1.0] - 0.5, t_EP, EP)
+                self.neck_kernel = EP
+                self.neck_kernel_small = EP_small
 
-            mass_model_rate = self.mass_model.r[0]
+                nmm_potential = scipy.signal.convolve(mass_model_rate, EP_small)
+                nmm_shape = mass_model_rate.shape[0]
+                nmm_potential_out = nmm_potential[:nmm_shape]
+
+                if self.enable_high_pass:
+                    v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.1,
+                                                      fps=int(1 / self.dt))  # very small cutoff
+                    nmm_potential_out = v_out_hp
+                if self.detrend:
+                    # for find peaks in detrend: distance should be about 1ms, int(2/self.dt) as index
+                    nmm_potential_out = detrend(self.t, nmm_potential_out,
+                                                find_peaks_args=dict(distance=int(self.detrend_distance / self.dt)),
+                                                plot=self.plot_detrend, start_from_first_peak=True)
+
+                self.get_test_signal(from_file=self.test_signal_from_file, hdf5_args=self.file_args)
+                nmm_potential_scaled = nmm_potential_out
+                self.mass_model_v_out = nmm_potential_scaled
+
+                if self.delay_signal:
+                    self.mass_model_v_out = delay_signal(self.mass_model_v_out, self.delay, self.dt)
+                self.validate()
+            elif self.computation == 'vec':
+                EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=self.dt * 10)
+                EP = -EP
+                EP = EP / np.max(EP)
+                EP_small = np.interp(self.t[self.t < 1.0] - 0.5, t_EP, EP)
+                self.neck_kernel = EP
+                self.neck_kernel_small = EP_small
+
+
+                self.mass_model.simulate_set()
+                # TODO: eventually this needs to use the L5pyr indices, I think
+                self.nmm_rates = self.mass_model.r
+                self.nmm_potentials = np.zeros((self.n_simulations, self.t.shape[0]))
+                self.errors = np.zeros(self.n_simulations)
+                for i, mass_model_rate in enumerate(self.nmm_rates):
+                    nmm_potential = scipy.signal.convolve(mass_model_rate, EP_small)
+                    nmm_shape = mass_model_rate.shape[0]
+                    nmm_potential_out = nmm_potential[:nmm_shape]
+
+                    if self.enable_high_pass:
+                        v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.1,
+                                                          fps=int(1 / self.dt))  # very small cutoff
+                        nmm_potential_out = v_out_hp
+                    if self.detrend:
+                        # for find peaks in detrend: distance should be about 1ms, int(2/self.dt) as index
+                        nmm_potential_out = detrend(self.t, nmm_potential_out,
+                                                    find_peaks_args=dict(distance=int(self.detrend_distance / self.dt)),
+                                                    plot=self.plot_detrend, start_from_first_peak=True)
+
+                    self.get_test_signal(from_file=self.test_signal_from_file, hdf5_args=self.file_args)
+                    nmm_potential_scaled = nmm_potential_out
+                    self.mass_model_v_out = nmm_potential_scaled
+                    if self.delay_signal:
+                        self.mass_model_v_out = delay_signal(self.mass_model_v_out, self.delay, self.dt)
+
+                    self.nmm_potentials[i] = self.mass_model_v_out
+                    self.validate()
+                    if self.save_plots:
+                        self.plot_validation(save_fig=True)
+                    self.errors[i] = self.error
         else:
             mass_model_rate = r_file
-        EP, t_EP, AP_out = generate_EP(d=0.1, plot=False, Axontype=1, dt=self.dt * 10)
-        EP = -EP
-        EP = EP / np.max(EP)
-        EP_small = np.interp(self.t[self.t < 1.0] - 0.5, t_EP, EP)
-        self.neck_kernel = EP
-        self.neck_kernel_small = EP_small
-        nmm_potential = scipy.signal.convolve(mass_model_rate, EP_small)
-        nmm_shape = mass_model_rate.shape[0]
-        nmm_potential_out = nmm_potential[:nmm_shape]
 
-        if self.enable_high_pass:
-            v_out_hp = butter_highpass_filter(nmm_potential_out, cutoff=0.1, fps=int(1 / self.dt))  # very small cutoff
-            # v_out_mean = nmm_potential_out.mean()
-            # # hp_mean = v_out_hp.mean()  # reset mean to 0
-            # # if hp_mean > 1:
-            # #     v_out_hp -= hp_mean
-            # # else:
-            # #     v_out_hp += hp_mean
-            # t_4ms_idx = np.where(self.t>4)[0][0]
-            # v_out_hp_after_4ms = v_out_hp[t_4ms_idx:]
-            # peaks = scipy.signal.find_peaks(-v_out_hp_after_4ms)[0]
-            # peaks_v = v_out_hp_after_4ms[peaks]
-            # v_out_hp -= np.mean(peaks_v)
-            # # v_out_hp += v_out_mean/8  # rescale to original height (a bit?)
-            # # v_out_hp[v_out_hp < 0] = 0
-            nmm_potential_out = v_out_hp
-        if self.detrend:
-            # for find peaks in detrend: distance should be about 1ms, int(2/self.dt) as index
-            nmm_potential_out = detrend(self.t, nmm_potential_out,
-                                        find_peaks_args=dict(distance=int(self.detrend_distance/self.dt)),
-                                        plot=self.plot_detrend, start_from_first_peak=True)
-
-        self.get_test_signal(from_file=self.test_signal_from_file, hdf5_args=self.file_args)
-        di_max = np.max(self.target)
-        I1_time = np.argmax(mass_model_rate) * self.dt
-        # if isinstance(self.min_delay, (float, int)):
-        #     t_idx_delay = np.where(self.t > self.min_delay)[0][0]
-        #     potential_max = nmm_potential_out[:].max()
-        #     nmm_potential_scaled = nmm_potential_out / potential_max * di_max
-        # else:
-        #     nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
-        nmm_potential_scaled = nmm_potential_out
-        # previous version to cut out large spikes after 4ms
-        # if np.max(mass_model_rate) > 0.1 and I1_time < 4:  # only scale to normalize if rate is sufficiently large
-        # if I1_time < 4:
-        #     nmm_potential_scaled = nmm_potential_out / np.max(nmm_potential_out) * di_max
-        # else:
-        #     nmm_potential_scaled = nmm_potential_out
-
-        self.mass_model_v_out = nmm_potential_scaled
-
-        if self.delay_signal:
-            self.mass_model_v_out = delay_signal(self.mass_model_v_out, self.delay, self.dt)
-        # self.plot_nmm_out()
-        # self.plot_convolution()
-        self.validate()
-        # log
 
 
     def update_gpc_time(self):
@@ -557,19 +566,23 @@ class DI_wave_simulation():
     def plot_nmm_out(self, heat_map=True, plot_input=True, save_fig=False):
         self.mass_model.plot(heat_map=heat_map, plot_input=plot_input, savefig=save_fig)
 
-    def plot_validation(self, labels=None, save_fig=False, fixed_ylim=False):
+    def plot_validation(self, labels=None, save_fig=False, fixed_ylim=False, set_idx=-1):
 
         if labels == None:
             label1 = 'NMM Potential'
             label2 = 'D-I-wave test function'
         else:
             label1, label2 = labels[0], labels[1]
+        if self.n_simulations > 1:
+            model_evaluation = self.nmm_potentials[set_idx].copy()
+        else:
+            model_evaluation = self.mass_model_v_out.copy()
 
-        v_shade = self.mass_model_v_out.copy()
-        abs_signal = self.target_aligned + self.mass_model_v_out
+        v_shade = model_evaluation
+        abs_signal = self.target_aligned + model_evaluation
 
         if self.detrend == True:
-            self.mass_model_v_out[self.mass_model_v_out<0] = 0
+            model_evaluation[model_evaluation<0] = 0
 
         non_zero_mask = np.where(abs_signal > 1e-3)
         if self.detrend:
@@ -580,9 +593,9 @@ class DI_wave_simulation():
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.t, self.mass_model_v_out, linewidth=2.0, color='indianred')
+        ax.plot(self.t, model_evaluation, linewidth=2.0, color='indianred')
         ax.plot(self.t, self.target_aligned, linewidth=2.0, color='darkslateblue', linestyle='-.')
-        ax.fill_between(self.t, self.mass_model_v_out, v_shade, alpha=0.3, color='k')
+        ax.fill_between(self.t, model_evaluation, v_shade, alpha=0.3, color='k')
         if self.detrend == True:
             ax.set_xlim((3, 14))
         # ax.set_ylim((-0.2, self.target_aligned.max()*1.1))
