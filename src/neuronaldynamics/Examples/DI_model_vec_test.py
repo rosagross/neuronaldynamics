@@ -20,14 +20,14 @@ Nt = t.shape[0]
 
 # fn_session = '/home/erik/Downloads/gpc.pkl'
 # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+# fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+# hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
 # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 # hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
 
-# fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
-# hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
+fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
+hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
 
 simulation_name = 'vector_test_diw_sim'
 
@@ -75,14 +75,15 @@ data_dicts = [measurement_dict_2020_140_PA_ch3,
               measurement_dict_2004_150_PA_1_ch2]
 data_dicts = [measurement_dict_2020_120_LM_ch3, measurement_dict_2020_120_LM_ch4, measurement_dict_2004_140_LM_1_ch2]
 measurement_dict = dict(orientation='PA', threshold=120, year=2013, hdf5_path=hdf5_path, sigma=1.0, channel=0)
-intensitiy = np.array([250, 250])
-theta = np.array([0, 0])
-fraction_ex = np.array([0.6, 0.6])
-fraction_gaba_a = np.array([0.95, 0.95])
-fraction_nmda = np.array([0.61, 0.61])
-current_sigma = np.array([6, 6])
-init_pdf_sigma = np.array([2.5, 2.5])
-init_pdf_offset = np.array([0,  0])
+n  = 10
+intensitiy = np.repeat([250], n)
+theta = np.repeat([0], n)
+fraction_ex = np.repeat([0.6], n)
+fraction_gaba_a = np.repeat([0.95], n)
+fraction_nmda = np.repeat([0.61], n)
+current_sigma = np.repeat([6], n)
+init_pdf_sigma = np.repeat([2.5], n)
+init_pdf_offset = np.repeat([0], n)
 
 
 parameters = {'intensity': intensitiy, 'fraction_nmda': fraction_nmda, 'fraction_gaba_a': fraction_gaba_a,
@@ -121,7 +122,7 @@ ser_signal = di_model.mass_model_v_out
 print(f'nrmse vec_sig 1 and ref {nrmse(vec_signal_1, ser_signal)}')
 print(f'nrmse vec_sig 2 and ref {nrmse(vec_signal_2, ser_signal)}')
 di_model.labelsize=17
-di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.0018, animate=False, savefig=save_figs)
+# di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.0018, animate=False, savefig=save_figs)
 di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'], set_idx=0)
-di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'], set_idx=1)
+di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'], set_idx=-1)
 di_model.mass_model.clean()

@@ -4,11 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[UPD] continuation of vectorized version of FPE_population computation">
+    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[ADD] new model FPE_Population">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_paper_fixed_theta.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_paper_fixed_theta.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_paper_hp.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Optimization_scripts/DI_wave_optimizer_paper_hp.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -39,7 +41,7 @@
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
     &quot;url&quot;: &quot;https://github.com/erikjackmueller/neuronaldynamics&quot;,
-    &quot;accountId&quot;: &quot;76a2d9f5-bd17-4684-ba1e-f9d42c340310&quot;
+    &quot;accountId&quot;: &quot;d4374efd-f132-4bfd-b566-f64b6f8886c7&quot;
   }
 }</component>
   <component name="ProjectColorInfo">{
@@ -70,11 +72,7 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/erik/PycharmProjects/neuronaldynamics/src/neuronaldynamics/Examples",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
+    "last_opened_file_path": "/data/u_emueller_software/git/neuronaldynamics",
     "nodejs_package_manager_path": "npm",
     "settings.editor.selected.configurable": "org.jetbrains.plugins.gitlab.GitLabSettingsConfigurable"
   },
@@ -85,9 +83,6 @@
   }
 }]]></component>
   <component name="RecentsManager">
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/src/neuronaldynamics/Examples" />
-    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/neuronaldynamics" />
       <recent name="$PROJECT_DIR$/src" />
@@ -227,7 +222,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-c59985aa861c-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.24374.152" />
+        <option value="bundled-python-sdk-024ed6589d45-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.23567.174" />
       </set>
     </attachedChunks>
   </component>
@@ -279,39 +274,15 @@
       <option name="project" value="LOCAL" />
       <updated>1779800757787</updated>
     </task>
-    <task id="LOCAL-00006" summary="[UPD] started work on slimmer FPE_Population model">
+    <task id="LOCAL-00006" summary="[ADD] new model FPE_Population">
       <option name="closed" value="true" />
-      <created>1779984134913</created>
+      <created>1779970580623</created>
       <option name="number" value="00006" />
       <option name="presentableId" value="LOCAL-00006" />
       <option name="project" value="LOCAL" />
-      <updated>1779984134914</updated>
+      <updated>1779970580623</updated>
     </task>
-    <task id="LOCAL-00007" summary="[UPD] started work on a simulate_set function and associated function with it in FPE_Population">
-      <option name="closed" value="true" />
-      <created>1780061819607</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1780061819607</updated>
-    </task>
-    <task id="LOCAL-00008" summary="[UPD] continuation of vectorized version of FPE_population computation">
-      <option name="closed" value="true" />
-      <created>1780150803205</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1780150803205</updated>
-    </task>
-    <task id="LOCAL-00009" summary="[UPD] continuation of vectorized version of FPE_population computation">
-      <option name="closed" value="true" />
-      <created>1780323181593</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1780323181593</updated>
-    </task>
-    <option name="localTasksCounter" value="10" />
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -322,10 +293,8 @@
     <MESSAGE value="[MOD] MPI server filestructure prepare" />
     <MESSAGE value="[FIX] git merge" />
     <MESSAGE value="[UPD] new paths for running on MPI servers" />
-    <MESSAGE value="[UPD] started work on slimmer FPE_Population model" />
-    <MESSAGE value="[UPD] started work on a simulate_set function and associated function with it in FPE_Population" />
-    <MESSAGE value="[UPD] continuation of vectorized version of FPE_population computation" />
-    <option name="LAST_COMMIT_MESSAGE" value="[UPD] continuation of vectorized version of FPE_population computation" />
+    <MESSAGE value="[ADD] new model FPE_Population" />
+    <option name="LAST_COMMIT_MESSAGE" value="[ADD] new model FPE_Population" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -347,18 +316,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/DI_wave.py</url>
-          <line>667</line>
+          <line>668</line>
           <option name="timeStamp" value="12" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2044</line>
-          <option name="timeStamp" value="37" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>1272</line>
-          <option name="timeStamp" value="74" />
+          <line>2245</line>
+          <option name="timeStamp" value="14" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

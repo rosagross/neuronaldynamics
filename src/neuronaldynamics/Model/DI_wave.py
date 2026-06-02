@@ -62,6 +62,7 @@ class DI_wave_simulation():
         self.labelsize=15
         self.paired_pulse = False
         self.pp_interval = 20
+        self.n_simulations = 1
 
         self.computation = 'ser' # computation type ('ser' for serial, 'vec' for vectorized)
 

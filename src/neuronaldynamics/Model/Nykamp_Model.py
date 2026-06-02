@@ -2226,7 +2226,7 @@ class FPE_Population():
                     if i == self.t.shape[0] - 2 and c_count > 0:
                         print(f'largest noise value encountered :{added_noise.max():.5f}mV')
                     # Scharfetter-Gummel Flux
-                    v_SG = np.tile(v_, 2)
+                    v_SG = np.tile(v_, self.n_simulations)
                     diff_coeff_SG = np.tile(diffusion_coeff, Nx)
                     drift_coeff_SG = np.tile(drift_coeff, Nx)
                     Ms = self.SG_Flux(v_SG, drift_coeff_SG, diff_coeff_SG, x_rest=u_rest_)
@@ -2242,10 +2242,10 @@ class FPE_Population():
                         M_harm[k] = harm_mean(Ms[k], Ms[k + 1])
 
                     # compute matrix terms
-                    c_matrix = np.repeat(c, Nx-1)
-                    r1 = -c_matrix * M_harm[:-1] / Ms[:-2]
-                    r2 = 1 + c_matrix * (M_harm[1:] + M_harm[:-1]) / Ms[1:-1]
-                    r3 = -c_matrix * M_harm[1:] / Ms[2:]
+                    c_matrix = np.repeat(c, Nx)
+                    r1 = -c_matrix[1:-1] * M_harm[:-1] / Ms[:-2]
+                    r2 = 1 + c_matrix[1:-1] * (M_harm[1:] + M_harm[:-1]) / Ms[1:-1]
+                    r3 = -c_matrix[1:-1] * M_harm[1:] / Ms[2:]
 
                     Nx_mask = np.where(np.arange(Nx*self.n_simulations + 1) % Nx == 0)[0]  # mask to make off-diagonal values zero
                     off_diag_zero_mask = Nx_mask[1:-1] - 1

@@ -5,7 +5,7 @@ from Model.DI_wave import DI_wave_simulation
 
 if __name__ == "__main__":
     matplotlib.use('TkAgg')
-    T = 10
+    T = 15
     dt = 0.01
     dv = 0.01
     # fn_session = '/home/erik/Downloads/gpc.pkl'
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
     results_path = "/data/pt_01756/studies/DI_wave_modeling/optimization_results/run3/"
 
-    simulation_name = 'paper_iwave_opt_hierearch'
+    simulation_name_init = 'paper_iwave_opt_hierearch'
     # PA
     measurement_dict_2020_100_PA_ch3 = dict(orientation='PA', threshold=100, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2013_110_PA_ch2 = dict(orientation='PA', threshold=110, year=2013, hdf5_path=hdf5_path, sigma=1.0,
@@ -59,7 +59,7 @@ if __name__ == "__main__":
               '###################################################################### \n'
               '###################################################################### \n'
               f'data dict #{i_dict}: {dict} \n')
-        simulation_name = f'{simulation_name}_no_{i_dict}'
+        simulation_name = f'{simulation_name_init}_no_{i_dict}'
         simulation_name = os.path.join(results_path, simulation_name)
         print(f'name: {simulation_name}')
         parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,

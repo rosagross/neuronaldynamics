@@ -5,19 +5,23 @@ from Model.DI_wave import DI_wave_simulation
 
 if __name__ == "__main__":
     matplotlib.use('TkAgg')
-    T = 10
+    T = 15
     dt = 0.01
     dv = 0.01
-    fn_session = '/home/erik/Downloads/gpc.pkl'
+    # fn_session = '/home/erik/Downloads/gpc.pkl'
     # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
     # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
 
     # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-    hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-    hdf5_path ="/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
-    results_path = "/home/erik/data/diw_results/run_2026_05_13"
+    # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    # hdf5_path ="/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
+    # results_path = "/home/erik/data/diw_results/run_2026_05_13"
 
-    simulation_name = 'paper_iwave_opt'
+    fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
+    hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
+    results_path = "/data/pt_01756/studies/DI_wave_modeling/optimization_results/run4/"
+
+    simulation_name_init = 'paper_iwave_opt_hierarch_theta_fixed'
     # PA
     measurement_dict_2020_100_PA_ch3 = dict(orientation='PA', threshold=100, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2013_110_PA_ch2 = dict(orientation='PA', threshold=110, year=2013, hdf5_path=hdf5_path, sigma=1.0,
@@ -55,11 +59,15 @@ if __name__ == "__main__":
               '###################################################################### \n'
               '###################################################################### \n'
               f'data dict #{i_dict}: {dict} \n')
-        simulation_name = f'_diw_opt_chain_20_01_26_no_{i_dict}'
+        simulation_name = f'{simulation_name_init}_no_{i_dict}'
         simulation_name = os.path.join(results_path, simulation_name)
         print(f'name: {simulation_name}')
-        parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'plot_align': False,
-                      'test_func_intensity': 2.0, 'test_func_t0': 0.25, 'max_shift_validation': 1.0,
+        if dict['orientation'] == 'PA':
+            theta = 0
+        else:
+            theta = 90
+        parameters = {'intensity': 220, 'fraction_nmda': 0.5, 'fraction_gaba_a': 0.95, 'fraction_ex': 0.4, 'theta': theta,
+                      'plot_align': False, 'test_func_intensity': 2.0, 'test_func_t0': 0.25, 'max_shift_validation': 1.0,
                       'test_signal_from_file': True, 'i_scale': 5.148136e-9, 'error_mode': 'a',
                       'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'enable_high_pass': True,
                       'detrend': False, 'delay_signal': True, 'delay': 0.9,
@@ -83,16 +91,17 @@ if __name__ == "__main__":
 
         opt_parameters = parameters.copy()
         opt_parameters['optimizer'] = 'hierarchical'
+        opt_parameters['results_folder'] = results_path
         opt_parameters['eps'] = 0.05
-        opt_parameters['max_iter'] = 1
-        opt_parameters['n_grid'] = 100
+        opt_parameters['max_iter'] = 3
+        opt_parameters['n_grid'] = 400
         opt_parameters['model_parameters'] = model_parameters
         opt_parameters['bounds'] = model_parameter_bounds
         opt_parameters['x_out'] = 'mass_model_v_out'
         opt_parameters['nykamp_parameters']['tqdm_disable'] = True
         opt_parameters['save_results'] = True
 
-        di_model.optimize(opt_params=opt_parameters, opt_directory='opt_temp_no_theta')
+        di_model.optimize(opt_params=opt_parameters)
         opt_params = di_model.optimimization_algorithm.optimum
         print(f'optimal params recovered: {opt_params}')
 
