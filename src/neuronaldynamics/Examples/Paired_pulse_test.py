@@ -119,3 +119,40 @@ if plot_di_model:
     di_model.labelsize=17
     di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'])
     di_model.mass_model.clean()
+
+    model_parameters = ['theta', 'intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex', 'pdf_offset',
+                        'pdf_sigma',
+                        'current_sigma']
+    model_parameter_bounds = [[0, 180], [200, 400], [0.25, 0.75], [0.9, 1.0], [0.2, 0.8], [0, 12], [0.1, 15], [0, 15]]
+
+    def high_second_peak(x):
+        amp = x[2000:].max()
+        error = np.abs(3-amp)
+        return error
+
+    opt_parameters = parameters.copy()
+    opt_parameters['optimizer'] = 'hierarchical'
+    opt_parameters['eps'] = 0.05
+    opt_parameters['max_iter'] = 3
+    opt_parameters['n_grid'] = 50
+    opt_parameters['model_parameters'] = model_parameters
+    opt_parameters['bounds'] = model_parameter_bounds
+    opt_parameters['x_out'] = 'mass_model_v_out'
+    opt_parameters['nykamp_parameters']['tqdm_disable'] = True
+    opt_parameters['save_results'] = False
+    opt_parameters['goal_function'] = high_second_peak()
+
+    di_model.optimize(opt_params=opt_parameters)
+    opt_params = di_model.optimimization_algorithm.optimum
+    print(f'optimal params recovered: {opt_params}')
+
+    errors = di_model.optimimization_algorithm.error
+    min_error = errors.min()
+    print(f'min error: {min_error:.4f}')
+    min_error_idx = np.unravel_index(np.argmin(errors, axis=None), errors.shape)
+    best_x = di_model.optimimization_algorithm.x_vals[min_error_idx]
+    # plt.plot(best_x)
+    di_model.mass_model_v_out = best_x
+    di_model.validate()
+    di_model.name = simulation_name  # set name to simulation name to find it again
+    di_model.plot_validation(save_fig=True)

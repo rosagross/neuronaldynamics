@@ -47,6 +47,7 @@ class Hierarchical_Random(Optimizer):
         self.model_parameters = None
         self.simulation_class = None
         self.bounds = None
+        self.goal_function = None
 
         self.__dict__.update(parameters)
         self.parameters = parameters
@@ -110,7 +111,9 @@ class Hierarchical_Random(Optimizer):
                     x = eval(f'self.simulation_class.{self.x_out}')
                 self.x_vals[i, k] = x
                 # self.error[i, k] = nrmse(self.y, x)
-                if hasattr(self.simulation_class, 'error'):
+                if callable(self.goal_function):
+                    self.error[i, k] = self.goal_function(x)
+                elif hasattr(self.simulation_class, 'error'):
                     self.error[i, k] = self.simulation_class.error
                 else:
                     #TODO: extend to other fit functions
