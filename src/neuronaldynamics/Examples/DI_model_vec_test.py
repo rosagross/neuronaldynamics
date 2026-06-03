@@ -77,7 +77,7 @@ data_dicts = [measurement_dict_2020_140_PA_ch3,
               measurement_dict_2004_150_PA_1_ch2]
 data_dicts = [measurement_dict_2020_120_LM_ch3, measurement_dict_2020_120_LM_ch4, measurement_dict_2004_140_LM_1_ch2]
 measurement_dict = dict(orientation='PA', threshold=120, year=2013, hdf5_path=hdf5_path, sigma=1.0, channel=0)
-n  = 10
+n  = 50
 intensitiy = np.repeat([250], n)
 theta = np.repeat([0], n)
 fraction_ex = np.repeat([0.6], n)

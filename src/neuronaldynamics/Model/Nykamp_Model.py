@@ -1256,9 +1256,7 @@ class Nykamp_Model_1():
                                 raise ValueError('NaN values in flux detected!')
 
                             # Calculate harmonic means
-                            M_harm = np.zeros(Nx - 1)
-                            for k in range(Nx - 1):
-                                M_harm[k] = harm_mean(Ms[k], Ms[k + 1])
+                            M_harm = 2 / ((1 / Ms[:-1]) + (1 / Ms[1:]))
 
                             # compute matrix terms
                             r1 = -c * M_harm[:-1] / Ms[:-2]
@@ -2237,9 +2235,7 @@ class FPE_Population():
                         raise ValueError('NaN values in flux detected!')
 
                     # Calculate harmonic means
-                    M_harm = np.zeros(self.n_simulations * Nx - 1)
-                    for k in range(self.n_simulations * Nx - 1):
-                        M_harm[k] = harm_mean(Ms[k], Ms[k + 1])
+                    M_harm = 2 / ((1 / Ms[:-1]) + (1 / Ms[1:]))
 
                     # compute matrix terms
                     c_matrix = np.repeat(c, Nx)

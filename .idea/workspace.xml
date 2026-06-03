@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[UPD] finished vectorized version of DI_wave model simulation, takes lots of RAM, bad on PCs with low RAM">
+    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[FIX] fixed major error in simulation set computation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Paired_pulse_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Paired_pulse_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -53,12 +54,13 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.CNS_2026_FPE_version.executor": "Debug",
-    "Python.DI_model_vec_test.executor": "Run",
+    "Python.DI_model_vec_test.executor": "Debug",
     "Python.DI_wave_optimizer_GA_hp.executor": "Run",
     "Python.DI_wave_optimizer_paper_hp.executor": "Run",
     "Python.Hu_solver_test_DI (1).executor": "Debug",
     "Python.Hu_solver_test_DI.executor": "Run",
     "Python.I_wave_peak_differences.executor": "Run",
+    "Python.Paired_pulse_test.executor": "Run",
     "Python.Time_series_opt_test.executor": "Run",
     "Python.fib_run_all_local_copy (1).executor": "Run",
     "Python.fib_run_all_local_copy (2).executor": "Run",
@@ -189,7 +191,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="Time_series_opt_test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="Paired_pulse_test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="neuronaldynamics" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -204,7 +206,7 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="DEBUG_JUST_MY_CODE" value="false" />
       <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/neuronaldynamics/Examples/Time_series_opt_test.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/neuronaldynamics/Examples/Paired_pulse_test.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -216,10 +218,10 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.DI_model_vec_test" />
+        <item itemvalue="Python.Paired_pulse_test" />
         <item itemvalue="Python.Hu_solver_test_DI (1)" />
         <item itemvalue="Python.CNS_2026_FPE_version" />
         <item itemvalue="Python.DI_wave_optimizer_paper_hp" />
-        <item itemvalue="Python.Time_series_opt_test" />
       </list>
     </recent_temporary>
   </component>
@@ -318,7 +320,15 @@
       <option name="project" value="LOCAL" />
       <updated>1780412948694</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="[FIX] fixed major error in simulation set computation">
+      <option name="closed" value="true" />
+      <created>1780416811225</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1780416811225</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -333,7 +343,8 @@
     <MESSAGE value="[UPD] started work on a simulate_set function and associated function with it in FPE_Population" />
     <MESSAGE value="[UPD] continuation of vectorized version of FPE_population computation" />
     <MESSAGE value="[UPD] finished vectorized version of DI_wave model simulation, takes lots of RAM, bad on PCs with low RAM" />
-    <option name="LAST_COMMIT_MESSAGE" value="[UPD] finished vectorized version of DI_wave model simulation, takes lots of RAM, bad on PCs with low RAM" />
+    <MESSAGE value="[FIX] fixed major error in simulation set computation" />
+    <option name="LAST_COMMIT_MESSAGE" value="[FIX] fixed major error in simulation set computation" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -360,18 +371,18 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2044</line>
+          <line>2045</line>
           <option name="timeStamp" value="37" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2144</line>
+          <line>2145</line>
           <option name="timeStamp" value="81" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2202</line>
-          <option name="timeStamp" value="82" />
+          <line>1261</line>
+          <option name="timeStamp" value="85" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
