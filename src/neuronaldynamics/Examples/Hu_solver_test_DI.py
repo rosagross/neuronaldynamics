@@ -162,7 +162,7 @@ if plot_di_model:
                                         'dv': dv,
                                         'dt': dt,
                                         'solver': 'Hu-2021',
-                                        'current_sigma': 6,
+                                        'current_sigma': 12,
                                         'verbose': 1}}
 
     # for i_dict, dict in enumerate(data_dicts):

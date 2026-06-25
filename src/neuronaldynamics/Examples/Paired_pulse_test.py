@@ -11,6 +11,7 @@ matplotlib.use('TkAgg')
 
 plot_nykamp_basic = False
 plot_di_model = True
+optimize = False
 save_figs = False
 
 dt = 0.01
@@ -84,29 +85,35 @@ if plot_di_model:
 
     simulation_name = '26_04_30_test'
 
-    #TODO: actually monitor the value of sigma_v throughout the simulation
+    # 2.22658825e+01 theta
+    # 3.83945768e+02 intensity
+    # 2.86578565e-01 fraction_nmda
+    # 9.92126469e-01 fraction_gaba_a
+    # 5.94071642e-01 fraction_ex
+    # 5.94243470e-01 pdf_offset
+    # 2.31477316e+00 pdf_sigma
 
     measurement_dict = dict(orientation='PA', threshold=120, year=2013, hdf5_path=hdf5_path, sigma=1.0, channel=0)
-    parameters = {'intensity': 320, 'fraction_nmda': 0.39, 'fraction_gaba_a': 0.97, 'fraction_ex': 0.7, 'plot_align': False,
+    parameters = {'intensity': 384, 'fraction_nmda': 0.29, 'fraction_gaba_a': 0.92, 'fraction_ex': 0.59, 'plot_align': False,
                   'test_func_intensity': 2.0, 'test_func_t0': 0.35, 'enable_high_pass': True, 'min_delay': 5,
                   'test_signal_from_file': False, 'i_scale': 5.148136e-9, 'detrend': False, 'plot_detrend': False,
                   'fn_session': fn_session, 'T': T, 'name': simulation_name, 'dt': dt, 'mind_delay': 0,
-                  'theta': 0, 'delay_signal':True, 'delay': 0.9, 'error_mode': 'true',
+                  'theta': 22, 'delay_signal':True, 'delay': 0.9, 'error_mode': 'true',
                   'paired_pulse': True, 'pp_inpterval': 20,
                   'nykamp_parameters': {'connectivity_matrix': np.array([[0]]),
                                         'tau_ref': [0], #1.5
                                         'tau_mem': [12],
                                         'input_type': 'stochastic-current',
                                         'static_noise': True,
-                                        'init_pdf_offset': 0,
-                                        'init_pdf_sigma': 4,
+                                        'init_pdf_offset': 0.6,
+                                        'init_pdf_sigma': 2.3,
                                         'init_pdf_weight': 0,
                                         'delay_kernel_type': 'alpha',
                                         'delay_kernel_parameters': {'n_alpha': 9, 'tau_alpha': 1/3},
                                         'dv': dv,
                                         'dt': dt,
                                         'solver': 'Hu-2021',
-                                        'current_sigma': 2,
+                                        'current_sigma': 7,
                                         'verbose': 1}}
 
     di_model = DI_wave_simulation(parameters=parameters, logname=None)
@@ -121,38 +128,37 @@ if plot_di_model:
     di_model.mass_model.clean()
 
     model_parameters = ['theta', 'intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex', 'pdf_offset',
-                        'pdf_sigma',
-                        'current_sigma']
-    model_parameter_bounds = [[0, 180], [200, 400], [0.25, 0.75], [0.9, 1.0], [0.2, 0.8], [0, 12], [0.1, 15], [0, 15]]
+                        'pdf_sigma']
+    model_parameter_bounds = [[0, 180], [200, 400], [0.25, 0.75], [0.9, 1.0], [0.2, 0.8], [0, 5], [0.1, 15]]
 
     def high_second_peak(x):
         amp = x[2000:].max()
         error = np.abs(3-amp)
         return error
+    if optimize:
+        opt_parameters = parameters.copy()
+        opt_parameters['optimizer'] = 'hierarchical'
+        opt_parameters['eps'] = 0.05
+        opt_parameters['max_iter'] = 3
+        opt_parameters['n_grid'] = 50
+        opt_parameters['model_parameters'] = model_parameters
+        opt_parameters['bounds'] = model_parameter_bounds
+        opt_parameters['x_out'] = 'mass_model_v_out'
+        opt_parameters['nykamp_parameters']['tqdm_disable'] = True
+        opt_parameters['save_results'] = False
+        opt_parameters['goal_function'] = high_second_peak
 
-    opt_parameters = parameters.copy()
-    opt_parameters['optimizer'] = 'hierarchical'
-    opt_parameters['eps'] = 0.05
-    opt_parameters['max_iter'] = 3
-    opt_parameters['n_grid'] = 50
-    opt_parameters['model_parameters'] = model_parameters
-    opt_parameters['bounds'] = model_parameter_bounds
-    opt_parameters['x_out'] = 'mass_model_v_out'
-    opt_parameters['nykamp_parameters']['tqdm_disable'] = True
-    opt_parameters['save_results'] = False
-    opt_parameters['goal_function'] = high_second_peak()
+        di_model.optimize(opt_params=opt_parameters)
+        opt_params = di_model.optimimization_algorithm.optimum
+        print(f'optimal params recovered: {opt_params}')
 
-    di_model.optimize(opt_params=opt_parameters)
-    opt_params = di_model.optimimization_algorithm.optimum
-    print(f'optimal params recovered: {opt_params}')
-
-    errors = di_model.optimimization_algorithm.error
-    min_error = errors.min()
-    print(f'min error: {min_error:.4f}')
-    min_error_idx = np.unravel_index(np.argmin(errors, axis=None), errors.shape)
-    best_x = di_model.optimimization_algorithm.x_vals[min_error_idx]
-    # plt.plot(best_x)
-    di_model.mass_model_v_out = best_x
-    di_model.validate()
-    di_model.name = simulation_name  # set name to simulation name to find it again
-    di_model.plot_validation(save_fig=True)
+        errors = di_model.optimimization_algorithm.error
+        min_error = errors.min()
+        print(f'min error: {min_error:.4f}')
+        min_error_idx = np.unravel_index(np.argmin(errors, axis=None), errors.shape)
+        best_x = di_model.optimimization_algorithm.x_vals[min_error_idx]
+        # plt.plot(best_x)
+        di_model.mass_model_v_out = best_x
+        di_model.validate()
+        di_model.name = simulation_name  # set name to simulation name to find it again
+        di_model.plot_validation(save_fig=True)

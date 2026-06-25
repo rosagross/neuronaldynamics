@@ -1069,7 +1069,7 @@ class Nykamp_Model_1():
                         v_shape = self.v.shape[0]
                         self.c1eext = np.repeat(v_ext /self.tau_mem[j], v_shape)
                         self.c1eext_v = 0
-                        self.c2eext = np.repeat(sigma, v_shape)
+                        self.c2eext = np.repeat(sigma**2/self.tau_mem[j], v_shape)
                         self.c2eext_v = 0
 
                         # This part is not used in the Hu-solver
@@ -1220,6 +1220,7 @@ class Nykamp_Model_1():
                             upper = np.zeros(Nx - 1)
 
                             # conversion of coefficients from Nykamp to Hu-formulation
+                            mu_hu_solver = np.repeat(v_ext, Nx)
                             drift_coeff_vec = (-np.sum(- v_in[exc_idxs, j, i]) * c1ee_v + np.sum(v_in[inh_idxs, j, i]) * c1ei_v +\
                                           self.c1eext) * hu_scaling_factor
                             drift_coeff = drift_coeff_vec[0]
@@ -1233,7 +1234,7 @@ class Nykamp_Model_1():
 
                             # discretization for Hu-2021
                             c = diffusion_coeff * self.dt / dv_
-                            critval = 0.3 * (drift_coeff / 5)
+                            critval = 0.3 * (drift_coeff / 10)
                             if c < critval:
                                 c = critval
                                 diffusion_coeff_original = diffusion_coeff.copy()
@@ -2194,7 +2195,7 @@ class FPE_Population():
                 for j in range(self.n_simulations):
                     for k in range(self.n_populations):
                         v_ext = self.i_ext[k, j, i] / self.g_leak[k] * 1e3  # conversion from V to mV
-                        drift_coeff[(j * self.n_populations) + k] = v_ext * v_scaling_factor / self.tau_mem  # conversion to the range of the solver
+                        drift_coeff[(j * self.n_populations) + k] = v_ext * v_scaling_factor  # conversion to the range of the solver
 
                 if i > 0:
 
@@ -2540,7 +2541,7 @@ class FPE_Population():
     def gauss_func(self,x,  mu=0, sigma=1):
         return (1/np.sqrt(2*np.pi*sigma**2))*np.exp(-(x-mu)**2/(2*sigma**2))
 
-    def SG_Flux(self, x, a, alpha, x_rest=0.2):
+    def  SG_Flux(self, x, a, alpha, x_rest=0.2):
         """
         compute Scharfetter-Gummel flux functional
         :param x: x
