@@ -45,7 +45,7 @@ def main():
     di_model.get_test_signal()
 
     model_parameters = ['theta', 'intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex', 'pdf_offset', 'pdf_sigma',
-                         'current_sigma']
+                         'voltage_sigma']
     model_parameter_bounds = [[0, 180], [200, 400], [0.25, 0.75], [0.9, 1.0], [0.2, 0.8], [0, 12], [0.1, 15], [0, 15]]
 
     # ['best after gradient: [96.89784643] at param set [[ 60.93360198 202.03708798   0.57166902   0.99426977   0.52796225\n    3.78881251   2.5311716    2.2537436 ]]']

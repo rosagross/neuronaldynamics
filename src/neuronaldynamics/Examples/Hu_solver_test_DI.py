@@ -36,7 +36,7 @@ if plot_nykamp_basic:
     model_parameters['tau_mem'] = [12]
     model_parameters['tau_ref'] = [0]
     model_parameters['input_type'] = 'stochastic-current'
-    model_parameters['current_sigma'] = 0.1
+    model_parameters['voltage_sigma'] = 0.1
     model_parameters['T'] = T
     model_parameters['dt'] = dt
     model_parameters['dv'] = dv
@@ -74,13 +74,13 @@ if plot_nykamp_basic:
     plt.show()
 
 if plot_di_model:
-    # fn_session = '/home/erik/Downloads/gpc.pkl'
+    fn_session = '/home/erik/Downloads/gpc.pkl'
     # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
-    fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-    hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+    # fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+    # hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
     # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
     # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
-    # hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
+    hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
 
     # fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
     # hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
@@ -98,7 +98,7 @@ if plot_di_model:
     #  2.05980423e+01 2.98320822e+02]
     # ['intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex',
     # 'pdf_offset', 'pdf_sigma', 'pdf_weight', 'i_scale',
-    #  'current_sigma']
+    #  'voltage_sigma']
     measurement_dict_2020_140_PA_ch3 = dict(orientation='PA', threshold=140, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2020_120_PA_ch3 = dict(orientation='PA', threshold=120, year=2020, hdf5_path=hdf5_path, sigma=1.0)
     measurement_dict_2020_100_PA_ch3 = dict(orientation='PA', threshold=100, year=2020, hdf5_path=hdf5_path, sigma=1.0)
@@ -162,7 +162,7 @@ if plot_di_model:
                                         'dv': dv,
                                         'dt': dt,
                                         'solver': 'Hu-2021',
-                                        'current_sigma': 12,
+                                        'voltage_sigma': 12,
                                         'verbose': 1}}
 
     # for i_dict, dict in enumerate(data_dicts):
@@ -175,6 +175,7 @@ if plot_di_model:
     di_model = DI_wave_simulation(parameters=parameters, logname=None)
     # di_model.get_test_signal(plot=True, from_file=True, hdf5_args=di_model.file_args)
     di_model.get_test_signal(from_file=True)
+    # di_model.mass_model.input_function[3000:]  = 0
     di_model.simulate()
 
     di_model.mass_model.plot(heat_map=True, plot_input=True, plot_combined=True, z_limit=0.0018, animate=False, savefig=save_figs)
@@ -191,6 +192,8 @@ if plot_di_model:
     di_model.labelsize=17
     di_model.plot_validation(fixed_ylim=False, save_fig=save_figs, labels=['Population Model', 'Measurement'])
     di_model.mass_model.clean()
+    plt.plot(di_model.mass_model.rho[0, : , -1])
+    plt.show()
 
     # extra PA, LM examples
     # parameters['theta'] = 30

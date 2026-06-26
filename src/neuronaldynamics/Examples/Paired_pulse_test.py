@@ -37,7 +37,7 @@ if plot_nykamp_basic:
     model_parameters['tau_mem'] = [12]
     model_parameters['tau_ref'] = [0]
     model_parameters['input_type'] = 'stochastic-current'
-    model_parameters['current_sigma'] = 0.1
+    model_parameters['voltage_sigma'] = 0.1
     model_parameters['T'] = T
     model_parameters['dt'] = dt
     model_parameters['dv'] = dv
@@ -113,7 +113,7 @@ if plot_di_model:
                                         'dv': dv,
                                         'dt': dt,
                                         'solver': 'Hu-2021',
-                                        'current_sigma': 7,
+                                        'voltage_sigma': 7,
                                         'verbose': 1}}
 
     di_model = DI_wave_simulation(parameters=parameters, logname=None)

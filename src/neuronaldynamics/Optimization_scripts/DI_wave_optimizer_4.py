@@ -29,7 +29,7 @@ if __name__ == "__main__":
     #  Maybe also just try to fit aaron model output to the shape in hu_solver_example
 
     model_parameters = ['intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex', 'pdf_offset', 'pdf_sigma',
-                        'pdf_weight', 'i_scale', 'current_sigma', 'mass_model_connectivity_matrix']
+                        'pdf_weight', 'i_scale', 'voltage_sigma', 'mass_model_connectivity_matrix']
     model_parameter_bounds = [[200, 400], [0.25, 0.75], [0.9, 1.0], [0.5, 0.8], [0, 12], [0.01, 5], [0.01, 100],
                               [5.148136e-9*200, 5.148136e-9*400], [0, 100], [0, 2000]]
 

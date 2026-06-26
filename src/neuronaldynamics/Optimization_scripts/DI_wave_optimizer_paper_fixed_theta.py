@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
 
         model_parameters = ['intensity', 'fraction_nmda', 'fraction_gaba_a', 'fraction_ex', 'pdf_offset', 'pdf_sigma',
-                             'current_sigma']
+                             'voltage_sigma']
         model_parameter_bounds = [[200, 400], [0.25, 0.75], [0.9, 1.0], [0.2, 0.8], [0, 12], [0.1, 15], [0, 15]]
 
         opt_parameters = parameters.copy()

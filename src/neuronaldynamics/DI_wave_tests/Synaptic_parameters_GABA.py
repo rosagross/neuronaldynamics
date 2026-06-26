@@ -74,7 +74,7 @@ if simulate:
                                         'dv': dv,
                                         'dt': dt,
                                         'solver': 'Hu-2021',
-                                        'current_sigma': 4,
+                                        'voltage_sigma': 4,
                                         'verbose': 0,
                                         'tqdm_disable': True}}
 

@@ -104,7 +104,7 @@ parameters = {'intensity': 250, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.95, 
                                     'dv': dv,
                                     'dt': dt,
                                     'solver': 'Hu-2021',
-                                    'current_sigma': 4,
+                                    'voltage_sigma': 4,
                                     'verbose': 1}}
 pa_100 = []
 pa_110 = []

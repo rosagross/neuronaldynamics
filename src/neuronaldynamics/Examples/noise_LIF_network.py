@@ -52,8 +52,8 @@ lif.run()
 
 t_NMM = np.arange(0, T, 0.01)
 input_current = step(t_NMM)
-# good fit: 'current_factor': 0.605e-6, 'current_sigma': 4
-nmm_parameters = {'T': T, 'dt': 0.01, 'dv': 0.01, 'tau_mem': [20], 'tau_ref': [0], 'current_sigma': 0.4,
+# good fit: 'current_factor': 0.605e-6, 'voltage_sigma': 4
+nmm_parameters = {'T': T, 'dt': 0.01, 'dv': 0.01, 'tau_mem': [20], 'tau_ref': [0], 'voltage_sigma': 0.4,
                   'input_function': input_current, 'input_type': 'stochastic-current', 'solver': 'hu-2021',
                   'current_factor': 0.605e-6, 'static_noise': True, 'connectivity_matrix': np.array([[0]]),
                   'init_pdf_weight': 0, 'init_pdf_sigma': 3, 'init_pdf_offset': 5}

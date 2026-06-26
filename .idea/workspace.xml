@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[ADD]: added another WIP goal func for optimizer to test paired pulse params">
+    <list default="true" id="9b51d629-3369-4813-b853-c56b9a2681df" name="Changes" comment="[UPD] continuation of vectorized version of FPE_population computation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/DI_model_vec_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Hu_solver_test_DI.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Hu_solver_test_DI.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Paired_pulse_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Examples/Paired_pulse_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -36,26 +36,10 @@
     &quot;assignee&quot;: &quot;erikjackmueller&quot;
   }
 }</component>
-  <component name="GitLabMergeRequestFiltersHistory">{
-  &quot;lastFilter&quot;: {
-    &quot;state&quot;: &quot;OPENED&quot;,
-    &quot;assignee&quot;: {
-      &quot;type&quot;: &quot;org.jetbrains.plugins.gitlab.mergerequest.ui.filters.GitLabMergeRequestsFiltersValue.MergeRequestsMemberFilterValue.MergeRequestsAssigneeFilterValue&quot;,
-      &quot;username&quot;: &quot;ermu8317&quot;,
-      &quot;fullname&quot;: &quot;Erik Müller&quot;
-    }
-  }
-}</component>
-  <component name="GitLabMergeRequestsSettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;first&quot;: &quot;https://gitlab.tu-ilmenau.de/ermu8317/neuronaldynamics&quot;,
-    &quot;second&quot;: &quot;39e3b9a2-1d87-4922-98fd-bd1490fcbce8&quot;
-  }
-}</component>
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/erikjackmueller/neuronaldynamics&quot;,
-    &quot;accountId&quot;: &quot;76a2d9f5-bd17-4684-ba1e-f9d42c340310&quot;
+    &quot;url&quot;: &quot;https://github.com/erikjackmueller/neuronaldynamics.git&quot;,
+    &quot;accountId&quot;: &quot;e6e3cd32-a280-4929-9938-e5eb5b38a3d3&quot;
   }
 }</component>
   <component name="ProjectColorInfo">{
@@ -66,41 +50,41 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.CNS_2026_FPE_version.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.DI_model_vec_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.DI_wave_optimizer_GA_hp.executor&quot;: &quot;Run&quot;,
-    &quot;Python.DI_wave_optimizer_paper_hp.executor&quot;: &quot;Run&quot;,
-    &quot;Python.Hu_solver_test_DI (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.Hu_solver_test_DI.executor&quot;: &quot;Run&quot;,
-    &quot;Python.I_wave_peak_differences.executor&quot;: &quot;Run&quot;,
-    &quot;Python.Paired_pulse_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.Time_series_opt_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.fib_run_all_local_copy (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.fib_run_all_local_copy (2).executor&quot;: &quot;Run&quot;,
-    &quot;Python.fib_run_all_local_copy.executor&quot;: &quot;Debug&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/erik/PycharmProjects/neuronaldynamics/src/neuronaldynamics/Examples&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.gitlab.GitLabSettingsConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.CNS_2026_FPE_version.executor": "Debug",
+    "Python.DI_model_vec_test.executor": "Run",
+    "Python.DI_wave_optimizer_GA_hp.executor": "Run",
+    "Python.DI_wave_optimizer_paper_hp.executor": "Run",
+    "Python.Hu_solver_test_DI (1).executor": "Run",
+    "Python.Hu_solver_test_DI.executor": "Run",
+    "Python.I_wave_peak_differences.executor": "Run",
+    "Python.Paired_pulse_test.executor": "Run",
+    "Python.Time_series_opt_test.executor": "Run",
+    "Python.fib_run_all_local_copy (1).executor": "Run",
+    "Python.fib_run_all_local_copy (2).executor": "Run",
+    "Python.fib_run_all_local_copy.executor": "Debug",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/erik/PycharmProjects/neuronaldynamics",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "org.jetbrains.plugins.gitlab.GitLabSettingsConfigurable"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
-      &quot;Python&quot;
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "Python"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/neuronaldynamics/Examples" />
@@ -110,7 +94,7 @@
       <recent name="$PROJECT_DIR$/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.Paired_pulse_test">
+  <component name="RunManager" selected="Python.Hu_solver_test_DI (1)">
     <configuration name="CNS_2026_FPE_version" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="neuronaldynamics" />
       <option name="ENV_FILES" value="" />
@@ -233,9 +217,9 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.Paired_pulse_test" />
         <item itemvalue="Python.Hu_solver_test_DI (1)" />
         <item itemvalue="Python.DI_model_vec_test" />
+        <item itemvalue="Python.Paired_pulse_test" />
         <item itemvalue="Python.CNS_2026_FPE_version" />
         <item itemvalue="Python.DI_wave_optimizer_paper_hp" />
       </list>
@@ -244,7 +228,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-c59985aa861c-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.24374.152" />
+        <option value="bundled-python-sdk-024ed6589d45-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.23567.174" />
       </set>
     </attachedChunks>
   </component>
@@ -344,31 +328,7 @@
       <option name="project" value="LOCAL" />
       <updated>1780416811225</updated>
     </task>
-    <task id="LOCAL-00012" summary="[UPD] vectorized harm_mean function in Nykamp_model1 and FPE_population.simulate_set()&#10;cuts sim time in half">
-      <option name="closed" value="true" />
-      <created>1780497960615</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1780497960615</updated>
-    </task>
-    <task id="LOCAL-00013" summary="[ADD]: started work on simulate_set optimizer, still WIP though!">
-      <option name="closed" value="true" />
-      <created>1780499287153</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1780499287153</updated>
-    </task>
-    <task id="LOCAL-00014" summary="[ADD]: added another WIP goal func for optimizer to test paired pulse params">
-      <option name="closed" value="true" />
-      <created>1780499777233</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1780499777233</updated>
-    </task>
-    <option name="localTasksCounter" value="15" />
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -384,27 +344,24 @@
     <MESSAGE value="[UPD] continuation of vectorized version of FPE_population computation" />
     <MESSAGE value="[UPD] finished vectorized version of DI_wave model simulation, takes lots of RAM, bad on PCs with low RAM" />
     <MESSAGE value="[FIX] fixed major error in simulation set computation" />
-    <MESSAGE value="[UPD] vectorized harm_mean function in Nykamp_model1 and FPE_population.simulate_set()&#10;cuts sim time in half" />
-    <MESSAGE value="[ADD]: started work on simulate_set optimizer, still WIP though!" />
-    <MESSAGE value="[ADD]: added another WIP goal func for optimizer to test paired pulse params" />
-    <option name="LAST_COMMIT_MESSAGE" value="[ADD]: added another WIP goal func for optimizer to test paired pulse params" />
+    <option name="LAST_COMMIT_MESSAGE" value="[FIX] fixed major error in simulation set computation" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Optimizers/Optimizer.py</url>
-          <line>54</line>
+          <line>53</line>
           <option name="timeStamp" value="4" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Optimizers/Optimizer.py</url>
-          <line>356</line>
+          <line>299</line>
           <option name="timeStamp" value="9" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Optimizers/Optimizer.py</url>
-          <line>76</line>
+          <line>75</line>
           <option name="timeStamp" value="11" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -414,13 +371,23 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2043</line>
+          <line>2046</line>
           <option name="timeStamp" value="37" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
-          <line>2199</line>
-          <option name="timeStamp" value="82" />
+          <line>2146</line>
+          <option name="timeStamp" value="81" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Model/Nykamp_Model.py</url>
+          <line>1262</line>
+          <option name="timeStamp" value="85" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/neuronaldynamics/Examples/Hu_solver_test_DI.py</url>
+          <line>177</line>
+          <option name="timeStamp" value="86" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

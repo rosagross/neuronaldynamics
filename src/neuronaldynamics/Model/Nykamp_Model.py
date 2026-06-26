@@ -771,7 +771,7 @@ class Nykamp_Model_1():
         self.verbose = 0
         self.solver = 'nykamp'
         self.implemented_pdf_types = ['gamma', 'normal', 'log-normal']
-        self.current_sigma = 0.1
+        self.voltage_sigma = 5
         self.init_pdf_offset = 0
         self.init_pdf_sigma = 0.1
         self.static_noise = False
@@ -861,11 +861,11 @@ class Nykamp_Model_1():
                     self.input[self.input_function_idx[0], self.input_function_idx[1]] = self.input_function(t=self.t)
         elif self.input_type in ['current', 'current-2', 'stochastic-current']:
             self.i_ext[self.input_function_idx] = self.input_function(self.t) * self.current_factor
-            if not isinstance(self.current_sigma, np.ndarray):
+            if not isinstance(self.voltage_sigma, np.ndarray):
                 if self.static_noise:
-                    self.current_sigma = np.tile(self.current_sigma, (self.n_populations, self.t.shape[0]))
+                    self.voltage_sigma = np.tile(self.voltage_sigma, (self.n_populations, self.t.shape[0]))
                 else:
-                    self.current_sigma = self.current_sigma*self.i_ext
+                    self.voltage_sigma = self.voltage_sigma*self.i_ext
 
 
         if self.verbose > 1:
@@ -1065,7 +1065,7 @@ class Nykamp_Model_1():
                         # Additional external coefficients and pdfs to handle random current input with mean and variance
                         ################################################################################################
                         v_ext = self.i_ext[j, i] / self.g_leak[j] * 1e3  # conversion from V to mV
-                        sigma = self.current_sigma[j, i]**2/self.tau_mem[j]
+                        sigma = self.voltage_sigma[j, i]**2/self.tau_mem[j]
                         v_shape = self.v.shape[0]
                         self.c1eext = np.repeat(v_ext /self.tau_mem[j], v_shape)
                         self.c1eext_v = 0
@@ -1863,7 +1863,7 @@ class FPE_Population():
         self.verbose = 0
         self.solver = 'hu-2021'
         self.implemented_pdf_types = ['gamma', 'normal', 'log-normal']
-        self.current_sigma = 0.1
+        self.voltage_sigma = 0.1
         self.init_pdf_offset = 0
         self.init_pdf_sigma = 0.1
         self.init_pdf_weight = 0
@@ -1920,11 +1920,11 @@ class FPE_Population():
             self.input_function = lambda x: input_function_copy  # hotfix that just returns the array for any input
         # define external input current
         self.i_ext[self.input_function_idx] = self.input_function(self.t)
-        if not isinstance(self.current_sigma, np.ndarray):
+        if not isinstance(self.voltage_sigma, np.ndarray):
             if self.static_noise:
-                self.current_sigma = np.tile(self.current_sigma, (self.n_populations, self.t.shape[0]))
+                self.voltage_sigma = np.tile(self.voltage_sigma, (self.n_populations, self.t.shape[0]))
             else:
-                self.current_sigma = self.current_sigma * self.i_ext
+                self.voltage_sigma = self.voltage_sigma * self.i_ext
         self.r = None
         # TODO: r needed?
 
@@ -2115,9 +2115,9 @@ class FPE_Population():
         self.i_ext = np.zeros([self.n_populations, self.n_simulations,  self.t.shape[0]])
         self.i_ext[self.input_function_idx] = self.input_function
         if self.static_noise:
-            self.current_sigma = np.tile(self.current_sigma, (self.n_simulations * self.n_populations, self.t.shape[0]))
+            self.voltage_sigma = np.tile(self.voltage_sigma, (self.n_simulations * self.n_populations, self.t.shape[0]))
         else:
-            self.current_sigma = self.current_sigma * self.i_ext
+            self.voltage_sigma = self.voltage_sigma * self.i_ext
         self.r = None
         # TODO: r needed?
 
@@ -2203,7 +2203,7 @@ class FPE_Population():
                     lower = np.zeros(self.n_simulations * Nx - 1)
                     upper = np.zeros(self.n_simulations * Nx - 1)
                     # TODO: change to vector self.tau_mem at some point
-                    diffusion_coeff = self.current_sigma[:, i]**2 / self.tau_mem
+                    diffusion_coeff = self.voltage_sigma[:, i]**2 / self.tau_mem
 
                     # ensure minimal diffusion coeff for numerical stability, in case of no drift input
                     diffusion_coeff[diffusion_coeff < 1e-3] = 1e-3

@@ -51,7 +51,7 @@ class DI_wave_simulation():
         self.pdf_offset = 0
         self.pdf_sigma = 1
         self.pdf_weight = 1
-        self.current_sigma = 10
+        self.voltage_sigma = 10
         self.g_eext_factor = 1
         self.c_eext1_factor = 1
         self.c_eext2_factor = 1
@@ -98,7 +98,7 @@ class DI_wave_simulation():
                                       'dt': self.dt, 'T': self.T, 'sparse_mat': True, 'g_eext_factor': self.g_eext_factor,
                                       'c_eext1_factor': self.c_eext1_factor, 'c_eext2_factor': self.c_eext2_factor,
                                       'init_pdf_offset': self.pdf_offset, 'init_pdf_sigma': self.pdf_sigma,
-                                      'init_pdf_weight': self.pdf_weight, 'current_sigma': self.current_sigma,
+                                      'init_pdf_weight': self.pdf_weight, 'voltage_sigma': self.voltage_sigma,
                                       'solver': 'hu-2021'}
 
             self.create_coords()
@@ -134,7 +134,7 @@ class DI_wave_simulation():
             # TODO: maybe integrate into DI-wave class?
             # assert type(self.pdf_offset) == np.ndarray, 'please provide correct data type (np.ndarray)'
             # assert type(self.pdf_sigma) == np.ndarray, 'please provide correct data type (np.ndarray)'
-            # assert type(self.current_sigma) == np.ndarray, 'please provide correct data type (np.ndarray)'
+            # assert type(self.voltage_sigma) == np.ndarray, 'please provide correct data type (np.ndarray)'
 
             self.n_simulations = self.theta.shape[0]
             self.gradient = np.repeat(self.gradient, self.n_simulations) # not accounted for as of now
@@ -154,7 +154,7 @@ class DI_wave_simulation():
                                       'dt': self.dt, 'T': self.T, 'sparse_mat': True, 'g_eext_factor': self.g_eext_factor,
                                       'c_eext1_factor': self.c_eext1_factor, 'c_eext2_factor': self.c_eext2_factor,
                                       'init_pdf_offset': self.pdf_offset, 'init_pdf_sigma': self.pdf_sigma,
-                                      'init_pdf_weight': self.pdf_weight, 'current_sigma': self.current_sigma}
+                                      'init_pdf_weight': self.pdf_weight, 'voltage_sigma': self.voltage_sigma}
 
             self.create_coords()
             self.update_gpc_time()

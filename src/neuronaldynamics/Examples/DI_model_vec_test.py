@@ -18,15 +18,15 @@ T = 14
 t = np.arange(0, T, dt)
 Nt = t.shape[0]
 
-fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
-hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
+# fn_session = 'C:\\Users\\User\\Downloads\\gpc.pkl'
+# hdf5_path = "C:\\Users\\User\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 
 # fn_session = 'C:\\Users\\emueller\\Downloads\\gpc.pkl'
 # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data_detrended.hdf5"
 # hdf5_path = "C:\\Users\\emueller\\Nextcloud\\TMS Neuro Projects\\M1_modeling\\DI_wave_data\\extracted_DI_waves\\DiLazarro_di_wave_data.hdf5"
 
-# fn_session = '/home/erik/Downloads/gpc.pkl'
-# hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
+fn_session = '/home/erik/Downloads/gpc.pkl'
+hdf5_path = "/home/erik/Nextcloud_Uni/TMS Neuro Projects/M1_modeling/DI_wave_data/extracted_DI_waves/DiLazarro_di_wave_data.hdf5"
 
 # fn_session = '/data/pt_01756/studies/DI_wave_modeling/TMS-coupling-model_gpc/gpc.pkl'
 # hdf5_path = '/data/pt_01756/studies/DI_wave_modeling/DI_wave_data/DiLazarro_di_wave_data.hdf5'
@@ -83,7 +83,7 @@ theta = np.repeat([0], n)
 fraction_ex = np.repeat([0.6], n)
 fraction_gaba_a = np.repeat([0.95], n)
 fraction_nmda = np.repeat([0.61], n)
-current_sigma = np.repeat([6], n)
+voltage_sigma = np.repeat([6], n)
 init_pdf_sigma = np.repeat([2.5], n)
 init_pdf_offset = np.repeat([0], n)
 
@@ -105,7 +105,7 @@ parameters = {'intensity': intensitiy, 'fraction_nmda': fraction_nmda, 'fraction
                                     'dv': dv,
                                     'dt': dt,
                                     'solver': 'Hu-2021',
-                                    'current_sigma': current_sigma,
+                                    'voltage_sigma': voltage_sigma,
                                     'verbose': 1}}
 di_model = DI_wave_simulation(parameters=parameters, logname=None)
 

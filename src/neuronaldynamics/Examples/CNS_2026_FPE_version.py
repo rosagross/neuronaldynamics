@@ -48,7 +48,7 @@ parameters = {'intensity': 250, 'fraction_nmda': 0.61, 'fraction_gaba_a': 0.95, 
                                     'dv': dv,
                                     'dt': dt,
                                     'solver': 'Hu-2021',
-                                    'current_sigma': 12,
+                                    'voltage_sigma': 12,
                                     'verbose': 1}}
 
 

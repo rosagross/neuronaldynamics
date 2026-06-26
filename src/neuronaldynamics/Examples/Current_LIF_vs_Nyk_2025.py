@@ -91,7 +91,7 @@ pars_1D['T'] = T
 pars_1D['c_eext2_factor'] = 1# 0.0001
 pars_1D['init_pdf_sigma'] = 0.1# 0.0001
 pars_1D['sparse_mat'] = True
-pars_1D['current_sigma'] = 5e1
+pars_1D['voltage_sigma'] = 10
 pars_1D['g_eext_factor'] = 1
 
 
